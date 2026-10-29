@@ -1,0 +1,9 @@
+{
+  "id": "pareno",
+  "name": "PARENO",
+  "version": "0.1.0",
+  "minAppVersion": "1.5.0",
+  "description": "Translate, review, and learn from Chinese and English writing in a contextual sidebar.",
+  "author": "ArchIntera",
+  "isDesktopOnly": false
+}

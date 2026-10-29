@@ -1,0 +1,81 @@
+.bwc-panel {
+  --bwc-gap: 12px;
+  padding: 14px 16px 28px;
+  overflow-y: auto;
+  height: 100%;
+  color: var(--text-normal);
+  font-size: var(--font-ui-small);
+}
+
+.bwc-panel h3 { margin: 2px 0 2px; font-size: 17px; }
+.bwc-panel h4 { font-size: 13px; margin: 18px 0 8px; }
+.bwc-subtitle, .bwc-hint, .bwc-empty, .bwc-status {
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+.bwc-subtitle { margin: 0 0 16px; font-size: 12px; }
+.bwc-empty { padding: 10px 2px; }
+.bwc-hint { font-size: 11px; }
+.bwc-tabs { display: flex; gap: 4px; margin: 0 0 14px; }
+.bwc-tabs button {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 6px 4px;
+  border: 0;
+  box-shadow: none;
+  border-radius: 7px;
+  color: var(--text-muted);
+  background: var(--background-secondary);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.bwc-tabs button:hover { color: var(--text-normal); background: var(--background-modifier-hover); }
+.bwc-tabs button.bwc-tab-active {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
+.bwc-section {
+  padding: 10px 12px;
+  margin-bottom: var(--bwc-gap);
+  border-radius: 9px;
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-primary-alt);
+}
+.bwc-section-label {
+  color: var(--text-muted);
+  font-size: 11px;
+  letter-spacing: .02em;
+  margin-bottom: 8px;
+}
+.bwc-section-body {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.7;
+  user-select: text;
+}
+.bwc-issue-card {
+  padding: 11px 12px;
+  margin-bottom: 8px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 9px;
+}
+.bwc-issue-card p { margin: 6px 0 0; color: var(--text-muted); line-height: 1.6; }
+.bwc-issue-change { padding-top: 6px; font-weight: 500; overflow-wrap: anywhere; }
+.bwc-kind { font-size: 10px; font-weight: 600; letter-spacing: .04em; }
+.bwc-kind-grammar { color: var(--text-error); }
+.bwc-kind-style { color: var(--text-accent); }
+.bwc-kind-wording { color: var(--text-muted); }
+.bwc-actions { display: flex; flex-wrap: wrap; gap: 7px; margin: 16px 0 10px; }
+.bwc-actions button { flex: 1 1 45%; min-width: 0; padding: 8px 6px; font-size: 11px; }
+.bwc-error {
+  padding: 10px;
+  border-radius: 8px;
+  background: var(--background-modifier-error);
+  color: var(--text-error);
+  overflow-wrap: anywhere;
+}
+.bwc-inline-issue { cursor: pointer; text-decoration-line: underline; text-decoration-style: wavy; text-underline-offset: 3px; }
+.bwc-inline-grammar { text-decoration-color: var(--text-error); }
+.bwc-inline-style { text-decoration-color: var(--text-accent); }
+.bwc-inline-wording { text-decoration-color: var(--text-warning); }
