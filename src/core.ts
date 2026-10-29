@@ -1,4 +1,4 @@
-export type CoachMode = 'review' | 'translate' | 'explain';
+export type CoachMode = 'review' | 'translate' | 'explain' | 'voice';
 export type IssueKind = 'grammar' | 'style' | 'wording';
 
 export interface CoachIssue {
@@ -20,6 +20,23 @@ export interface CoachResult {
   };
 }
 
+export interface PangramWindow {
+  text: string;
+  label: string;
+  confidence: string;
+  startIndex: number;
+  endIndex: number;
+}
+
+export interface PangramReport {
+  headline: string;
+  prediction: string;
+  fractionHuman: number;
+  fractionAssisted: number;
+  fractionAI: number;
+  windows: PangramWindow[];
+}
+
 const MAX_INPUT = 3500;
 
 export function validateSelection(value: string): string {
@@ -28,10 +45,29 @@ export function validateSelection(value: string): string {
   return value;
 }
 
+export function articleTextForDetection(markdown: string): string {
+  return markdown
+    .replace(/^---\r?\n[\s\S]*?\r?\n---(?:\r?\n|$)/, '')
+    .replace(/^```[^\n]*\n[\s\S]*?^```\s*$/gm, '')
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    .replace(/\[\[([^\]|]+)\|([^\]]+)\]\]/g, '$2')
+    .replace(/\[\[([^\]]+)\]\]/g, '$1')
+    .replace(/^\s{0,3}#{1,6}\s+/gm, '')
+    .replace(/^\s{0,3}>\s?/gm, '')
+    .replace(/(\*\*|__)(.*?)\1/g, '$2')
+    .replace(/(?<!\*)\*([^*\n]+)\*(?!\*)/g, '$1')
+    .replace(/`([^`\n]+)`/g, '$1')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 export function buildMessages(mode: CoachMode, source: string, register: string): Array<{ role: string; content: string }> {
   const direction = /[\u3400-\u9fff]/u.test(source) ? 'Chinese to English' : 'English to Chinese';
   const task = mode === 'translate'
     ? `Translate ${direction}. The minimal field is a faithful translation. The natural field is fluent ${direction.endsWith('English') ? 'English' : 'Chinese'} in a ${register} register. Explain one or two important choices in Simplified Chinese. Do not invent facts.`
+    : mode === 'voice'
+      ? `Review the author's own voice and editorial quality in this ${register} writing. Identify only specific generic claims, repetitive transitions, vague assertions, or unnecessarily polished wording with exact quoted spans. Do not guess whether AI wrote the text, produce an AI-detection percentage, or promise to bypass detectors. Prefer precise claims, the author's firsthand details, and honest uncertainty. Minimal preserves almost all of the draft and corrects clear issues. Natural improves flow while preserving the author's personal voice, facts, names, and citations. Explain changes in Simplified Chinese. If the text is already concrete and personal, say so and leave it unchanged.`
     : mode === 'review'
       ? `Proofread the selected writing in a ${register} register. Minimal must correct only genuine mistakes. Natural may improve expression without changing meaning. Include precise issue spans copied verbatim from the source, their replacements, and concise Chinese explanations. Do not classify valid variants as grammar errors. Preserve names, numbers, quotations, and citations.`
       : `Explain the selected text in Simplified Chinese, including grammar, structure, vocabulary, and one reusable example. Keep minimal and natural equal to the source unless an actual error requires a correction.`;
@@ -48,6 +84,47 @@ export function buildMessages(mode: CoachMode, source: string, register: string)
     { role: 'system', content: instruction },
     { role: 'user', content: `Selected text:\n${source}` }
   ];
+}
+
+export function parsePangramReport(payload: unknown): PangramReport {
+  if (!payload || typeof payload !== 'object') throw new Error('Pangram returned an invalid report.');
+  const record = payload as Record<string, unknown>;
+  if (record.stage !== 'STAGE_SUCCESS') throw new Error('Pangram did not finish the scan successfully.');
+  const fraction = (name: string): number => {
+    const value = record[name];
+    if (typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > 1) {
+      throw new Error(`Pangram report is missing ${name}.`);
+    }
+    return value;
+  };
+  const windows: PangramWindow[] = Array.isArray(record.windows)
+    ? record.windows.slice(0, 200).flatMap(raw => {
+      if (!raw || typeof raw !== 'object') return [];
+      const window = raw as Record<string, unknown>;
+      if (typeof window.text !== 'string' || typeof window.label !== 'string') return [];
+      return [{
+        text: window.text,
+        label: window.label,
+        confidence: typeof window.confidence === 'string' ? window.confidence : '',
+        startIndex: typeof window.start_index === 'number' ? window.start_index : -1,
+        endIndex: typeof window.end_index === 'number' ? window.end_index : -1
+      }];
+    }) : [];
+  return {
+    headline: typeof record.headline === 'string' ? record.headline : 'Pangram report',
+    prediction: typeof record.prediction === 'string' ? record.prediction : '',
+    fractionHuman: fraction('fraction_human'),
+    fractionAssisted: fraction('fraction_ai_assisted'),
+    fractionAI: fraction('fraction_ai'),
+    windows
+  };
+}
+
+export function flaggedPangramWindows(report: PangramReport): PangramWindow[] {
+  return report.windows.filter(window => {
+    const label = window.label.toLowerCase();
+    return !label.includes('human') && (label.includes('ai') || label.includes('assisted'));
+  });
 }
 
 function readTextContent(value: unknown): string {

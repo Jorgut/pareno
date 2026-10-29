@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildMessages, parseCoachResponse, findIssueRanges, makeLearningMarkdown, validateSelection } from '../src/core.ts';
+import { articleTextForDetection, buildMessages, parseCoachResponse, parsePangramReport, flaggedPangramWindows, findIssueRanges, makeLearningMarkdown, validateSelection } from '../src/core.ts';
 
 test('review instructions preserve meaning and request exact spans', () => {
   const messages = buildMessages('review', 'I have been research.', 'professional');
@@ -11,6 +11,40 @@ test('review instructions preserve meaning and request exact spans', () => {
 
 test('translation detects Chinese input', () => {
   assert.match(buildMessages('translate', '最近我在研究空间设计。', 'podcast')[0].content, /Chinese to English/);
+});
+
+test('voice review preserves personal style and never claims AI detection', () => {
+  const prompt = buildMessages('voice', 'I visited Danba last month.', 'professional')[0].content;
+  assert.match(prompt, /author's own voice/);
+  assert.match(prompt, /Do not guess whether AI wrote/);
+});
+
+test('Pangram result keeps real class fractions and marked segments', () => {
+  const report = parsePangramReport({
+    stage: 'STAGE_SUCCESS', headline: 'Mixed', prediction: 'Mixed human and AI-assisted',
+    fraction_human: 0.6, fraction_ai_assisted: 0.3, fraction_ai: 0.1,
+    windows: [
+      { text: 'I visited Danba.', label: 'Human', confidence: 'High', start_index: 0, end_index: 15 },
+      { text: 'It is important to note', label: 'AI-Generated', confidence: 'Medium', start_index: 16, end_index: 39 }
+    ]
+  });
+  assert.equal(report.fractionHuman, 0.6);
+  assert.equal(report.fractionAI, 0.1);
+  assert.equal(flaggedPangramWindows(report).length, 1);
+  assert.equal(flaggedPangramWindows(report)[0].text, 'It is important to note');
+});
+
+test('Pangram report rejects incomplete or failed responses', () => {
+  assert.throws(() => parsePangramReport({ stage: 'STAGE_FAILED' }), /did not finish/);
+  assert.throws(() => parsePangramReport({ stage: 'STAGE_SUCCESS', fraction_human: 1 }), /missing fraction_ai_assisted/);
+});
+
+test('article scan ignores Obsidian metadata and image markup', () => {
+  const source = '---\ntags: [draft]\n---\n# A personal essay\n\nI visited **Danba**. [My notes](https://example.org)\n\n![Photo](photo.jpg)';
+  const text = articleTextForDetection(source);
+  assert.match(text, /^A personal essay/);
+  assert.match(text, /I visited Danba\. My notes/);
+  assert.doesNotMatch(text, /tags:|photo\.jpg|example\.org|\*\*/);
 });
 
 test('parse structured model response and issue range', () => {

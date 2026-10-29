@@ -79,3 +79,18 @@
 .bwc-inline-grammar { text-decoration-color: var(--text-error); }
 .bwc-inline-style { text-decoration-color: var(--text-accent); }
 .bwc-inline-wording { text-decoration-color: var(--text-warning); }
+.bwc-pangram {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 9px;
+  background: var(--background-secondary);
+}
+.bwc-pangram summary { cursor: pointer; font-weight: 600; font-size: 12px; }
+.bwc-pangram[open] summary { margin-bottom: 10px; }
+.bwc-scan-button { margin: 8px 0; width: 100%; }
+.bwc-pangram-headline { font-weight: 600; margin: 10px 0; }
+.bwc-pangram-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.bwc-pangram-stat { display: flex; flex-direction: column; gap: 2px; padding: 8px 4px; border-radius: 6px; background: var(--background-primary); text-align: center; }
+.bwc-pangram-stat strong { font-size: 15px; }
+.bwc-pangram-stat span { font-size: 10px; color: var(--text-muted); }

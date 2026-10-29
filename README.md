@@ -16,6 +16,8 @@ This repository contains a working first-version plugin, not a published Communi
 - Save notes to `PARENO/Learning Log.md` inside the vault.
 - Optional automatic review of the current paragraph after a typing pause. **Off by default.**
 - OpenAI-compatible Chat Completions endpoints and local Ollama support.
+- Review your author voice for generic phrasing, repetitive transitions, and vague claims without guessing who wrote the text.
+- Optionally scan the **entire current note** with the official Pangram text-detection API, then inspect its human / AI-assisted / AI-generated estimates and flagged text windows.
 
 ## Install in Obsidian
 
@@ -40,10 +42,18 @@ Run Ollama and keep the plugin endpoint as `http://localhost:11434/v1/chat/compl
 
 Choose **OpenAI-compatible API**, enter a Chat Completions endpoint, a model ID, and an API key. API access is billed separately from a ChatGPT subscription. Selected text is sent to your configured provider when you request an analysis. API keys are saved in your vault's plugin settings; do not publish or commit those settings.
 
+### Review author voice and detect AI-assisted writing
+
+**Author Voice** is a writing-quality review in PARENO. Select an English paragraph and click **作者风格** in the sidebar, or use the **Audit author voice** command. The configured writing model identifies specific generic claims, repetitive transitions, and weak detail. This is editorial feedback, **not an AI classifier**. PARENO does not generate a fake detection percentage or promise any particular outcome on Substack.
+
+**Pangram Scan** calls Pangram's actual classification API. Obtain a separate API key and credits through [Pangram](https://www.pangram.com/pricing), then add the key in **Settings → Community plugins → PARENO → Pangram API key**. Open an Obsidian article, expand **Pangram · AI 文本检测** in the sidebar, and choose **检测整篇文章**. A scan is performed only when you click, and each request may incur Pangram charges. PARENO prepares the current note as article text (removing Markdown metadata and formatting), sends that text directly to Pangram, polls its task endpoint, and displays the real result and marked windows. It does not expose a public report link. The result might differ from the classifier or version used in the Substack Reader.
+
+Substack's [official AI transparency help](https://support.substack.com/hc/en-us/articles/50891130623508-How-can-I-detect-AI-on-Substack) describes its Pangram integration, options for reporting false positives, and the creator's **How I make this** statement. Detector percentages are estimates and do not prove actual authorship.
+
 ## Everyday workflow
 
 1. Select text in an Obsidian Markdown note. If nothing is selected, put the cursor in a paragraph.
-2. Use the right-click editor menu, or the command palette: **PARENO: Review / Translate / Explain**.
+2. Use the right-click editor menu, sidebar, or command palette: **PARENO: Review / Translate / Explain / Author voice review**.
 3. Inspect the result in the sidebar. No text is replaced automatically.
 4. Apply a minimal or natural revision, or insert the translated text beneath its source.
 5. Save a learning card when a correction teaches you something useful.
@@ -70,8 +80,9 @@ This first version does **not** perform Word/DOCX import or export. That belongs
 ### Privacy and data handling
 
 - By default, automatic review is disabled.
-- Requests include only the selected text or current paragraph and task instructions, not the whole vault.
-- Manual or automatic analysis sends text to the provider configured in settings.
+- Writing-model requests include only the selected text or current paragraph and task instructions, not the whole vault.
+- Manual or automatic writing analysis sends text to the model provider configured in settings.
+- Optional Pangram scans send the **whole current note** to Pangram only after clicking the scan button. They are not automatic, and are billed according to your Pangram API plan.
 - The learning log stays inside the local vault unless the user syncs it.
 - The plugin does not collect analytics or send background telemetry.
 

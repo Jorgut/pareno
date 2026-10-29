@@ -5,8 +5,9 @@ import {
 import { Decoration, DecorationSet, EditorView } from '@codemirror/view';
 import { StateEffect, StateField } from '@codemirror/state';
 import {
-  buildMessages, CoachMode, CoachResult, findIssueRanges,
-  makeLearningMarkdown, parseCoachResponse, validateSelection
+  articleTextForDetection, buildMessages, CoachMode, CoachResult, PangramReport, flaggedPangramWindows,
+  findIssueRanges, makeLearningMarkdown, parseCoachResponse, parsePangramReport,
+  validateSelection
 } from './core';
 
 const PANEL_TYPE = 'pareno-panel';
@@ -19,6 +20,7 @@ interface CoachSettings {
   endpoint: string;
   model: string;
   apiKey: string;
+  pangramApiKey: string;
   register: 'professional' | 'conversational' | 'podcast';
   autoReview: boolean;
   autoDelay: number;
@@ -29,6 +31,7 @@ const DEFAULT_SETTINGS: CoachSettings = {
   endpoint: 'http://localhost:11434/v1/chat/completions',
   model: 'qwen2.5:7b',
   apiKey: '',
+  pangramApiKey: '',
   register: 'professional',
   autoReview: false,
   autoDelay: 3000
@@ -85,6 +88,10 @@ export default class ParenoPlugin extends Plugin {
   private requestVersion = 0;
   private autoTimer?: ReturnType<typeof setTimeout>;
   private lastAutoSource = '';
+  private pangramVersion = 0;
+  private pangramPending = false;
+  private pangramError = '';
+  private pangramReport?: { filePath: string; source: string; report: PangramReport };
 
   async onload(): Promise<void> {
     this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
@@ -106,7 +113,8 @@ export default class ParenoPlugin extends Plugin {
     const commands: Array<{ mode: CoachMode; id: string; name: string }> = [
       { mode: 'review', id: 'review-selection', name: 'Review selected text / current paragraph' },
       { mode: 'translate', id: 'translate-selection', name: 'Translate selected text / current paragraph' },
-      { mode: 'explain', id: 'explain-selection', name: 'Explain selected text / current paragraph' }
+      { mode: 'explain', id: 'explain-selection', name: 'Explain selected text / current paragraph' },
+      { mode: 'voice', id: 'voice-audit-selection', name: 'Audit author voice in selected text / current paragraph' }
     ];
     for (const command of commands) {
       this.addCommand({
@@ -119,6 +127,7 @@ export default class ParenoPlugin extends Plugin {
       });
     }
     this.addCommand({ id: 'open-sidebar', name: 'Open PARENO sidebar', callback: () => { void this.openPanel(); } });
+    this.addCommand({ id: 'pangram-scan-note', name: 'Scan current note with Pangram AI detector', callback: () => { void this.scanCurrentNote(); } });
 
     this.registerEvent(this.app.workspace.on('editor-menu', (menu, editor, view) => {
       if (!(view instanceof MarkdownView)) return;
@@ -128,6 +137,8 @@ export default class ParenoPlugin extends Plugin {
         .onClick(() => { void this.analyze('translate', this.capture(editor, view)); }));
       menu.addItem(item => item.setTitle('PARENO: Explain').setIcon('book-open')
         .onClick(() => { void this.analyze('explain', this.capture(editor, view)); }));
+      menu.addItem(item => item.setTitle('PARENO: Author voice review').setIcon('pen-line')
+        .onClick(() => { void this.analyze('voice', this.capture(editor, view)); }));
     }));
 
     this.registerEvent(this.app.workspace.on('editor-change', (editor, view) => {
@@ -151,6 +162,7 @@ export default class ParenoPlugin extends Plugin {
   onunload(): void {
     if (this.autoTimer) clearTimeout(this.autoTimer);
     this.requestVersion++;
+    this.pangramVersion++;
   }
 
   async saveSettings(): Promise<void> { await this.saveData(this.settings); }
@@ -247,6 +259,78 @@ export default class ParenoPlugin extends Plugin {
   }
 
   getAnalysis(): Analysis | undefined { return this.analysis; }
+  private currentMarkdownView(): MarkdownView | undefined {
+    return this.app.workspace.getActiveViewOfType(MarkdownView) ??
+      this.app.workspace.getLeavesOfType('markdown')
+        .map(leaf => leaf.view).find((view): view is MarkdownView => view instanceof MarkdownView);
+  }
+  getPangram(): { pending: boolean; error: string; result?: { filePath: string; source: string; report: PangramReport }; stale: boolean } {
+    const result = this.pangramReport;
+    const activeView = this.currentMarkdownView();
+    return {
+      pending: this.pangramPending, error: this.pangramError, result,
+      stale: Boolean(result && (!activeView?.file || activeView.file.path !== result.filePath || articleTextForDetection(activeView.editor.getValue()) !== result.source))
+    };
+  }
+
+  async scanCurrentNote(): Promise<void> {
+    if (this.pangramPending) return;
+    const view = this.currentMarkdownView();
+    if (!view?.file) { new Notice('Open a Markdown note before scanning.'); return; }
+    if (!this.settings.pangramApiKey.trim()) {
+      new Notice('Add a Pangram API key in PARENO settings before running a paid scan.');
+      return;
+    }
+    const source = articleTextForDetection(view.editor.getValue());
+    if (source.trim().length < 100) { new Notice('Pangram needs a longer article for a useful scan.'); return; }
+    if (source.length > 50000) { new Notice('Please scan a note containing 50,000 characters or fewer.'); return; }
+    const version = ++this.pangramVersion;
+    const filePath = view.file.path;
+    this.pangramPending = true;
+    this.pangramError = '';
+    this.pangramReport = undefined;
+    await this.openPanel();
+    this.renderPanel();
+    try {
+      const headers = { 'Content-Type': 'application/json', 'x-api-key': this.settings.pangramApiKey.trim() };
+      const created = await requestUrl({
+        url: 'https://text.external-api.pangram.com/task',
+        method: 'POST', headers,
+        body: JSON.stringify({ text: source, public_dashboard_link: false })
+      });
+      const taskId: unknown = created.json?.task_id;
+      if (typeof taskId !== 'string' || !/^[a-z\d-]{10,100}$/i.test(taskId)) {
+        throw new Error('Pangram did not return a valid task ID.');
+      }
+      let completed = false;
+      for (let attempt = 0; attempt < 20; attempt++) {
+        await new Promise<void>(resolve => setTimeout(resolve, 1500));
+        if (version !== this.pangramVersion) return;
+        const response = await requestUrl({
+          url: `https://text.external-api.pangram.com/task/${taskId}`,
+          method: 'GET', headers: { 'x-api-key': this.settings.pangramApiKey.trim() }
+        });
+        if (response.json?.stage === 'STAGE_SUCCESS') {
+          this.pangramReport = { filePath, source, report: parsePangramReport(response.json) };
+          completed = true;
+          break;
+        }
+        if (response.json?.stage === 'STAGE_FAILED') {
+          throw new Error(`Pangram scan failed: ${String(response.json?.headline ?? 'unknown error')}`);
+        }
+      }
+      if (!completed) throw new Error('Pangram scan timed out. Check your API dashboard before trying again.');
+    } catch (error) {
+      if (version !== this.pangramVersion) return;
+      this.pangramError = error instanceof Error ? error.message : String(error);
+      new Notice(this.pangramError);
+    } finally {
+      if (version === this.pangramVersion) {
+        this.pangramPending = false;
+        this.renderPanel();
+      }
+    }
+  }
   getPending(): { mode?: CoachMode; context?: TextContext; error: string } {
     return { mode: this.pendingMode, context: this.pendingContext, error: this.errorMessage };
   }
@@ -272,7 +356,9 @@ export default class ParenoPlugin extends Plugin {
   async showCachedPanel(): Promise<void> { await this.openPanel(); }
 
   async rerun(mode: CoachMode): Promise<void> {
-    const context = this.analysis?.context ?? this.pendingContext;
+    const activeView = this.currentMarkdownView();
+    const context = activeView && this.capture(activeView.editor, activeView)
+      || this.analysis?.context || this.pendingContext;
     if (!context) { new Notice('Select a paragraph in the editor first.'); return; }
     await this.analyze(mode, context);
   }
@@ -349,13 +435,14 @@ class CoachSidebar extends ItemView {
     const pending = this.coach.getPending();
     const tabs = root.createDiv({ cls: 'bwc-tabs' });
     for (const [mode, label] of [
-      ['review', '纠错 Review'], ['translate', '翻译 Translate'], ['explain', '解释 Explain']
+      ['review', '纠错'], ['translate', '翻译'], ['explain', '解释'], ['voice', '作者风格']
     ] as Array<[CoachMode, string]>) {
       const button = tabs.createEl('button', { text: label });
       if ((pending.mode ?? analysis?.mode) === mode) button.addClass('bwc-tab-active');
       button.disabled = Boolean(pending.mode);
       button.addEventListener('click', () => { void this.coach.rerun(mode); });
     }
+    this.renderPangram(root);
     if (pending.mode) {
       root.createEl('p', { text: '正在分析所选段落…', cls: 'bwc-status' });
       if (pending.context) this.section(root, '原文 Original', pending.context.source);
@@ -363,7 +450,7 @@ class CoachSidebar extends ItemView {
     }
     if (pending.error) root.createEl('p', { text: pending.error, cls: 'bwc-error' });
     if (!analysis) {
-      root.createEl('p', { text: '在 Obsidian 编辑器中选中一段文字，右键选择 PARENO，或通过命令面板运行 Review、Translate、Explain。未选中时将处理光标所在段落。', cls: 'bwc-empty' });
+      root.createEl('p', { text: '在 Obsidian 编辑器中选中一段文字，使用纠错、翻译、解释或作者风格审阅。未选中时将处理光标所在段落。Pangram 可按需检测整篇文章。', cls: 'bwc-empty' });
       root.createEl('p', { text: '模型设置：Settings → Community plugins → PARENO。', cls: 'bwc-hint' });
       return;
     }
@@ -372,9 +459,9 @@ class CoachSidebar extends ItemView {
     if (mode === 'translate') {
       this.section(root, '忠实翻译 Faithful', result.minimal);
       this.section(root, '自然表达 Natural', result.natural);
-    } else if (mode === 'review') {
-      this.section(root, '最小修改 Minimal fix', result.minimal);
-      this.section(root, '自然表达 Natural rewrite', result.natural);
+    } else if (mode === 'review' || mode === 'voice') {
+      this.section(root, mode === 'voice' ? '保留原声 Minimal change' : '最小修改 Minimal fix', result.minimal);
+      this.section(root, mode === 'voice' ? '编辑建议 Editorial alternative' : '自然表达 Natural rewrite', result.natural);
     }
     if (result.explanation) this.section(root, '为什么这样写 Why', result.explanation);
     if (result.issues.length) {
@@ -387,7 +474,7 @@ class CoachSidebar extends ItemView {
       }
     }
     const actions = root.createDiv({ cls: 'bwc-actions' });
-    if (mode === 'review') {
+    if (mode === 'review' || mode === 'voice') {
       this.action(actions, applied ? '已修改' : '应用最小修改', () => this.coach.applyText('minimal'), true, applied);
       this.action(actions, '采用自然表达', () => this.coach.applyText('natural'), false, applied);
     } else if (mode === 'translate') {
@@ -397,6 +484,54 @@ class CoachSidebar extends ItemView {
     this.action(actions, '保存学习卡片', () => { void this.coach.saveLearning(); });
     this.action(actions, '忽略建议', () => this.coach.dismiss());
     root.createEl('p', { text: '修改需要你确认。可使用 Obsidian 原生 Undo 撤销。', cls: 'bwc-hint' });
+  }
+
+  private renderPangram(root: HTMLElement): void {
+    const panel = root.createEl('details', { cls: 'bwc-pangram' });
+    panel.createEl('summary', { text: 'Pangram · AI 文本检测' });
+    panel.createEl('p', {
+      text: '检测当前整篇笔记。使用独立的 Pangram 付费 API 密钥，点击后才会上传正文。',
+      cls: 'bwc-hint'
+    });
+    const detection = this.coach.getPangram();
+    panel.open = detection.pending || Boolean(detection.error || detection.result);
+    const scanButton = panel.createEl('button', {
+      text: detection.pending ? 'Pangram 正在分析…' : '检测整篇文章',
+      cls: 'bwc-scan-button'
+    });
+    scanButton.disabled = detection.pending;
+    scanButton.addEventListener('click', () => { void this.coach.scanCurrentNote(); });
+    if (detection.pending) panel.createEl('p', { text: '检测可能需要约 30 秒。', cls: 'bwc-status' });
+    if (detection.error) panel.createEl('p', { text: detection.error, cls: 'bwc-error' });
+    if (!detection.result) return;
+    if (detection.stale) panel.createEl('p', {
+      text: '文章已切换或修改。以下是上次扫描的结果，请重新检测最新稿件。', cls: 'bwc-error'
+    });
+    const { report } = detection.result;
+    panel.createEl('div', { text: report.headline, cls: 'bwc-pangram-headline' });
+    const stats = panel.createDiv({ cls: 'bwc-pangram-stats' });
+    for (const [label, value] of [
+      ['人工写作', report.fractionHuman], ['AI 辅助', report.fractionAssisted], ['AI 生成', report.fractionAI]
+    ] as Array<[string, number]>) {
+      const stat = stats.createDiv({ cls: 'bwc-pangram-stat' });
+      stat.createEl('strong', { text: `${Math.round(value * 100)}%` });
+      stat.createEl('span', { text: label });
+    }
+    if (report.prediction) panel.createEl('p', { text: report.prediction, cls: 'bwc-hint' });
+    const flagged = flaggedPangramWindows(report);
+    if (flagged.length) {
+      panel.createEl('h4', { text: `Pangram 标记的片段 · ${flagged.length}` });
+      for (const window of flagged.slice(0, 12)) {
+        const item = panel.createDiv({ cls: 'bwc-issue-card' });
+        item.createEl('span', { text: `${window.label}${window.confidence ? ` · ${window.confidence}` : ''}`, cls: 'bwc-kind bwc-kind-style' });
+        item.createEl('p', { text: window.text.slice(0, 600) });
+      }
+      if (flagged.length > 12) panel.createEl('p', { text: `另有 ${flagged.length - 12} 个片段未展开。`, cls: 'bwc-hint' });
+    }
+    panel.createEl('p', {
+      text: '以上比例为 Pangram 的分类估计，并非作者身份或创作过程的证明。PARENO 的「作者风格」审阅与该检测相互独立。',
+      cls: 'bwc-hint'
+    });
   }
 
   private section(parent: HTMLElement, title: string, body: string): void {
@@ -437,6 +572,13 @@ class CoachSettingsTab extends PluginSettingTab {
         text.inputEl.type = 'password';
         text.setPlaceholder('sk-...').setValue(this.coach.settings.apiKey)
           .onChange(async value => { this.coach.settings.apiKey = value.trim(); await this.coach.saveSettings(); });
+      });
+    new Setting(containerEl).setName('Pangram API key')
+      .setDesc('Optional paid AI detection. PARENO only sends your current article to Pangram after you choose Scan. Stored locally in plugin settings; never commit this key.')
+      .addText(text => {
+        text.inputEl.type = 'password';
+        text.setPlaceholder('Pangram API key').setValue(this.coach.settings.pangramApiKey)
+          .onChange(async value => { this.coach.settings.pangramApiKey = value.trim(); await this.coach.saveSettings(); });
       });
     new Setting(containerEl).setName('Writing register').setDesc('Choose the preferred style for natural rewrites.')
       .addDropdown(dropdown => dropdown.addOption('professional', 'Professional').addOption('conversational', 'Conversational').addOption('podcast', 'Podcast script')
