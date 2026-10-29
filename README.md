@@ -19,12 +19,12 @@ This repository contains a working first-version plugin, not a published Communi
 
 ## Install in Obsidian
 
-1. Download the packaged plugin ZIP and unzip it.
+1. On GitHub, select **Code → Download ZIP** and unzip the repository.
 2. Copy **`main.js`**, **`manifest.json`**, and **`styles.css`** to your vault's `.obsidian/plugins/pareno/` directory.
 3. In Obsidian: **Settings → Community plugins → enable PARENO**.
 4. Open its settings to choose a model provider.
 
-The source archive also includes the full TypeScript project. Only the three files above are required at runtime.
+The repository ZIP also includes the full TypeScript project. Only the three files above are required at runtime.
 
 ### Use Ollama locally (default)
 
