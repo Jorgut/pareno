@@ -12,7 +12,7 @@
 }
 
 .pareno-header { padding: 18px 18px 14px; border-bottom: 1px solid var(--background-modifier-border); }
-.bwc-panel .pareno-header h3 { display: inline; margin: 0 8px 0 0; font-family: Georgia, serif; font-size: 22px; letter-spacing: .02em; }
+.bwc-panel .pareno-header h3 { display: inline-block; margin: 0 10px 0 0; font-family: Georgia, serif; font-size: 22px; letter-spacing: .02em; }
 .pareno-header span { color: var(--pareno-gold); font-size: 10px; letter-spacing: .12em; }
 .pareno-header p { color: var(--text-muted); margin: 8px 0 0; }
 .pareno-body { flex: 1; min-height: 0; overflow-y: auto; padding: 16px 18px 28px; }

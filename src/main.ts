@@ -310,6 +310,12 @@ export default class ParenoPlugin extends Plugin {
       this.app.workspace.getLeavesOfType('markdown')
         .map(leaf => leaf.view).find((view): view is MarkdownView => view instanceof MarkdownView);
   }
+  getCurrentFilePath(): string | undefined { return this.currentMarkdownView()?.file?.path; }
+  reviewActiveDocument(): void {
+    const view = this.currentMarkdownView();
+    if (view?.file) void this.reviewDocument(view.editor, view);
+    else new Notice('请先打开一篇 Markdown 文章。');
+  }
   getPangram(): { pending: boolean; error: string; result?: { filePath: string; source: string; report: PangramReport }; stale: boolean } {
     const result = this.pangramReport;
     const activeView = this.currentMarkdownView();
@@ -559,8 +565,8 @@ class CoachSidebar extends ItemView {
     const context = this.coach.getCurrentContext();
     const current = body.createDiv({ cls: 'pareno-current' });
     current.createEl('strong', { text: '当前选区 / 段落' });
-    current.createEl('span', { text: context?.filePath.split('/').pop() ?? '请打开文章' });
-    current.createEl('p', { text: context?.source.slice(0, 220) || '在正文中选中文字，或把光标放在段落里。' });
+    current.createEl('span', { text: (context?.filePath ?? this.coach.getCurrentFilePath())?.split('/').pop() ?? '请打开文章' });
+    current.createEl('p', { text: context?.source.slice(0, 220) || '在正文中选中文字，或把光标放在有文字的段落里。' });
 
     body.createEl('div', { text: '01 / 检查范围', cls: 'pareno-step' });
     const scopes = body.createDiv({ cls: 'pareno-scope' });
@@ -607,12 +613,15 @@ class CoachSidebar extends ItemView {
     start.onclick = () => {
       if (this.coach.getScope() === 'document') {
         if (this.selectedMode !== 'review') { new Notice('全文范围目前支持“检查与润色”；其他任务请先选中段落。'); return; }
-        if (context) void this.coach.reviewDocument(context.editor, context.view);
+        this.coach.reviewActiveDocument();
       } else if (context) void this.coach.analyze(this.selectedMode, context);
       else new Notice('请先打开文章并把光标放在段落中。');
     };
-    body.createEl('p', { text: this.coach.settings.provider === 'ollama' ? '只发送选区或当前段落；内容留在本机 Ollama。' :
-      this.coach.getScope() === 'document' ? '全文将分批发送至所选云端模型，须主动点击开始。' : '只发送选区或当前段落至所选云端模型。', cls: 'bwc-hint' });
+    const local = this.coach.settings.provider === 'ollama';
+    const whole = this.coach.getScope() === 'document';
+    body.createEl('p', { text: whole
+      ? local ? '全文将分批发送至本机 Ollama；须主动点击开始。' : '全文将分批发送至所选云端模型；须主动点击开始。'
+      : local ? '只发送选区或当前段落；内容留在本机 Ollama。' : '只发送选区或当前段落至所选云端模型。', cls: 'bwc-hint' });
 
     if (pending.mode) {
       body.createEl('p', { text: pending.error || '正在分析所选段落…', cls: 'bwc-status' });
