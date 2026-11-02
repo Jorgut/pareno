@@ -2,24 +2,25 @@ import {
   Editor, EditorPosition, ItemView, MarkdownView, Notice, Plugin, PluginSettingTab,
   Setting, TFile, WorkspaceLeaf, normalizePath, requestUrl
 } from 'obsidian';
-import { Decoration, DecorationSet, EditorView } from '@codemirror/view';
-import { StateEffect, StateField } from '@codemirror/state';
 import {
-  articleTextForDetection, buildMessages, CoachMode, CoachResult, PangramReport, flaggedPangramWindows,
-  findIssueRanges, makeLearningMarkdown, parseCoachResponse, parsePangramReport,
+  articleTextForDetection, buildChatMessages, buildMessages, ChatResult, CoachMode, CoachResult,
+  documentReviewBlocks, InlineIssue, makeInlineIssues, PangramReport, flaggedPangramWindows,
+  makeLearningMarkdown, parseChatResponse, parseCoachResponse, parsePangramReport,
   validateSelection
 } from './core';
+import { createInlineReview } from './inline-review';
+import { Provider, requestWritingModel } from './provider';
 
 const PANEL_TYPE = 'pareno-panel';
 const LOG_FOLDER = 'PARENO';
 const LOG_PATH = `${LOG_FOLDER}/Learning Log.md`;
 
-type Provider = 'ollama' | 'openai';
 interface CoachSettings {
   provider: Provider;
   endpoint: string;
   model: string;
   apiKey: string;
+  codexExecutable: string;
   pangramApiKey: string;
   register: 'professional' | 'conversational' | 'podcast';
   autoReview: boolean;
@@ -31,6 +32,7 @@ const DEFAULT_SETTINGS: CoachSettings = {
   endpoint: 'http://localhost:11434/v1/chat/completions',
   model: 'qwen2.5:7b',
   apiKey: '',
+  codexExecutable: 'codex',
   pangramApiKey: '',
   register: 'professional',
   autoReview: false,
@@ -53,35 +55,18 @@ interface Analysis {
   applied: boolean;
 }
 
-interface HighlightSpan { from: number; to: number; kind: 'grammar' | 'style' | 'wording' }
-const setHighlights = StateEffect.define<HighlightSpan[]>();
-const highlightField = StateField.define<DecorationSet>({
-  create: () => Decoration.none,
-  update(value, transaction) {
-    if (transaction.docChanged) value = Decoration.none;
-    for (const effect of transaction.effects) {
-      if (!effect.is(setHighlights)) continue;
-      const spans = effect.value
-        .filter(span => span.from >= 0 && span.to > span.from && span.to <= transaction.state.doc.length)
-        .sort((a, b) => a.from - b.from);
-      const decorations = spans.map(span => Decoration.mark({
-        class: `bwc-inline-issue bwc-inline-${span.kind}`
-      }).range(span.from, span.to));
-      value = Decoration.set(decorations, true);
-    }
-    return value;
-  },
-  provide: field => EditorView.decorations.from(field)
-});
-
-function getCodeMirrorView(editor: Editor): EditorView | undefined {
-  // Obsidian's Editor interface does not expose its underlying CM6 instance in types.
-  return (editor as Editor & { cm?: EditorView }).cm;
-}
-
 export default class ParenoPlugin extends Plugin {
   settings: CoachSettings = DEFAULT_SETTINGS;
+  private inline = createInlineReview(() => { if (this.analysis) this.analysis.applied = true; this.documentIssues = []; this.renderPanel(); });
   private analysis?: Analysis;
+  private documentIssues: InlineIssue[] = [];
+  private documentEditor?: Editor;
+  private scope: 'paragraph' | 'document' = 'paragraph';
+  private messages: Array<{ role: 'user' | 'assistant'; content: string; revision?: string; source?: string;
+    from?: EditorPosition; to?: EditorPosition; documentText?: string }> = [];
+  private chatFilePath = '';
+  private chatBusy = false;
+  private chatError = '';
   private pendingMode?: CoachMode;
   private pendingContext?: TextContext;
   private errorMessage = '';
@@ -96,23 +81,13 @@ export default class ParenoPlugin extends Plugin {
   async onload(): Promise<void> {
     this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
     this.registerView(PANEL_TYPE, leaf => new CoachSidebar(leaf, this));
-    this.registerEditorExtension([
-      highlightField,
-      EditorView.domEventHandlers({
-        click: event => {
-          const target = event.target;
-          if (target instanceof Element && target.closest('.bwc-inline-issue')) {
-            void this.showCachedPanel();
-          }
-          return false;
-        }
-      })
-    ]);
+    this.registerEditorExtension(this.inline.extension);
     this.addRibbonIcon('languages', 'Open PARENO', () => { void this.openPanel(); });
 
     const commands: Array<{ mode: CoachMode; id: string; name: string }> = [
       { mode: 'review', id: 'review-selection', name: 'Review selected text / current paragraph' },
       { mode: 'translate', id: 'translate-selection', name: 'Translate selected text / current paragraph' },
+      { mode: 'compare', id: 'compare-bilingual-selection', name: 'Compare Chinese and English meaning in selection' },
       { mode: 'explain', id: 'explain-selection', name: 'Explain selected text / current paragraph' },
       { mode: 'voice', id: 'voice-audit-selection', name: 'Audit author voice in selected text / current paragraph' }
     ];
@@ -127,6 +102,9 @@ export default class ParenoPlugin extends Plugin {
       });
     }
     this.addCommand({ id: 'open-sidebar', name: 'Open PARENO sidebar', callback: () => { void this.openPanel(); } });
+    this.addCommand({ id: 'review-document', name: 'Review current article', editorCallback: (editor, view) => {
+      if (view instanceof MarkdownView) void this.reviewDocument(editor, view);
+    } });
     this.addCommand({ id: 'pangram-scan-note', name: 'Scan current note with Pangram AI detector', callback: () => { void this.scanCurrentNote(); } });
 
     this.registerEvent(this.app.workspace.on('editor-menu', (menu, editor, view) => {
@@ -135,6 +113,8 @@ export default class ParenoPlugin extends Plugin {
         .onClick(() => { void this.analyze('review', this.capture(editor, view)); }));
       menu.addItem(item => item.setTitle('PARENO: Translate').setIcon('languages')
         .onClick(() => { void this.analyze('translate', this.capture(editor, view)); }));
+      menu.addItem(item => item.setTitle('PARENO: Review whole article').setIcon('file-search')
+        .onClick(() => { void this.reviewDocument(editor, view); }));
       menu.addItem(item => item.setTitle('PARENO: Explain').setIcon('book-open')
         .onClick(() => { void this.analyze('explain', this.capture(editor, view)); }));
       menu.addItem(item => item.setTitle('PARENO: Author voice review').setIcon('pen-line')
@@ -154,6 +134,18 @@ export default class ParenoPlugin extends Plugin {
         this.lastAutoSource = cacheKey;
         void this.analyze('review', context, true);
       }, this.settings.autoDelay);
+    }));
+
+    this.registerEvent(this.app.workspace.on('file-open', file => {
+      if (file?.path === this.chatFilePath) { this.renderPanel(); return; }
+      if (this.analysis) this.inline.clear(this.analysis.context.editor);
+      if (this.documentEditor) this.inline.clear(this.documentEditor);
+      this.messages = [];
+      this.chatFilePath = file?.path ?? '';
+      this.analysis = undefined;
+      this.documentIssues = [];
+      this.documentEditor = undefined;
+      this.renderPanel();
     }));
 
     this.addSettingTab(new CoachSettingsTab(this.app, this));
@@ -199,6 +191,8 @@ export default class ParenoPlugin extends Plugin {
     const version = ++this.requestVersion;
     this.clearHighlights(this.analysis?.context);
     this.analysis = undefined;
+    this.documentIssues = [];
+    this.scope = 'paragraph';
     this.pendingMode = mode;
     this.pendingContext = context;
     this.errorMessage = '';
@@ -206,30 +200,18 @@ export default class ParenoPlugin extends Plugin {
     this.renderPanel();
 
     try {
-      if (this.settings.provider === 'openai' && !this.settings.apiKey.trim()) {
-        throw new Error('Add an API key in PARENO settings or use local Ollama.');
-      }
-      const response = await requestUrl({
-        url: this.settings.endpoint.trim(),
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(this.settings.provider === 'openai' ? { Authorization: `Bearer ${this.settings.apiKey.trim()}` } : {})
-        },
-        body: JSON.stringify({
-          model: this.settings.model.trim(),
-          messages: buildMessages(mode, context.source, this.settings.register),
-          temperature: 0.2,
-          stream: false
-        })
-      });
+      const content = await requestWritingModel(this.settings, buildMessages(mode, context.source, this.settings.register), () => version !== this.requestVersion);
       if (version !== this.requestVersion) return;
       if (context.editor.getRange(context.from, context.to) !== context.source) {
         throw new Error('The paragraph changed during analysis. Select it again to review the latest text.');
       }
-      const result = parseCoachResponse(response.json, context.source);
+      const result = parseCoachResponse({ choices: [{ message: { content } }] }, context.source);
       this.analysis = { mode, context, result, applied: false };
-      this.applyHighlights(context, result);
+      if (mode === 'review' || mode === 'voice') {
+        const from = context.editor.posToOffset(context.from);
+        const issues = makeInlineIssues({ text: context.source, from, to: from + context.source.length }, result, 'paragraph', 'paragraph');
+        this.inline.set(context.editor, context.editor.getValue(), issues);
+      }
       this.errorMessage = '';
     } catch (error) {
       if (version !== this.requestVersion) return;
@@ -244,19 +226,66 @@ export default class ParenoPlugin extends Plugin {
     }
   }
 
-  private applyHighlights(context: TextContext, result: CoachResult): void {
-    const view = getCodeMirrorView(context.editor);
-    if (!view) return;
-    const offset = context.editor.posToOffset(context.from);
-    const spans = findIssueRanges(context.source, result.issues)
-      .map(span => ({ from: span.from + offset, to: span.to + offset, kind: span.kind }));
-    view.dispatch({ effects: setHighlights.of(spans) });
+  clearHighlights(context?: TextContext): void {
+    if (context) this.inline.clear(context.editor);
   }
 
-  clearHighlights(context?: TextContext): void {
-    const view = context && getCodeMirrorView(context.editor);
-    if (view) view.dispatch({ effects: setHighlights.of([]) });
+  async reviewDocument(editor: Editor, view: MarkdownView): Promise<void> {
+    if (!view.file) return;
+    const source = editor.getValue();
+    const path = view.file.path;
+    const blocks = documentReviewBlocks(source);
+    if (!blocks.length) { new Notice('当前文章没有可审校的英文段落。'); return; }
+    if (blocks.length > 25) { new Notice('全文超过 25 个审校批次，请先分章节审校。'); return; }
+    const version = ++this.requestVersion;
+    this.scope = 'document';
+    this.analysis = undefined;
+    this.documentIssues = [];
+    this.documentEditor = editor;
+    this.inline.clear(editor);
+    this.pendingMode = 'review';
+    this.pendingContext = undefined;
+    this.errorMessage = `全文审校 0/${blocks.length}`;
+    await this.openPanel();
+    try {
+      const issues: InlineIssue[] = [];
+      for (const [index, block] of blocks.entries()) {
+        if (version !== this.requestVersion || editor.getValue() !== source || view.file?.path !== path) throw new Error('已停止或原文改变；请重新审校。');
+        this.errorMessage = `全文审校 ${index + 1}/${blocks.length}`;
+        this.renderPanel();
+        const content = await requestWritingModel(this.settings, buildMessages('review', block.text, this.settings.register), () => version !== this.requestVersion);
+        if (version !== this.requestVersion || editor.getValue() !== source || view.file?.path !== path) throw new Error('已停止或原文改变；请重新审校。');
+        const result = parseCoachResponse({ choices: [{ message: { content } }] }, block.text);
+        issues.push(...makeInlineIssues(block, result, 'document', `document-${index}`));
+      }
+      this.documentIssues = issues;
+      this.inline.set(editor, source, issues);
+      this.errorMessage = '';
+    } catch (error) {
+      if (version === this.requestVersion) {
+        this.errorMessage = error instanceof Error ? error.message : String(error);
+        new Notice(this.errorMessage);
+      }
+    } finally {
+      if (version === this.requestVersion) {
+        this.pendingMode = undefined;
+        this.renderPanel();
+      }
+    }
   }
+
+  stopReview(): void {
+    this.requestVersion++;
+    this.pendingMode = undefined;
+    this.pendingContext = undefined;
+    this.errorMessage = '已停止本次审校。';
+    this.renderPanel();
+  }
+
+  setScope(scope: 'paragraph' | 'document'): void { this.scope = scope; this.renderPanel(); }
+  getScope(): 'paragraph' | 'document' { return this.scope; }
+  getDocumentIssues(): InlineIssue[] { return this.documentEditor ? this.inline.getIssues(this.documentEditor) : []; }
+  openIssue(id: string): boolean { return Boolean(this.documentEditor && this.inline.open(this.documentEditor, id)); }
 
   getAnalysis(): Analysis | undefined { return this.analysis; }
   private currentMarkdownView(): MarkdownView | undefined {
@@ -364,14 +393,17 @@ export default class ParenoPlugin extends Plugin {
   }
 
   applyText(kind: 'minimal' | 'natural', insertBelow = false): boolean {
+    return this.applyRevision(this.analysis?.result[kind] ?? '', insertBelow);
+  }
+
+  applyRevision(replacement: string, insertBelow = false): boolean {
     const analysis = this.analysis;
     if (!analysis) return false;
     const { editor, from, to, source } = analysis.context;
-    if (analysis.applied || editor.getRange(from, to) !== source) {
+    if (analysis.applied || this.currentMarkdownView()?.file?.path !== analysis.context.filePath || editor.getRange(from, to) !== source) {
       new Notice('This text has changed. Run the check again before applying suggestions.');
       return false;
     }
-    const replacement = analysis.result[kind];
     if (insertBelow) {
       editor.replaceRange(`\n\n${replacement}`, to, to);
     } else {
@@ -387,6 +419,8 @@ export default class ParenoPlugin extends Plugin {
   dismiss(): void {
     this.clearHighlights(this.analysis?.context);
     this.analysis = undefined;
+    this.documentIssues = [];
+    if (this.documentEditor) this.inline.clear(this.documentEditor);
     this.errorMessage = '';
     this.renderPanel();
   }
@@ -406,10 +440,75 @@ export default class ParenoPlugin extends Plugin {
       new Notice(`Could not save the learning note: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
+
+  getChatMessages() { return this.messages; }
+  getChatStatus() { return { busy: this.chatBusy, error: this.chatError }; }
+  getCurrentContext(): TextContext | undefined {
+    const view = this.currentMarkdownView();
+    return view ? this.capture(view.editor, view) : undefined;
+  }
+
+  async sendChat(instruction: string): Promise<void> {
+    const context = this.getCurrentContext();
+    if (!context || !instruction.trim()) { new Notice('请先在文章里选中内容，或把光标放在段落中。'); return; }
+    try { validateSelection(context.source); } catch (error) { new Notice((error as Error).message); return; }
+    if (this.chatBusy) return;
+    if (this.chatFilePath !== context.filePath) { this.messages = []; this.chatFilePath = context.filePath; }
+    this.chatBusy = true;
+    this.chatError = '';
+    const version = this.requestVersion;
+    const history = this.messages.map(message => ({ role: message.role, content: message.content }));
+    this.messages.push({ role: 'user', content: instruction.trim(), source: context.source });
+    this.renderPanel();
+    try {
+      const content = await requestWritingModel(this.settings, buildChatMessages(context.source, instruction.trim(), history), () => version !== this.requestVersion);
+      if (version !== this.requestVersion) return;
+      const result = parseChatResponse(content);
+      this.messages.push({ role: 'assistant', content: result.reply + (result.explanation ? `\n\n${result.explanation}` : ''),
+        revision: result.revision, source: context.source, from: context.from, to: context.to, documentText: context.editor.getValue() });
+      await this.appendChatRecord(context.filePath, instruction.trim(), context.source, result);
+    } catch (error) {
+      this.chatError = error instanceof Error ? error.message : String(error);
+      new Notice(this.chatError);
+    } finally {
+      this.chatBusy = false;
+      this.renderPanel();
+    }
+  }
+
+  private async appendChatRecord(filePath: string, instruction: string, source: string, result: ChatResult): Promise<void> {
+    const folder = 'PARENO/Conversations';
+    if (!this.app.vault.getAbstractFileByPath(LOG_FOLDER)) await this.app.vault.createFolder(LOG_FOLDER);
+    if (!this.app.vault.getAbstractFileByPath(folder)) await this.app.vault.createFolder(folder);
+    const filename = filePath.split('/').pop()?.replace(/\.md$/i, '').replace(/[\\/:*?"<>|]/g, '-').slice(0, 80) || 'Untitled';
+    const hash = [...filePath].reduce((value, char) => ((value * 31) + char.charCodeAt(0)) >>> 0, 0).toString(16);
+    const path = `${folder}/${filename}-${hash}.md`;
+    const entry = `\n## ${new Date().toISOString()}\n\n**Article:** ${filePath}\n\n**Request:** ${instruction}\n\n**Source:**\n\n> ${source.replace(/\n/g, '\n> ')}\n\n**Reply:** ${result.reply}\n\n**Revision:**\n\n> ${(result.revision || 'No revision').replace(/\n/g, '\n> ')}\n\n**Explanation:** ${result.explanation || '—'}\n`;
+    const existing = this.app.vault.getAbstractFileByPath(path);
+    if (existing instanceof TFile) await this.app.vault.append(existing, entry);
+    else if (!existing) await this.app.vault.create(path, `# PARENO · ${filename}\n${entry}`);
+  }
+
+  applyChatRevision(index: number): boolean {
+    const message = this.messages[index];
+    const view = this.currentMarkdownView();
+    if (!message?.revision || !message.source || !message.from || !message.to || !view ||
+        view.file?.path !== this.chatFilePath || view.editor.getValue() !== message.documentText ||
+        view.editor.getRange(message.from, message.to) !== message.source) {
+      new Notice('原文已改变，请重新审校后再采用修改稿。'); return false;
+    }
+    view.editor.replaceRange(message.revision, message.from, message.to);
+    message.revision = undefined;
+    this.renderPanel();
+    new Notice('已替换，可使用 Obsidian 撤销。');
+    return true;
+  }
 }
 
 class CoachSidebar extends ItemView {
   private readonly coach: ParenoPlugin;
+  private selectedMode: CoachMode = 'review';
+  private draft = '';
   constructor(leaf: WorkspaceLeaf, coach: ParenoPlugin) {
     super(leaf);
     this.coach = coach;
@@ -429,61 +528,136 @@ class CoachSidebar extends ItemView {
     const root = this.contentEl;
     root.empty();
     root.addClass('bwc-panel');
-    root.createEl('h3', { text: 'PARENO · 并言' });
-    root.createEl('p', { text: '中英写作 · 纠错 · 学习', cls: 'bwc-subtitle' });
+    const header = root.createDiv({ cls: 'pareno-header' });
+    header.createEl('h3', { text: 'PARENO 并言' });
+    header.createEl('span', { text: 'ARCHINTERA' });
+    header.createEl('p', { text: '在正文里写，在侧栏里判断。' });
+    const body = root.createDiv({ cls: 'pareno-body' });
     const analysis = this.coach.getAnalysis();
     const pending = this.coach.getPending();
-    const tabs = root.createDiv({ cls: 'bwc-tabs' });
-    for (const [mode, label] of [
-      ['review', '纠错'], ['translate', '翻译'], ['explain', '解释'], ['voice', '作者风格']
-    ] as Array<[CoachMode, string]>) {
-      const button = tabs.createEl('button', { text: label });
-      if ((pending.mode ?? analysis?.mode) === mode) button.addClass('bwc-tab-active');
-      button.disabled = Boolean(pending.mode);
-      button.addEventListener('click', () => { void this.coach.rerun(mode); });
+    const context = this.coach.getCurrentContext();
+    const current = body.createDiv({ cls: 'pareno-current' });
+    current.createEl('strong', { text: '当前选区 / 段落' });
+    current.createEl('span', { text: context?.filePath.split('/').pop() ?? '请打开文章' });
+    current.createEl('p', { text: context?.source.slice(0, 220) || '在正文中选中文字，或把光标放在段落里。' });
+
+    body.createEl('div', { text: '01 / 检查范围', cls: 'pareno-step' });
+    const scopes = body.createDiv({ cls: 'pareno-scope' });
+    for (const [scope, label] of [['paragraph', '选区 / 当前段落'], ['document', '整篇文章']] as const) {
+      const button = scopes.createEl('button', { text: label });
+      if (this.coach.getScope() === scope) button.addClass('is-active');
+      button.onclick = () => this.coach.setScope(scope);
     }
-    this.renderPangram(root);
+
+    body.createEl('div', { text: '02 / 我想做什么', cls: 'pareno-step' });
+    const tasks = body.createDiv({ cls: 'pareno-tasks' });
+    for (const [mode, label, detail] of [
+      ['review', '检查与润色', '错误 + 可选表达'],
+      ['translate', '翻译', '忠实 / 自然两版'],
+      ['compare', '核对中英', '原意与证据强度'],
+      ['explain', '解释表达', '语法与复用句型'],
+      ['voice', '作者风格', '保留个人声音']
+    ] as Array<[CoachMode, string, string]>) {
+      const button = tasks.createEl('button');
+      button.createEl('strong', { text: label });
+      button.createEl('small', { text: detail });
+      if (this.selectedMode === mode) button.addClass('is-active');
+      button.onclick = () => { this.selectedMode = mode; this.render(); };
+    }
+
+    const model = body.createDiv({ cls: 'pareno-model' });
+    model.createEl('span', { text: '模型与数据范围' });
+    const select = model.createEl('select', { attr: { 'aria-label': '模型供应方式' } });
+    for (const [value, label] of [['ollama', '本地 · Ollama'], ['codex', '云端 · Codex 登录'], ['openai', '云端 · 兼容 API']] as const) {
+      select.createEl('option', { text: label, value });
+    }
+    select.value = this.coach.settings.provider;
+    select.onchange = () => {
+      const provider = select.value as Provider;
+      this.coach.settings.provider = provider;
+      if (provider === 'ollama') { this.coach.settings.endpoint = 'http://localhost:11434/v1/chat/completions'; this.coach.settings.model = 'qwen2.5:7b'; }
+      if (provider === 'openai' && this.coach.settings.endpoint.startsWith('http://localhost:')) {
+        this.coach.settings.endpoint = 'https://api.openai.com/v1/chat/completions'; this.coach.settings.model = 'gpt-4.1-mini';
+      }
+      void this.coach.saveSettings().then(() => this.render());
+    };
+    const start = body.createEl('button', { text: pending.mode ? '正在审校…' : '开始审校', cls: 'pareno-start' });
+    start.disabled = Boolean(pending.mode);
+    start.onclick = () => {
+      if (this.coach.getScope() === 'document') {
+        if (this.selectedMode !== 'review') { new Notice('全文范围目前支持“检查与润色”；其他任务请先选中段落。'); return; }
+        if (context) void this.coach.reviewDocument(context.editor, context.view);
+      } else if (context) void this.coach.analyze(this.selectedMode, context);
+      else new Notice('请先打开文章并把光标放在段落中。');
+    };
+    body.createEl('p', { text: this.coach.settings.provider === 'ollama' ? '只发送选区或当前段落；内容留在本机 Ollama。' :
+      this.coach.getScope() === 'document' ? '全文将分批发送至所选云端模型，须主动点击开始。' : '只发送选区或当前段落至所选云端模型。', cls: 'bwc-hint' });
+
     if (pending.mode) {
-      root.createEl('p', { text: '正在分析所选段落…', cls: 'bwc-status' });
-      if (pending.context) this.section(root, '原文 Original', pending.context.source);
-      return;
+      body.createEl('p', { text: pending.error || '正在分析所选段落…', cls: 'bwc-status' });
+      this.action(body, '停止本次审校', () => this.coach.stopReview());
     }
-    if (pending.error) root.createEl('p', { text: pending.error, cls: 'bwc-error' });
-    if (!analysis) {
-      root.createEl('p', { text: '在 Obsidian 编辑器中选中一段文字，使用纠错、翻译、解释或作者风格审阅。未选中时将处理光标所在段落。Pangram 可按需检测整篇文章。', cls: 'bwc-empty' });
-      root.createEl('p', { text: '模型设置：Settings → Community plugins → PARENO。', cls: 'bwc-hint' });
-      return;
+    if (pending.error && !pending.mode) body.createEl('p', { text: pending.error, cls: 'bwc-error' });
+    const documentIssues = this.coach.getDocumentIssues();
+    if (documentIssues.length) {
+      body.createEl('h4', { text: `${documentIssues.length} 处建议 · 点击定位到正文` });
+      for (const issue of documentIssues) {
+        const button = body.createEl('button', { text: `${issue.kind === 'grammar' ? '明确错误' : '可选表达'} · ${issue.quote.slice(0, 90)}`, cls: 'pareno-result-item' });
+        button.onclick = () => this.coach.openIssue(issue.id);
+      }
+    } else if (!pending.mode && this.coach.getScope() === 'document' && !analysis) {
+      body.createEl('p', { text: '全文审校后，逐处建议会列在这里，并映射到正文。', cls: 'bwc-hint' });
     }
-    this.section(root, '原文 Original', analysis.context.source);
-    const { result, mode, applied } = analysis;
-    if (mode === 'translate') {
-      this.section(root, '忠实翻译 Faithful', result.minimal);
-      this.section(root, '自然表达 Natural', result.natural);
-    } else if (mode === 'review' || mode === 'voice') {
-      this.section(root, mode === 'voice' ? '保留原声 Minimal change' : '最小修改 Minimal fix', result.minimal);
-      this.section(root, mode === 'voice' ? '编辑建议 Editorial alternative' : '自然表达 Natural rewrite', result.natural);
-    }
-    if (result.explanation) this.section(root, '为什么这样写 Why', result.explanation);
-    if (result.issues.length) {
-      root.createEl('h4', { text: `修改依据 · ${result.issues.length}` });
+    if (analysis) {
+      const { result, mode, applied } = analysis;
+      if (mode !== 'explain' && mode !== 'compare') {
+        for (const [label, value, insertBelow] of [
+          [mode === 'translate' ? '忠实翻译' : '最小修改', result.minimal, mode === 'translate'],
+          [mode === 'translate' ? '自然译法' : '自然表达', result.natural, mode === 'translate']
+        ] as Array<[string, string, boolean]>) {
+          const section = body.createDiv({ cls: 'bwc-section' });
+          section.createEl('div', { text: label, cls: 'bwc-section-label' });
+          const edited = section.createEl('textarea', { attr: { 'aria-label': `${label}修改稿` } });
+          edited.value = value;
+          this.action(section, insertBelow ? '在原文后插入' : '确认并替换原文', () => this.coach.applyRevision(edited.value, insertBelow), true, applied);
+        }
+      }
+      if (result.explanation) this.section(body, '修改依据 / Explanation', result.explanation);
       for (const issue of result.issues) {
-        const item = root.createDiv({ cls: 'bwc-issue-card' });
-        item.createEl('span', { text: issue.type.toUpperCase(), cls: `bwc-kind bwc-kind-${issue.type}` });
+        const item = body.createDiv({ cls: 'bwc-issue-card' });
+        item.createEl('span', { text: issue.type === 'grammar' ? '明确错误' : '可选表达', cls: `bwc-kind bwc-kind-${issue.type}` });
         item.createEl('div', { text: `${issue.source} → ${issue.replacement}`, cls: 'bwc-issue-change' });
         if (issue.reason) item.createEl('p', { text: issue.reason });
       }
+      const actions = body.createDiv({ cls: 'bwc-actions' });
+      this.action(actions, '保存学习卡片', () => { void this.coach.saveLearning(); });
+      this.action(actions, '忽略建议', () => this.coach.dismiss());
     }
-    const actions = root.createDiv({ cls: 'bwc-actions' });
-    if (mode === 'review' || mode === 'voice') {
-      this.action(actions, applied ? '已修改' : '应用最小修改', () => this.coach.applyText('minimal'), true, applied);
-      this.action(actions, '采用自然表达', () => this.coach.applyText('natural'), false, applied);
-    } else if (mode === 'translate') {
-      this.action(actions, '在原文后插入译文', () => this.coach.applyText('natural', true), true, applied);
-      this.action(actions, '替换所选原文', () => this.coach.applyText('natural'), false, applied);
+    const history = body.createDiv({ cls: 'pareno-chat-history' });
+    history.createEl('h4', { text: '写作对话' });
+    for (const [index, message] of this.coach.getChatMessages().entries()) {
+      const bubble = history.createDiv({ cls: `pareno-chat-message pareno-chat-${message.role}` });
+      bubble.createEl('p', { text: message.content });
+      if (message.revision) {
+        const edited = bubble.createEl('textarea', { attr: { 'aria-label': '可编辑的修改稿' } });
+        edited.value = message.revision;
+        this.action(bubble, '确认并替换原文', () => { message.revision = edited.value; this.coach.applyChatRevision(index); }, true);
+      }
     }
-    this.action(actions, '保存学习卡片', () => { void this.coach.saveLearning(); });
-    this.action(actions, '忽略建议', () => this.coach.dismiss());
-    root.createEl('p', { text: '修改需要你确认。可使用 Obsidian 原生 Undo 撤销。', cls: 'bwc-hint' });
+    const chat = this.coach.getChatStatus();
+    if (chat.busy) history.createEl('p', { text: '正在思考…', cls: 'bwc-status' });
+    if (chat.error) history.createEl('p', { text: chat.error, cls: 'bwc-error' });
+    this.renderPangram(body);
+    const composer = root.createDiv({ cls: 'pareno-composer' });
+    const input = composer.createEl('textarea', { attr: { placeholder: '继续追问这段文字，或说说你想怎样改…', 'aria-label': '写作对话输入' } });
+    input.value = this.draft;
+    input.oninput = () => { this.draft = input.value; };
+    input.onkeydown = event => { if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) { event.preventDefault(); send(); } };
+    const send = () => { const value = input.value.trim(); if (!value) return; this.draft = ''; void this.coach.sendChat(value); };
+    const sendButton = composer.createEl('button', { text: chat.busy ? '发送中…' : '发送 ↗', cls: 'mod-cta' });
+    sendButton.disabled = chat.busy;
+    sendButton.onclick = send;
+    composer.createEl('small', { text: '⌘ / Ctrl + Enter 发送 · 修改需确认 · 对话记录保存在本库' });
   }
 
   private renderPangram(root: HTMLElement): void {
@@ -551,16 +725,22 @@ class CoachSettingsTab extends PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
     containerEl.createEl('h2', { text: 'PARENO · 并言' });
-    new Setting(containerEl).setName('Provider').setDesc('Ollama stays on your computer. OpenAI sends selected text to your configured API endpoint.')
-      .addDropdown(dropdown => dropdown.addOption('ollama', 'Ollama (local)').addOption('openai', 'OpenAI-compatible API')
+    new Setting(containerEl).setName('Provider').setDesc('Ollama runs locally. Codex uses the desktop CLI login. API mode sends text to the configured endpoint.')
+      .addDropdown(dropdown => dropdown.addOption('ollama', 'Ollama (local)').addOption('codex', 'Codex CLI login').addOption('openai', 'OpenAI-compatible API')
         .setValue(this.coach.settings.provider).onChange(async value => {
           const provider = value as Provider;
           this.coach.settings.provider = provider;
-          this.coach.settings.endpoint = provider === 'ollama'
-            ? 'http://localhost:11434/v1/chat/completions' : 'https://api.openai.com/v1/chat/completions';
-          this.coach.settings.model = provider === 'ollama' ? 'qwen2.5:7b' : 'gpt-4.1-mini';
+          if (provider !== 'codex') {
+            this.coach.settings.endpoint = provider === 'ollama'
+              ? 'http://localhost:11434/v1/chat/completions' : 'https://api.openai.com/v1/chat/completions';
+            this.coach.settings.model = provider === 'ollama' ? 'qwen2.5:7b' : 'gpt-4.1-mini';
+          }
           await this.coach.saveSettings(); this.display();
         }));
+    new Setting(containerEl).setName('Codex executable').setDesc('Only for Codex mode. Uses the CLI’s existing login; no token is copied into PARENO.')
+      .addText(text => text.setValue(this.coach.settings.codexExecutable).onChange(async value => {
+        this.coach.settings.codexExecutable = value.trim() || 'codex'; await this.coach.saveSettings();
+      }));
     new Setting(containerEl).setName('API endpoint').setDesc('Chat Completions-compatible URL. Local Ollama defaults to port 11434.')
       .addText(text => text.setPlaceholder('https://.../v1/chat/completions').setValue(this.coach.settings.endpoint)
         .onChange(async value => { this.coach.settings.endpoint = value.trim(); await this.coach.saveSettings(); }));
@@ -596,6 +776,6 @@ class CoachSettingsTab extends PluginSettingTab {
           this.coach.settings.autoDelay = ms; await this.coach.saveSettings();
         }
       }));
-    containerEl.createEl('p', { text: 'All AI requests send only the selected text or current paragraph, not your complete vault. The local provider requires Ollama and the selected model to be installed separately.', cls: 'setting-item-description' });
+    containerEl.createEl('p', { text: 'Paragraph tasks send the selected text or current paragraph. Whole-article review sends the current note in batches after you click Start. The plugin never edits the article without your confirmation.', cls: 'setting-item-description' });
   }
 }
