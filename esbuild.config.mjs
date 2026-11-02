@@ -5,7 +5,7 @@ const context = await esbuild.context({
   entryPoints: ['src/main.ts'],
   bundle: true,
   external: ['obsidian', 'electron', '@codemirror/state', '@codemirror/view'],
-  platform: 'browser',
+  platform: 'node',
   format: 'cjs',
   target: 'es2022',
   outfile: 'main.js',
