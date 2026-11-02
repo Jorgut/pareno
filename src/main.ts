@@ -1,7 +1,8 @@
 import {
   Editor, EditorPosition, ItemView, MarkdownView, Notice, Plugin, PluginSettingTab,
-  Setting, TFile, WorkspaceLeaf, normalizePath, requestUrl
+  Setting, TFile, WorkspaceLeaf, editorInfoField, normalizePath, requestUrl
 } from 'obsidian';
+import { EditorView } from '@codemirror/view';
 import {
   articleTextForDetection, buildChatMessages, buildMessages, ChatResult, CoachMode, CoachResult,
   documentReviewBlocks, InlineIssue, makeInlineIssues, PangramReport, flaggedPangramWindows,
@@ -65,6 +66,8 @@ export default class ParenoPlugin extends Plugin {
   private messages: Array<{ role: 'user' | 'assistant'; content: string; revision?: string; source?: string;
     from?: EditorPosition; to?: EditorPosition; documentText?: string }> = [];
   private chatFilePath = '';
+  private lastContext?: TextContext;
+  private refreshTimer?: ReturnType<typeof setTimeout>;
   private chatBusy = false;
   private chatError = '';
   private pendingMode?: CoachMode;
@@ -81,7 +84,19 @@ export default class ParenoPlugin extends Plugin {
   async onload(): Promise<void> {
     this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
     this.registerView(PANEL_TYPE, leaf => new CoachSidebar(leaf, this));
-    this.registerEditorExtension(this.inline.extension);
+    this.registerEditorExtension([
+      ...this.inline.extension,
+      EditorView.updateListener.of(update => {
+        if (!update.selectionSet && !update.docChanged) return;
+        const editor = update.state.field(editorInfoField, false)?.editor;
+        const view = editor && this.app.workspace.getLeavesOfType('markdown')
+          .map(leaf => leaf.view).find((item): item is MarkdownView => item instanceof MarkdownView && item.editor === editor);
+        if (!editor || !view) return;
+        this.lastContext = this.capture(editor, view);
+        if (this.refreshTimer) clearTimeout(this.refreshTimer);
+        this.refreshTimer = setTimeout(() => { this.refreshTimer = undefined; this.renderPanel(); }, 250);
+      })
+    ]);
     this.addRibbonIcon('languages', 'Open PARENO', () => { void this.openPanel(); });
 
     const commands: Array<{ mode: CoachMode; id: string; name: string }> = [
@@ -142,6 +157,7 @@ export default class ParenoPlugin extends Plugin {
       if (this.documentEditor) this.inline.clear(this.documentEditor);
       this.messages = [];
       this.chatFilePath = file?.path ?? '';
+      this.lastContext = undefined;
       this.analysis = undefined;
       this.documentIssues = [];
       this.documentEditor = undefined;
@@ -153,6 +169,7 @@ export default class ParenoPlugin extends Plugin {
 
   onunload(): void {
     if (this.autoTimer) clearTimeout(this.autoTimer);
+    if (this.refreshTimer) clearTimeout(this.refreshTimer);
     this.requestVersion++;
     this.pangramVersion++;
   }
@@ -444,6 +461,9 @@ export default class ParenoPlugin extends Plugin {
   getChatMessages() { return this.messages; }
   getChatStatus() { return { busy: this.chatBusy, error: this.chatError }; }
   getCurrentContext(): TextContext | undefined {
+    const previous = this.lastContext;
+    if (previous && previous.view.file?.path === previous.filePath &&
+        previous.editor.getRange(previous.from, previous.to) === previous.source) return previous;
     const view = this.currentMarkdownView();
     return view ? this.capture(view.editor, view) : undefined;
   }
@@ -526,6 +546,7 @@ class CoachSidebar extends ItemView {
 
   render(): void {
     const root = this.contentEl;
+    const previousScroll = root.querySelector('.pareno-body')?.scrollTop ?? 0;
     root.empty();
     root.addClass('bwc-panel');
     const header = root.createDiv({ cls: 'pareno-header' });
@@ -658,6 +679,7 @@ class CoachSidebar extends ItemView {
     sendButton.disabled = chat.busy;
     sendButton.onclick = send;
     composer.createEl('small', { text: '⌘ / Ctrl + Enter 发送 · 修改需确认 · 对话记录保存在本库' });
+    body.scrollTop = previousScroll;
   }
 
   private renderPangram(root: HTMLElement): void {
