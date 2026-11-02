@@ -67,6 +67,7 @@ export default class ParenoPlugin extends Plugin {
     from?: EditorPosition; to?: EditorPosition; documentText?: string }> = [];
   private chatFilePath = '';
   private lastContext?: TextContext;
+  private lastMarkdownView?: MarkdownView;
   private refreshTimer?: ReturnType<typeof setTimeout>;
   private chatBusy = false;
   private chatError = '';
@@ -83,6 +84,10 @@ export default class ParenoPlugin extends Plugin {
 
   async onload(): Promise<void> {
     this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+    this.lastMarkdownView = this.findActiveMarkdownView();
+    this.registerEvent(this.app.workspace.on('active-leaf-change', leaf => {
+      if (leaf?.view instanceof MarkdownView) this.lastMarkdownView = leaf.view;
+    }));
     this.registerView(PANEL_TYPE, leaf => new CoachSidebar(leaf, this));
     this.registerEditorExtension([
       ...this.inline.extension,
@@ -179,6 +184,7 @@ export default class ParenoPlugin extends Plugin {
   private capture(editor: Editor, view: MarkdownView, onlyParagraph = false): TextContext | undefined {
     const file = view.file;
     if (!file) return undefined;
+    this.lastMarkdownView = view;
     let from = editor.getCursor('from');
     let to = editor.getCursor('to');
     if (onlyParagraph || editor.getSelection().length === 0) {
@@ -305,10 +311,17 @@ export default class ParenoPlugin extends Plugin {
   openIssue(id: string): boolean { return Boolean(this.documentEditor && this.inline.open(this.documentEditor, id)); }
 
   getAnalysis(): Analysis | undefined { return this.analysis; }
+  private findActiveMarkdownView(): MarkdownView | undefined {
+    const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+    if (view) return view;
+    const file = this.app.workspace.getActiveFile();
+    if (!file) return undefined;
+    return this.app.workspace.getLeavesOfType('markdown')
+      .map(leaf => leaf.view)
+      .find((item): item is MarkdownView => item instanceof MarkdownView && item.file?.path === file.path);
+  }
   private currentMarkdownView(): MarkdownView | undefined {
-    return this.app.workspace.getActiveViewOfType(MarkdownView) ??
-      this.app.workspace.getLeavesOfType('markdown')
-        .map(leaf => leaf.view).find((view): view is MarkdownView => view instanceof MarkdownView);
+    return this.findActiveMarkdownView() ?? this.lastMarkdownView;
   }
   getCurrentFilePath(): string | undefined { return this.currentMarkdownView()?.file?.path; }
   reviewActiveDocument(): void {
@@ -468,7 +481,7 @@ export default class ParenoPlugin extends Plugin {
   getChatStatus() { return { busy: this.chatBusy, error: this.chatError }; }
   getCurrentContext(): TextContext | undefined {
     const previous = this.lastContext;
-    if (previous && previous.view.file?.path === previous.filePath &&
+    if (previous && previous.view === this.currentMarkdownView() && previous.view.file?.path === previous.filePath &&
         previous.editor.getRange(previous.from, previous.to) === previous.source) return previous;
     const view = this.currentMarkdownView();
     return view ? this.capture(view.editor, view) : undefined;
