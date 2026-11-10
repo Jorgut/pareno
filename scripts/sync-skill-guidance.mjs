@@ -1,7 +1,7 @@
 import { readFile, writeFile } from 'node:fs/promises';
 
 const root = new URL('../', import.meta.url);
-const source = await readFile(new URL('skills/archintera-writing/SKILL.md', root), 'utf8');
+const source = await readFile(new URL('skills/pareno-writing/SKILL.md', root), 'utf8');
 const section = heading => {
   const marker = `\n## ${heading}\n`;
   const at = source.indexOf(marker);
@@ -10,7 +10,7 @@ const section = heading => {
   const end = source.indexOf('\n## ', start);
   return source.slice(start, end < 0 ? undefined : end).trim();
 };
-const generated = `// Generated from skills/archintera-writing/SKILL.md. Run npm run sync:skill after editing the skill.\n` +
+const generated = `// Generated from skills/pareno-writing/SKILL.md. Run npm run sync:skill after editing the skill.\n` +
   `export const adaptationGuidance = ${JSON.stringify(section('Chinese-to-English adaptation'))};\n` +
   `export const editingGuidance = ${JSON.stringify(section('Editing and English learning'))};\n`;
 const target = new URL('src/skill-guidance.ts', root);
