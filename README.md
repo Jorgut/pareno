@@ -14,9 +14,11 @@
 
 ## 写作 skill 与插件
 
-本仓库同时保存 [Archintera Writing skill](skills/archintera-writing/SKILL.md) 和 PARENO 插件源码，作为两者的统一维护位置。skill 指导支持它的 AI 编码助手完成研究、双语改编、编辑与学习反馈；插件提供 Obsidian 正文标注、侧栏审校和替换操作。
+本仓库同时保存 [PARENO Writing skill](skills/pareno-writing/SKILL.md) 和 PARENO 插件源码，作为两者的统一维护位置。skill 指导支持它的 AI 编码助手完成研究、双语改编、编辑与学习反馈；插件提供 Obsidian 正文标注、侧栏审校和替换操作。
 
-插件构建时使用由 `SKILL.md` 生成的写作规则：中英改编规则用于翻译与核对，编辑规则用于审校、作者风格、解释和写作对话。修改 skill 后运行 `npm run sync:skill`，再执行测试与构建；检查脚本会阻止未同步的规则进入构建。插件不会在运行时读取本机的 skill 文件，任务指令仍由插件源码维护。安装 skill 时，将 `skills/archintera-writing/` 复制到所用 AI 助手的 skills 目录；安装插件则按下文步骤操作。
+插件构建时使用由 `SKILL.md` 生成的写作规则：中英改编规则用于翻译与核对，编辑规则用于审校、作者风格、解释和写作对话。修改 skill 后运行 `npm run sync:skill`，再执行测试与构建；检查脚本会阻止未同步的规则进入构建。插件不会在运行时读取本机的 skill 文件，任务指令仍由插件源码维护。安装 skill 时，将 `skills/pareno-writing/` 复制到所用 AI 助手的 skills 目录；安装插件则按下文步骤操作。
+
+本机项目目录名为 `PARENO`。插件源码在 `src/`，写作 skill 在 `skills/pareno-writing/`；本地研究、QA 和原型资料放在不提交到 GitHub 的 `docs/local/`。插件发布文件仍位于仓库根目录。
 
 ## 现在可以做什么
 
