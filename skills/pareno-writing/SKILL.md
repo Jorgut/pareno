@@ -1,9 +1,9 @@
 ---
-name: archintera-writing
-description: Help develop, adapt, edit, and learn from Archintera's research-led Chinese and English architecture, city, and business essays. Use for article planning, Chinese-to-English adaptation, bilingual paragraph alignment, source-aware editing, and English feedback; keep publishing and unrelated copywriting tasks out of scope unless requested.
+name: pareno-writing
+description: Help develop, adapt, edit, and learn from Archintera's research-led Chinese and English architecture, city, and business essays through PARENO. Use for article planning, Chinese-to-English adaptation, bilingual paragraph alignment, source-aware editing, and English feedback; keep publishing and unrelated copywriting tasks out of scope unless requested.
 ---
 
-# Archintera Writing
+# PARENO Writing
 
 Support the author's research and editorial decisions. Preserve the author's argument and voice; do not silently replace them with generic polished copy.
 
