@@ -4,10 +4,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "node esbuild.config.mjs production",
-    "dev": "node esbuild.config.mjs",
-    "typecheck": "tsc --noEmit",
-    "test": "node --test tests/*.test.mjs"
+    "build": "npm run check:skill && node esbuild.config.mjs production",
+    "dev": "npm run check:skill && node esbuild.config.mjs",
+    "typecheck": "npm run check:skill && tsc --noEmit",
+    "test": "npm run check:skill && node --test tests/*.test.mjs",
+    "sync:skill": "node scripts/sync-skill-guidance.mjs",
+    "check:skill": "node scripts/sync-skill-guidance.mjs --check"
   },
   "devDependencies": {
     "@codemirror/state": "^6.5.2",
