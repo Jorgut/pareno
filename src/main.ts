@@ -61,11 +61,19 @@ interface Analysis {
   context: TextContext;
   result: CoachResult;
   applied: boolean;
+  appliedDocument?: string;
 }
 
 export default class ParenoPlugin extends Plugin {
   settings: CoachSettings = DEFAULT_SETTINGS;
-  private inline = createInlineReview(() => { if (this.analysis) this.analysis.applied = true; this.documentIssues = []; this.renderPanel(); });
+  private inline = createInlineReview(() => {
+    if (this.analysis) {
+      this.analysis.applied = true;
+      this.analysis.appliedDocument = this.analysis.context.editor.getValue();
+    }
+    this.documentIssues = [];
+    this.renderPanel();
+  });
   private translationPreview = createTranslationPreview();
   private analysis?: Analysis;
   private documentIssues: InlineIssue[] = [];
@@ -467,7 +475,21 @@ export default class ParenoPlugin extends Plugin {
       .map(leaf => leaf.view).find((view): view is CoachSidebar => view instanceof CoachSidebar);
   }
 
-  private renderPanel(): void { this.getSidebar()?.render(); }
+  private renderPanel(): void {
+    this.syncAnalysisApplied();
+    this.getSidebar()?.render();
+  }
+
+  private syncAnalysisApplied(): void {
+    const analysis = this.analysis;
+    if (!analysis?.applied || !analysis.appliedDocument) return;
+    const view = this.currentMarkdownView();
+    if (!view || view.file?.path !== analysis.context.filePath) return;
+    if (analysis.context.editor.getValue() !== analysis.appliedDocument) {
+      analysis.applied = false;
+      analysis.appliedDocument = undefined;
+    }
+  }
 
   async openPanel(): Promise<void> {
     let leaf: WorkspaceLeaf | undefined = this.app.workspace.getLeavesOfType(PANEL_TYPE)[0];
@@ -498,16 +520,27 @@ export default class ParenoPlugin extends Plugin {
     const analysis = this.analysis;
     if (!analysis) return false;
     const { editor, from, to, source } = analysis.context;
-    if (analysis.applied || this.currentMarkdownView()?.file?.path !== analysis.context.filePath || editor.getRange(from, to) !== source) {
+    if (this.currentMarkdownView()?.file?.path !== analysis.context.filePath) {
       new Notice('This text has changed. Run the check again before applying suggestions.');
       return false;
     }
+    if (analysis.applied && analysis.appliedDocument === editor.getValue()) {
+      new Notice('This suggestion is already applied. Undo to try another version.');
+      return false;
+    }
+    if (editor.getRange(from, to) !== source) {
+      new Notice('This text has changed. Run the check again before applying suggestions.');
+      return false;
+    }
+    analysis.applied = false;
+    analysis.appliedDocument = undefined;
     if (insertBelow) {
       editor.replaceRange(`\n\n${replacement}`, to, to);
     } else {
       editor.replaceRange(replacement, from, to);
     }
     analysis.applied = true;
+    analysis.appliedDocument = editor.getValue();
     this.clearHighlights(analysis.context);
     this.translationPreview.clear();
     this.renderPanel();
