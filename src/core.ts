@@ -70,7 +70,7 @@ export function buildChatMessages(source: string, instruction: string, history: 
 }
 
 // Keep Markdown structure out of article review while retaining source offsets.
-export function documentReviewBlocks(source: string, maxChars = 2200): ReviewBlock[] {
+export function documentReviewBlocks(source: string, maxChars = 2200, includeHeadings = false): ReviewBlock[] {
   const blocks: ReviewBlock[] = [];
   const lines = source.split('\n');
   let offset = 0;
@@ -81,7 +81,8 @@ export function documentReviewBlocks(source: string, maxChars = 2200): ReviewBlo
   const flush = () => {
     if (start >= 0) {
       const text = source.slice(start, end);
-      if (/[A-Za-z]{2}/.test(text) && !/^\s*(?:#{1,6}\s|!\[|!\[\[|\[\[|https?:\/\/|[-*_]{3,}\s*$)/.test(text)) {
+      const heading = /^\s*#{1,6}\s/.test(text);
+      if (/[A-Za-z]{2}/.test(text) && (includeHeadings || !heading) && !/^\s*(?:!\[|!\[\[|\[\[|https?:\/\/|[-*_]{3,}\s*$)/.test(text)) {
         if (text.length <= maxChars) blocks.push({ text, from: start, to: end });
         else {
           for (let i = start; i < end; i += maxChars) {

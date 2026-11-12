@@ -83,6 +83,12 @@ test('whole article review keeps source offsets and skips metadata, images and c
   for (const block of blocks) assert.equal(text.slice(block.from, block.to), block.text);
 });
 
+test('translation segmentation can include headings while still skipping images and code', () => {
+  const text = '# Heading\n\nParagraph.\n\n![Photo](a.jpg)\n\n```ts\nconst bogus = 1;\n```';
+  const blocks = documentReviewBlocks(text, 2200, true);
+  assert.deepEqual(blocks.map(block => block.text), ['# Heading', 'Paragraph.']);
+});
+
 test('inline review maps only unique exact quotes and separates local from optional whole paragraph edits', () => {
   const block = { text: 'The store recieve visitors.', from: 40, to: 67 };
   const result = { minimal: 'The store receives visitors.', natural: 'Visitors arrive at the store.', explanation: '',
