@@ -329,3 +329,22 @@
   font-size: 11px;
 }
 .pareno-settings[open] > summary { margin-bottom: 8px; }
+
+/* Ollama status */
+.pareno-ollama {
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  background: var(--background-secondary);
+}
+.pareno-ollama-status {
+  margin: 0 0 6px;
+  color: var(--text-muted);
+  font-size: 10px;
+  line-height: 1.4;
+}
+.pareno-ollama-models { margin-bottom: 6px; }
+.pareno-ollama-models select { box-sizing: border-box; width: 100%; font-size: 11px; }
+.pareno-ollama-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.pareno-ollama-actions button { height: auto; padding: 4px 9px; font-size: 10px; }
