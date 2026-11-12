@@ -4,7 +4,7 @@
 
 编辑建议始终由作者决定：看到原句、修改理由和可编辑的建议稿之后，才确认替换。写作过程不需要离开 Obsidian。
 
-> 当前为 GitHub 源码版 `0.6.0`，尚未上架 Obsidian Community Plugins。界面仍在迭代。
+> 当前为 GitHub 源码版 `0.7.0`，尚未上架 Obsidian Community Plugins。界面仍在迭代。
 
 ## 界面方向
 
@@ -53,13 +53,13 @@ Pangram AI 文本检测仍保留为**手动、可选的独立工具**。只有�
 3. Obsidian → **设置 → 第三方插件**，启用 **PARENO**。已有 PARENO 安装者先备份旧版插件文件与设置。
 4. 点击左侧语言图标打开侧栏。在 **PARENO 设置**里选择模型供应方式。
 
-这是桌面版插件。`0.6.0` 包含本机 Codex CLI 接入，因此清单标记为 desktop-only。它不会删除或迁移旧 Archintera Writing Companion 的文件和学习记录；两个插件若同时启用，可能同时显示各自侧栏，建议验证新版本后再停用旧插件。
+这是桌面版插件。`0.7.0` 包含本机 Codex、Claude Code、Cursor Agent、OpenCode 的 CLI 接入，以及 Ollama 本机与云端模型，因此清单标记为 desktop-only。它不会删除或迁移旧 Archintera Writing Companion 的文件和学习记录；两个插件若同时启用，可能同时显示各自侧栏，建议验证新版本后再停用旧插件。
 
 ### 模型选择
 
-- **本地 · Ollama**：默认。先安装 Ollama 和模型（默认 `qwen2.5:7b`），再启动 Ollama。PARENO 默认连接 `http://localhost:11434/v1/chat/completions`。本地模型的英文质量取决于所选模型。
-- **云端 · Codex 登录**：使用电脑上已登录的 `codex` CLI，不读取或复制登录令牌。可在设置里填 CLI 的完整路径。这是 Codex CLI 工作流，**不会同步到 ChatGPT 网站的 Project 或对话记录**。
-- **云端 · 兼容 API**：填写 Chat Completions 端点、模型和 API 密钥。API 费用与 ChatGPT 订阅分开计算。密钥保存在本库插件设置中，不要把该设置提交到公开仓库。
+- **Ollama · 本机 / 云端**：默认。本机模型直接连接 `http://localhost:11434/v1/chat/completions`，默认 `qwen2.5:7b`；也可加载 ollama.com 的云端模型目录（含免费额度模型），选择云端模型时需要填写 ollama.com API 密钥（在 [ollama.com/settings/keys](https://ollama.com/settings/keys) 创建），请求会发送到 `https://ollama.com`。本机模型的英文质量取决于所选模型。
+- **本机 Agent · Codex / Claude Code / Cursor Agent / OpenCode**：插件自动检测本机已安装的 CLI 并显示版本，使用各 CLI 已有的登录，不读取或复制令牌。可在设置里为每个 CLI 填完整路径；模型留空使用该 Agent 的默认模型。这些调用会把本次文本发送到对应 Agent 的云服务；Codex 工作流**不会同步到 ChatGPT 网站的 Project 或对话记录**。
+- **云端 · 兼容 API**：填写 Chat Completions 端点、模型和 API 密钥。API 费用与订阅分开计算。密钥保存在本库插件设置中，不要把该设置提交到公开仓库。
 
 不会从本地模型静默切换到云端。侧栏显示当前模型与发送范围；全文审校须单独选择并点击开始。自动段落审校默认关闭。
 
@@ -77,7 +77,7 @@ Pangram AI 文本检测仍保留为**手动、可选的独立工具**。只有�
 ## 隐私与记录
 
 - 段落任务只发送选区或当前段落；全文任务分批发送文章正文。只有作者主动启动，或在设置中开启自动审校时，才会调用模型。
-- Ollama 在本机运行。Codex CLI 和兼容 API 会将本次文本发送到相应服务。Pangram 是独立的主动付费扫描。
+- 本机 Ollama 只在本机运行；Ollama 云端模型、本机 Agent（Codex / Claude Code / Cursor Agent / OpenCode）和兼容 API 会把本次文本发送到各自服务。Pangram 是独立的主动付费扫描。
 - 写作对话按文章保存到本库 `PARENO/Conversations/`；学习卡片保存到 `PARENO/Learning Log.md`。这些文件可能随你的 Obsidian 同步方案同步。
 - PARENO 不收集分析遥测。插件内的历史记录不等同于 ChatGPT Project 同步。
 

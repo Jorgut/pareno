@@ -7,7 +7,7 @@ import Base from '../layouts/Base.astro';
       <div class="page-head">
         <span class="eyebrow">GET STARTED</span>
         <h1>安装 PARENO</h1>
-        <p>当前版本 0.6.0，面向 Obsidian 桌面版。插件仍在迭代，尚未上架 Obsidian Community Plugins；推荐通过 BRAT 安装和更新。</p>
+        <p>当前版本 0.7.0，面向 Obsidian 桌面版。插件仍在迭代，尚未上架 Obsidian Community Plugins；推荐通过 BRAT 安装和更新。</p>
       </div>
 
       <div class="prose">
@@ -46,14 +46,14 @@ import Base from '../layouts/Base.astro';
           </thead>
           <tbody>
             <tr>
-              <td>本地 · Ollama</td>
-              <td>默认。插件连接 <code>http://localhost:11434/v1/chat/completions</code>，内容留在本机。</td>
-              <td>隐私优先、愿意安装本地模型</td>
+              <td>Ollama · 本机 / 云端</td>
+              <td>本机模型连接 <code>http://localhost:11434/v1/chat/completions</code>，内容留在本机；云端模型从 ollama.com 目录选择，使用免费额度时需要 API 密钥，请求发送到 ollama.com。</td>
+              <td>隐私优先，或想用免费云端大模型</td>
             </tr>
             <tr>
-              <td>云端 · Codex 登录</td>
-              <td>使用电脑上已登录的 <code>codex</code> CLI；不会读取或复制登录令牌。</td>
-              <td>已有 Codex CLI 工作流</td>
+              <td>本机 Agent · Codex / Claude Code / Cursor Agent / OpenCode</td>
+              <td>自动检测本机已安装的 CLI 并显示版本，使用其已有登录；可在设置里修改每个 CLI 的路径。文本会发送到对应 Agent 的云服务。</td>
+              <td>已有其中某个 Agent 的订阅或登录</td>
             </tr>
             <tr>
               <td>云端 · 兼容 API</td>

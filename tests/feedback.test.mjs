@@ -9,7 +9,7 @@ import {
 } from '../src/feedback.ts';
 
 const environment = {
-  pluginVersion: '0.6.0',
+  pluginVersion: '0.7.0',
   obsidianVersion: '1.8.7',
   platform: 'macOS · 桌面版',
   provider: 'ollama',
@@ -26,7 +26,7 @@ test('diagnostics include only whitelisted environment fields', () => {
     endpoint: 'http://192.168.1.50:11434/v1/chat/completions',
     filePath: 'Private/未发表文章.md'
   });
-  assert.match(diagnostics, /PARENO: 0\.6\.0/);
+  assert.match(diagnostics, /PARENO: 0\.7\.0/);
   assert.match(diagnostics, /Obsidian API: 1\.8\.7/);
   assert.match(diagnostics, /平台: macOS · 桌面版/);
   assert.match(diagnostics, /模型方式: Ollama（本地）/);
@@ -75,7 +75,7 @@ test('issue body keeps the user text and appends diagnostics', () => {
   assert.match(body, /### 问题描述/);
   assert.match(body, /翻译结果没有返回。/);
   assert.match(body, /### 环境信息/);
-  assert.match(body, /PARENO: 0\.6\.0/);
+  assert.match(body, /PARENO: 0\.7\.0/);
   assert.match(buildFeedbackIssueBody('', diagnostics), /请说明遇到的问题/);
 });
 
@@ -90,7 +90,7 @@ test('issue url prefills title and body without leaking secrets', () => {
   assert.equal(parsed.searchParams.get('title'), '[反馈] 侧栏点开始审校后没有反应');
   const body = parsed.searchParams.get('body') ?? '';
   assert.match(body, /侧栏点开始审校后没有反应/);
-  assert.match(body, /PARENO: 0\.6\.0/);
+  assert.match(body, /PARENO: 0\.7\.0/);
   assert.doesNotMatch(body, /sk-secret|internal\.example/);
   assert.doesNotMatch(url, / /);
 });
@@ -101,7 +101,7 @@ test('very long descriptions are truncated so the issue url stays usable', () =>
   assert.ok(url.length <= FEEDBACK_MAX_URL_LENGTH, `url was ${url.length} characters`);
   const body = new URL(url).searchParams.get('body') ?? '';
   assert.match(body, /…/);
-  assert.match(body, /PARENO: 0\.6\.0/);
+  assert.match(body, /PARENO: 0\.7\.0/);
 });
 
 test('malformed text and code-point boundaries cannot break url encoding', () => {
@@ -112,7 +112,7 @@ test('malformed text and code-point boundaries cannot break url encoding', () =>
   assert.ok(url.length <= FEEDBACK_MAX_URL_LENGTH);
   const parsed = new URL(url);
   assert.ok((parsed.searchParams.get('title') ?? '').length > 0);
-  assert.match(parsed.searchParams.get('body') ?? '', /PARENO: 0\.6\.0/);
+  assert.match(parsed.searchParams.get('body') ?? '', /PARENO: 0\.7\.0/);
   assert.match(sanitizeFeedbackDescription('abc\uD800def'), /^abc\uFFFDdef$/);
 });
 
@@ -120,7 +120,7 @@ test('copyable report works without a GitHub account', () => {
   const report = buildFeedbackReport('模型返回空内容', environment);
   assert.match(report, /PARENO 反馈 \/ Feedback/);
   assert.match(report, /问题描述：\n模型返回空内容/);
-  assert.match(report, /PARENO: 0\.6\.0/);
+  assert.match(report, /PARENO: 0\.7\.0/);
   assert.match(report, /提交地址：https:\/\/github\.com\/Jorgut\/pareno\/issues\/new/);
   assert.match(buildFeedbackReport('', environment), /（未填写）/);
 });
@@ -162,7 +162,7 @@ test('submission payload targets the endpoint and carries user input plus diagno
   assert.equal(submission.payload.message, draft.message);
   assert.equal(submission.payload.email, 'writer@example.com');
   assert.equal(submission.payload._gotcha, '');
-  assert.match(submission.payload.environment, /PARENO: 0\.6\.0/);
+  assert.match(submission.payload.environment, /PARENO: 0\.7\.0/);
   const serialized = JSON.stringify(submission.payload);
   assert.doesNotMatch(serialized, /sk-must-not-leak|internal\.example|未发表文章/);
   assert.doesNotMatch(serialized, /access_key/);
@@ -186,7 +186,7 @@ test('copy text mirrors the submission for manual fallback', () => {
   assert.match(text, /类型：问题 \/ Bug/);
   assert.match(text, /问题描述：\n全文审校到第 3 段时停止/);
   assert.match(text, /联系邮箱：writer@example\.com/);
-  assert.match(text, /PARENO: 0\.6\.0/);
+  assert.match(text, /PARENO: 0\.7\.0/);
   const withoutEmail = buildFeedbackCopyText({ ...draft, email: '', message: '' }, environment);
   assert.match(withoutEmail, /（未填写）/);
   assert.doesNotMatch(withoutEmail, /联系邮箱/);
