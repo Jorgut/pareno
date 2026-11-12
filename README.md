@@ -4,7 +4,7 @@
 
 编辑建议始终由作者决定：看到原句、修改理由和可编辑的建议稿之后，才确认替换。写作过程不需要离开 Obsidian。
 
-> 当前为 GitHub 源码版 `0.4.0`，尚未上架 Obsidian Community Plugins。界面仍在迭代。
+> 当前为 GitHub 源码版 `0.5.0`，尚未上架 Obsidian Community Plugins。界面仍在迭代。
 
 ## 界面方向
 
@@ -53,7 +53,7 @@ Pangram AI 文本检测仍保留为**手动、可选的独立工具**。只有�
 3. Obsidian → **设置 → 第三方插件**，启用 **PARENO**。已有 PARENO 安装者先备份旧版插件文件与设置。
 4. 点击左侧语言图标打开侧栏。在 **PARENO 设置**里选择模型供应方式。
 
-这是桌面版插件。`0.4.0` 包含本机 Codex CLI 接入，因此清单标记为 desktop-only。它不会删除或迁移旧 Archintera Writing Companion 的文件和学习记录；两个插件若同时启用，可能同时显示各自侧栏，建议验证新版本后再停用旧插件。
+这是桌面版插件。`0.5.0` 包含本机 Codex CLI 接入，因此清单标记为 desktop-only。它不会删除或迁移旧 Archintera Writing Companion 的文件和学习记录；两个插件若同时启用，可能同时显示各自侧栏，建议验证新版本后再停用旧插件。
 
 ### 模型选择
 
