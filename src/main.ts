@@ -11,9 +11,16 @@ import {
 } from './core';
 import { createInlineReview } from './inline-review';
 import { createTranslationPreview } from './translation-preview';
-import { Provider, requestWritingModel } from './provider';
+import { agentExecutable, Provider, requestWritingModel } from './provider';
 import { spawn } from 'node:child_process';
-import { DEFAULT_OLLAMA_STATUS, hasOllamaModel, ollamaStatusLabel, parseOllamaModels, OllamaStatus } from './ollama';
+import {
+  agentDefinition, AgentKind, agentStatusLabel, agentStatusSummary, defaultAgentStatuses, AgentStatus,
+  parseAgentVersion, resolveAgentCommand
+} from './agents';
+import {
+  DEFAULT_OLLAMA_STATUS, hasOllamaCloudModel, hasOllamaModel, OLLAMA_CLOUD_KEYS_URL, OLLAMA_CLOUD_TAGS_URL,
+  ollamaStatusLabel, parseOllamaCloudModels, parseOllamaModels, OllamaStatus
+} from './ollama';
 import {
   buildFeedbackCopyText, buildFeedbackDiagnostics, buildFeedbackIssueUrl, buildFeedbackSubmission,
   FEEDBACK_CATEGORIES, FeedbackCategory, FeedbackDraft, FeedbackEnvironment, FeedbackValidationError,
@@ -30,7 +37,12 @@ interface CoachSettings {
   endpoint: string;
   model: string;
   apiKey: string;
+  ollamaApiKey: string;
+  ollamaCloud: boolean;
   codexExecutable: string;
+  claudeExecutable: string;
+  cursorExecutable: string;
+  opencodeExecutable: string;
   pangramApiKey: string;
   register: 'professional' | 'conversational' | 'podcast';
   autoReview: boolean;
@@ -42,7 +54,12 @@ const DEFAULT_SETTINGS: CoachSettings = {
   endpoint: 'http://localhost:11434/v1/chat/completions',
   model: 'qwen2.5:7b',
   apiKey: '',
+  ollamaApiKey: '',
+  ollamaCloud: false,
   codexExecutable: 'codex',
+  claudeExecutable: 'claude',
+  cursorExecutable: 'cursor-agent',
+  opencodeExecutable: 'opencode',
   pangramApiKey: '',
   register: 'professional',
   autoReview: false,
@@ -103,6 +120,8 @@ export default class ParenoPlugin extends Plugin {
   private ollamaStatus: OllamaStatus = DEFAULT_OLLAMA_STATUS;
   private ollamaChecking = false;
   private ollamaStarting = false;
+  private agentStatuses: AgentStatus[] = defaultAgentStatuses();
+  private agentChecking = false;
 
   async onload(): Promise<void> {
     this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
@@ -216,6 +235,54 @@ export default class ParenoPlugin extends Plugin {
   getOllamaStatus(): OllamaStatus { return this.ollamaStatus; }
   isOllamaStarting(): boolean { return this.ollamaStarting; }
   hasOllamaModel(name: string): boolean { return hasOllamaModel(this.ollamaStatus.models, name); }
+  getAgentStatuses(): AgentStatus[] { return this.agentStatuses; }
+  isAgentsChecking(): boolean { return this.agentChecking; }
+
+  async ensureAgentStatuses(force = false): Promise<AgentStatus[]> {
+    const fresh = this.agentStatuses.every(status => status.checkedAt > 0 && Date.now() - status.checkedAt < 60000);
+    if (!force && (this.agentChecking || fresh)) return this.agentStatuses;
+    this.agentChecking = true;
+    try {
+      this.agentStatuses = await Promise.all((['codex', 'claude', 'cursor-agent', 'opencode'] as AgentKind[]).map(kind => this.probeAgent(kind)));
+    } finally {
+      this.agentChecking = false;
+      this.renderPanel();
+    }
+    return this.agentStatuses;
+  }
+
+  private probeAgent(kind: AgentKind): Promise<AgentStatus> {
+    const definition = agentDefinition(kind);
+    const executable = resolveAgentCommand(agentExecutable(this.settings, kind));
+    return new Promise(resolve => {
+      let stdout = '';
+      let stderr = '';
+      let settled = false;
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const finish = (state: AgentStatus['state'], message = '', version = '') => {
+        if (settled) return;
+        settled = true;
+        if (timer) clearTimeout(timer);
+        resolve({ kind, label: definition.label, executable, state, version, message, checkedAt: Date.now() });
+      };
+      let child;
+      try {
+        child = spawn(executable, definition.versionArgs, { stdio: ['ignore', 'pipe', 'pipe'], shell: false });
+      } catch {
+        finish('missing');
+        return;
+      }
+      timer = setTimeout(() => { child.kill(); finish('error', '检测超时'); }, 5000);
+      child.stdout?.on('data', chunk => { stdout += chunk.toString(); });
+      child.stderr?.on('data', chunk => { stderr += chunk.toString(); });
+      child.on('error', () => finish('missing'));
+      child.on('close', code => {
+        const text = stdout.trim() || stderr.trim();
+        if (code === 0) finish('ready', '', parseAgentVersion(text));
+        else finish('error', text.slice(0, 160) || `${definition.label} 退出码 ${code}`, '');
+      });
+    });
+  }
 
   private ollamaBase(): string {
     try { return new URL(this.settings.endpoint).origin; } catch { return 'http://localhost:11434'; }
@@ -232,15 +299,24 @@ export default class ParenoPlugin extends Plugin {
   }
 
   private async checkOllamaInternal(): Promise<void> {
-    try {
-      const response = await requestUrl({ url: `${this.ollamaBase()}/api/tags`, method: 'GET', throw: false });
+    const [local, cloud] = await Promise.allSettled([
+      requestUrl({ url: `${this.ollamaBase()}/api/tags`, method: 'GET', throw: false }),
+      requestUrl({ url: OLLAMA_CLOUD_TAGS_URL, method: 'GET', throw: false })
+    ]);
+    const cloudOk = cloud.status === 'fulfilled' && cloud.value.status >= 200 && cloud.value.status < 300;
+    const cloudModels = cloudOk ? parseOllamaCloudModels(cloud.value.json) : this.ollamaStatus.cloudModels;
+    const cloudError = cloud.status === 'fulfilled'
+      ? (cloudOk ? '' : `云端目录返回 ${cloud.value.status}`)
+      : '无法连接 ollama.com';
+    if (local.status === 'fulfilled') {
+      const response = local.value;
       if (response.status >= 200 && response.status < 300) {
-        this.ollamaStatus = { state: 'running', models: parseOllamaModels(response.json), message: '', checkedAt: Date.now() };
+        this.ollamaStatus = { state: 'running', models: parseOllamaModels(response.json), cloudModels, cloudError, message: '', checkedAt: Date.now() };
       } else {
-        this.ollamaStatus = { state: 'error', models: [], message: `Ollama 返回 ${response.status}`, checkedAt: Date.now() };
+        this.ollamaStatus = { state: 'error', models: [], cloudModels, cloudError, message: `Ollama 返回 ${response.status}`, checkedAt: Date.now() };
       }
-    } catch {
-      this.ollamaStatus = { state: 'stopped', models: [], message: 'Ollama 未启动或端口不可用', checkedAt: Date.now() };
+    } else {
+      this.ollamaStatus = { state: 'stopped', models: [], cloudModels, cloudError, message: 'Ollama 未启动或端口不可用', checkedAt: Date.now() };
     }
   }
 
@@ -258,14 +334,14 @@ export default class ParenoPlugin extends Plugin {
   async startOllama(): Promise<void> {
     if (this.ollamaStarting) return;
     this.ollamaStarting = true;
-    this.ollamaStatus = { state: 'stopped', models: [], message: '正在启动 Ollama…', checkedAt: 0 };
+    this.ollamaStatus = { state: 'stopped', models: [], cloudModels: this.ollamaStatus.cloudModels, cloudError: '', message: '正在启动 Ollama…', checkedAt: 0 };
     this.renderPanel();
     try {
       let launched = await this.launchOllama('ollama', ['serve']);
       if (!launched && process.platform === 'darwin') launched = await this.launchOllama('open', ['-a', 'Ollama']);
       if (!launched && process.platform === 'win32') launched = await this.launchOllama('cmd', ['/c', 'start', '', 'ollama', 'serve']);
       if (!launched) {
-        this.ollamaStatus = { state: 'missing', models: [], message: '未找到 Ollama，请先安装', checkedAt: Date.now() };
+        this.ollamaStatus = { state: 'missing', models: [], cloudModels: [], cloudError: '', message: '未找到 Ollama，请先安装', checkedAt: Date.now() };
         new Notice('未找到 Ollama。请先安装 Ollama，或确认 ollama 命令在 PATH 中。');
         return;
       }
@@ -282,9 +358,17 @@ export default class ParenoPlugin extends Plugin {
   }
 
   openOllamaDownload(): void { window.open('https://ollama.com/download', '_blank'); }
+  openOllamaKeys(): void { window.open(OLLAMA_CLOUD_KEYS_URL, '_blank'); }
 
   async refreshOllamaModel(): Promise<void> {
     const status = await this.ensureOllamaStatus(true);
+    if (this.settings.ollamaCloud) {
+      if (status.cloudModels.length && !hasOllamaCloudModel(status, this.settings.model)) {
+        const first = status.cloudModels[0];
+        if (first) { this.settings.model = first; await this.saveSettings(); }
+      }
+      return;
+    }
     if (status.state === 'running' && status.models.length && !hasOllamaModel(status.models, this.settings.model)) {
       const first = status.models[0];
       if (first) { this.settings.model = first; await this.saveSettings(); }
@@ -881,38 +965,57 @@ class CoachSidebar extends ItemView {
 
     const model = parent.createDiv({ cls: 'pareno-model' });
     model.createEl('span', { text: '模型与数据范围' });
+    const statuses = this.coach.getAgentStatuses();
+    if (statuses.some(status => status.state === 'unknown')) void this.coach.ensureAgentStatuses().then(() => this.render());
     const select = model.createEl('select', { attr: { 'aria-label': '模型供应方式' } });
-    for (const [value, label] of [['ollama', '本地 · Ollama'], ['codex', '云端 · Codex 登录'], ['openai', '云端 · 兼容 API']] as const) {
-      select.createEl('option', { text: label, value });
+    select.createEl('option', { text: 'Ollama · 本机 / 云端', value: 'ollama' });
+    for (const status of statuses) {
+      const suffix = status.state === 'ready' ? ' · 可用' : status.state === 'unknown' ? ' · 检测中' : '';
+      select.createEl('option', { text: `${status.label}${suffix}`, value: status.kind });
     }
+    select.createEl('option', { text: '云端 · 兼容 API', value: 'openai' });
     select.value = this.coach.settings.provider;
     select.onchange = () => {
       const provider = select.value as Provider;
+      const previous = this.coach.settings.provider;
       this.coach.settings.provider = provider;
-      if (provider === 'ollama') { this.coach.settings.endpoint = 'http://localhost:11434/v1/chat/completions'; this.coach.settings.model = 'qwen2.5:7b'; }
-      if (provider === 'openai' && this.coach.settings.endpoint.startsWith('http://localhost:')) {
-        this.coach.settings.endpoint = 'https://api.openai.com/v1/chat/completions'; this.coach.settings.model = 'gpt-4.1-mini';
+      if (provider === 'ollama') {
+        this.coach.settings.endpoint = 'http://localhost:11434/v1/chat/completions';
+        this.coach.settings.ollamaCloud = false;
+        this.coach.settings.model = 'qwen2.5:7b';
+      } else if (provider === 'openai' && this.coach.settings.endpoint.startsWith('http://localhost:')) {
+        this.coach.settings.endpoint = 'https://api.openai.com/v1/chat/completions';
+        this.coach.settings.model = 'gpt-4.1-mini';
+      } else if (previous !== provider) {
+        this.coach.settings.model = '';
       }
       void this.coach.saveSettings().then(() => this.render());
     };
 
     if (this.coach.settings.provider === 'ollama') {
       const ollamaStatus = this.coach.getOllamaStatus();
+      const cloud = this.coach.settings.ollamaCloud;
       const ollama = parent.createDiv({ cls: 'pareno-ollama' });
-      ollama.createEl('p', { text: ollamaStatusLabel(ollamaStatus, this.coach.settings.model), cls: 'pareno-ollama-status' });
-      if (ollamaStatus.models.length) {
+      ollama.createEl('p', { text: ollamaStatusLabel(ollamaStatus, this.coach.settings.model, cloud), cls: 'pareno-ollama-status' });
+      const localNames = [...new Set([...ollamaStatus.models, !cloud ? this.coach.settings.model : ''].filter(Boolean))];
+      const cloudNames = [...new Set([...ollamaStatus.cloudModels, cloud ? this.coach.settings.model : ''].filter(Boolean))];
+      if (localNames.length || cloudNames.length) {
         const modelRow = ollama.createDiv({ cls: 'pareno-ollama-models' });
         const modelSelect = modelRow.createEl('select', { attr: { 'aria-label': 'Ollama 模型' } });
-        for (const name of [...new Set([...ollamaStatus.models, this.coach.settings.model].filter(Boolean))]) {
-          modelSelect.createEl('option', { text: name, value: name });
-        }
-        modelSelect.value = this.coach.settings.model;
+        for (const name of localNames) modelSelect.createEl('option', { text: `本机 · ${name}`, value: `local:${name}` });
+        for (const name of cloudNames) modelSelect.createEl('option', { text: `云端 · ${name}`, value: `cloud:${name}` });
+        if (this.coach.settings.model) modelSelect.value = `${cloud ? 'cloud' : 'local'}:${this.coach.settings.model}`;
         modelSelect.onchange = () => {
-          this.coach.settings.model = modelSelect.value;
+          const separator = modelSelect.value.indexOf(':');
+          this.coach.settings.ollamaCloud = modelSelect.value.slice(0, separator) === 'cloud';
+          this.coach.settings.model = modelSelect.value.slice(separator + 1);
           void this.coach.saveSettings();
         };
       } else if (ollamaStatus.state === 'running') {
-        ollama.createEl('p', { text: '还没有安装模型。可在终端运行 ollama pull qwen2.5:7b。', cls: 'bwc-hint' });
+        ollama.createEl('p', { text: '还没有安装本机模型，也没有读取到云端目录。', cls: 'bwc-hint' });
+      }
+      if (cloud && !this.coach.settings.ollamaApiKey.trim()) {
+        ollama.createEl('p', { text: '云端模型需要 ollama.com API 密钥，请在设置中填写。', cls: 'bwc-hint' });
       }
       const ollamaActions = ollama.createDiv({ cls: 'pareno-ollama-actions' });
       if (ollamaStatus.state !== 'running') {
@@ -926,6 +1029,15 @@ class CoachSidebar extends ItemView {
         const install = ollamaActions.createEl('button', { text: '安装 Ollama' });
         install.onclick = () => this.coach.openOllamaDownload();
       }
+    } else if (this.coach.settings.provider !== 'openai') {
+      const status = statuses.find(item => item.kind === this.coach.settings.provider);
+      const agent = parent.createDiv({ cls: 'pareno-ollama' });
+      agent.createEl('p', { text: status ? agentStatusLabel(status) : '正在检测本机 Agent…', cls: 'pareno-ollama-status' });
+      if (status && status.state !== 'ready') {
+        agent.createEl('p', { text: '在设置中确认该 CLI 的路径，或安装后重新检测。', cls: 'bwc-hint' });
+      }
+      const open = agent.createEl('button', { text: '打开设置' });
+      open.onclick = () => this.coach.openSettings();
     }
 
     const startLabels: Record<CoachMode, string> = {
@@ -943,11 +1055,15 @@ class CoachSidebar extends ItemView {
       } else if (context) void this.coach.analyze(this.selectedMode, context);
       else new Notice('请先打开文章并把光标放在段落中。');
     };
-    const local = this.coach.settings.provider === 'ollama';
+    const provider = this.coach.settings.provider;
+    const local = provider === 'ollama' && !this.coach.settings.ollamaCloud;
+    const destination = local ? '本机 Ollama'
+      : provider === 'ollama' ? 'Ollama 云端'
+        : provider === 'openai' ? '所选云端 API' : '所选本机 Agent 的云服务';
     const whole = this.coach.getScope() === 'document';
     parent.createEl('p', { text: whole
-      ? local ? '全文将分批发送至本机 Ollama；须主动点击开始。' : '全文将分批发送至所选云端模型；须主动点击开始。'
-      : local ? '只发送选区或当前段落；内容留在本机 Ollama。' : '只发送选区或当前段落至所选云端模型。', cls: 'bwc-hint' });
+      ? `全文将分批发送至${destination}；须主动点击开始。`
+      : `只发送选区或当前段落至${destination}。`, cls: 'bwc-hint' });
 
     if (pending.mode) {
       parent.createEl('p', { text: pending.error || '正在分析所选段落…', cls: 'bwc-status' });
@@ -1216,31 +1332,70 @@ class CoachSettingsTab extends PluginSettingTab {
     super(app, coach);
     this.coach = coach;
   }
+  private agentExecutableValue(kind: AgentKind): string {
+    const settings = this.coach.settings;
+    if (kind === 'codex') return settings.codexExecutable;
+    if (kind === 'claude') return settings.claudeExecutable;
+    if (kind === 'cursor-agent') return settings.cursorExecutable;
+    return settings.opencodeExecutable;
+  }
+
+  private setAgentExecutableValue(kind: AgentKind, value: string): void {
+    const settings = this.coach.settings;
+    const trimmed = value.trim() || agentDefinition(kind).executable;
+    if (kind === 'codex') settings.codexExecutable = trimmed;
+    else if (kind === 'claude') settings.claudeExecutable = trimmed;
+    else if (kind === 'cursor-agent') settings.cursorExecutable = trimmed;
+    else settings.opencodeExecutable = trimmed;
+  }
+
   display(): void {
     const { containerEl } = this;
     containerEl.empty();
     containerEl.createEl('h2', { text: 'PARENO · 并言' });
-    new Setting(containerEl).setName('Provider').setDesc('Ollama runs locally. Codex uses the desktop CLI login. API mode sends text to the configured endpoint.')
-      .addDropdown(dropdown => dropdown.addOption('ollama', 'Ollama (local)').addOption('codex', 'Codex CLI login').addOption('openai', 'OpenAI-compatible API')
-        .setValue(this.coach.settings.provider).onChange(async value => {
+    const statuses = this.coach.getAgentStatuses();
+    if (statuses.some(status => status.state === 'unknown') && !this.coach.isAgentsChecking()) {
+      void this.coach.ensureAgentStatuses().then(() => this.display());
+    }
+    new Setting(containerEl).setName('Provider / 模型来源')
+      .setDesc('Ollama 可跑本机模型，也可用免费额度的云端模型；本机 Agent 使用已安装 CLI 的登录；兼容 API 走自定义端点。')
+      .addDropdown(dropdown => {
+        dropdown.addOption('ollama', 'Ollama · 本机 / 云端');
+        for (const status of statuses) {
+          const suffix = status.state === 'ready' ? ' · 可用' : status.state === 'unknown' ? ' · 检测中' : ' · 未检测到';
+          dropdown.addOption(status.kind, `${status.label}${suffix}`);
+        }
+        dropdown.addOption('openai', 'OpenAI-compatible API');
+        dropdown.setValue(this.coach.settings.provider);
+        dropdown.onChange(async value => {
           const provider = value as Provider;
+          const previous = this.coach.settings.provider;
           this.coach.settings.provider = provider;
-          if (provider !== 'codex') {
-            this.coach.settings.endpoint = provider === 'ollama'
-              ? 'http://localhost:11434/v1/chat/completions' : 'https://api.openai.com/v1/chat/completions';
-            this.coach.settings.model = provider === 'ollama' ? 'qwen2.5:7b' : 'gpt-4.1-mini';
+          if (provider === 'ollama') {
+            this.coach.settings.endpoint = 'http://localhost:11434/v1/chat/completions';
+            this.coach.settings.ollamaCloud = false;
+            this.coach.settings.model = 'qwen2.5:7b';
+          } else if (provider === 'openai') {
+            this.coach.settings.endpoint = 'https://api.openai.com/v1/chat/completions';
+            this.coach.settings.model = 'gpt-4.1-mini';
+          } else if (previous !== provider) {
+            this.coach.settings.model = '';
           }
-          await this.coach.saveSettings(); this.display();
-        }));
-    const ollamaStatus = this.coach.settings.provider === 'ollama' ? this.coach.getOllamaStatus() : null;
-    if (ollamaStatus && Date.now() - ollamaStatus.checkedAt > 10000 && !this.ollamaSettingsRefresh) {
+          await this.coach.saveSettings();
+          this.display();
+        });
+      });
+
+    const ollamaStatus = this.coach.getOllamaStatus();
+    if (this.coach.settings.provider === 'ollama' && Date.now() - ollamaStatus.checkedAt > 10000 && !this.ollamaSettingsRefresh) {
       this.ollamaSettingsRefresh = true;
       void this.coach.ensureOllamaStatus(true).then(() => { this.ollamaSettingsRefresh = false; this.display(); });
     }
-    if (ollamaStatus) {
+    if (this.coach.settings.provider === 'ollama') {
+      const cloud = this.coach.settings.ollamaCloud;
       const connection = new Setting(containerEl)
         .setName('Ollama connection')
-        .setDesc(ollamaStatusLabel(ollamaStatus, this.coach.settings.model));
+        .setDesc(ollamaStatusLabel(ollamaStatus, this.coach.settings.model, cloud));
       connection.addButton(button => button.setButtonText('检查连接').onClick(async () => {
         await this.coach.ensureOllamaStatus(true); this.display();
       }));
@@ -1252,17 +1407,23 @@ class CoachSettingsTab extends PluginSettingTab {
       if (ollamaStatus.state === 'missing') {
         connection.addButton(button => button.setButtonText('安装 Ollama').onClick(() => this.coach.openOllamaDownload()));
       }
-      const names = [...new Set([...ollamaStatus.models, this.coach.settings.model].filter(Boolean))];
+      const localNames = [...new Set([...ollamaStatus.models, !cloud ? this.coach.settings.model : ''].filter(Boolean))];
+      const cloudNames = [...new Set([...ollamaStatus.cloudModels, cloud ? this.coach.settings.model : ''].filter(Boolean))];
       const modelSetting = new Setting(containerEl)
         .setName('Ollama model')
-        .setDesc(ollamaStatus.models.length ? '从本机已安装模型中选择；切换后自动保存。' : '还没有检测到已安装模型；可先运行 ollama pull <model>。');
+        .setDesc(cloud ? '当前使用 Ollama 云端模型，需要 ollama.com API 密钥；免费额度按 Ollama 账户限制。' : '本机已安装模型直接运行；云端模型使用 Ollama Cloud 免费额度。');
       modelSetting.addDropdown(dropdown => {
-        const shown = names.length ? names : [this.coach.settings.model];
-        for (const name of shown) dropdown.addOption(name, this.coach.hasOllamaModel(name) ? name : `${name} （未安装）`);
-        if (this.coach.settings.model) dropdown.setValue(this.coach.settings.model);
+        for (const name of localNames) dropdown.addOption(`local:${name}`, `本机 · ${name}`);
+        for (const name of cloudNames) dropdown.addOption(`cloud:${name}`, `云端 · ${name}`);
+        if (this.coach.settings.model) dropdown.setValue(`${cloud ? 'cloud' : 'local'}:${this.coach.settings.model}`);
         dropdown.onChange(async value => {
           if (!value) return;
-          this.coach.settings.model = value;
+          const separator = value.indexOf(':');
+          const scope = value.slice(0, separator);
+          const name = value.slice(separator + 1);
+          if (!name) return;
+          this.coach.settings.model = name;
+          this.coach.settings.ollamaCloud = scope === 'cloud';
           await this.coach.saveSettings();
           this.display();
         });
@@ -1270,25 +1431,53 @@ class CoachSettingsTab extends PluginSettingTab {
       modelSetting.addButton(button => button.setButtonText('刷新模型').onClick(async () => {
         await this.coach.refreshOllamaModel(); this.display();
       }));
+      const keySetting = new Setting(containerEl)
+        .setName('Ollama Cloud API key')
+        .setDesc(cloud ? '云端模型需要 ollama.com 密钥（免费额度）；密钥只保存在本库插件设置。' : '可选：填入 ollama.com 密钥后使用云端模型。');
+      keySetting.addText(text => {
+        text.inputEl.type = 'password';
+        text.setPlaceholder('ollama.com 密钥').setValue(this.coach.settings.ollamaApiKey)
+          .onChange(async value => { this.coach.settings.ollamaApiKey = value.trim(); await this.coach.saveSettings(); });
+      });
+      keySetting.addButton(button => button.setButtonText('创建密钥').onClick(() => this.coach.openOllamaKeys()));
+      if (!ollamaStatus.models.length && ollamaStatus.state === 'running') {
+        containerEl.createEl('p', { text: '还没有安装本机模型。可在终端运行 ollama pull qwen2.5:7b，或直接选云端模型。', cls: 'setting-item-description' });
+      }
     }
-    new Setting(containerEl).setName('Codex executable').setDesc('Only for Codex mode. Uses the CLI’s existing login; no token is copied into PARENO.')
-      .addText(text => text.setValue(this.coach.settings.codexExecutable).onChange(async value => {
-        this.coach.settings.codexExecutable = value.trim() || 'codex'; await this.coach.saveSettings();
-      }));
-    new Setting(containerEl).setName('API endpoint').setDesc('Chat Completions-compatible URL. Local Ollama defaults to port 11434.')
-      .addText(text => text.setPlaceholder('https://.../v1/chat/completions').setValue(this.coach.settings.endpoint)
-        .onChange(async value => { this.coach.settings.endpoint = value.trim(); await this.coach.saveSettings(); }));
-    if (this.coach.settings.provider !== 'ollama') {
-      new Setting(containerEl).setName('Model').setDesc('The model ID available at your endpoint.')
+
+    new Setting(containerEl).setName('本机 Agent').setDesc(agentStatusSummary(statuses))
+      .addButton(button => button.setButtonText(this.coach.isAgentsChecking() ? '正在检测…' : '重新检测')
+        .setDisabled(this.coach.isAgentsChecking())
+        .onClick(async () => { await this.coach.ensureAgentStatuses(true); this.display(); }));
+    for (const status of statuses) {
+      const definition = agentDefinition(status.kind);
+      const suffix = status.state === 'ready' ? ` · ${status.version}` : status.state === 'unknown' ? ' · 检测中' : status.state === 'missing' ? ' · 未检测到' : ' · 不可用';
+      const setting = new Setting(containerEl)
+        .setName(`${definition.label}${suffix}`)
+        .setDesc(status.state === 'error' && status.message ? status.message : definition.hint);
+      setting.addText(text => text.setValue(this.agentExecutableValue(status.kind))
+        .onChange(async value => { this.setAgentExecutableValue(status.kind, value); await this.coach.saveSettings(); }));
+    }
+    if (this.coach.settings.provider !== 'ollama' && this.coach.settings.provider !== 'openai') {
+      new Setting(containerEl).setName('Agent model (optional)')
+        .setDesc('留空使用该 Agent 的默认模型；也可填写它支持的名字，例如 sonnet、gpt-5。')
         .addText(text => text.setValue(this.coach.settings.model)
           .onChange(async value => { this.coach.settings.model = value.trim(); await this.coach.saveSettings(); }));
     }
-    new Setting(containerEl).setName('API key').setDesc('Only used for OpenAI-compatible API mode. Stored in this vault’s plugin settings; avoid syncing keys to public repositories.')
-      .addText(text => {
-        text.inputEl.type = 'password';
-        text.setPlaceholder('sk-...').setValue(this.coach.settings.apiKey)
-          .onChange(async value => { this.coach.settings.apiKey = value.trim(); await this.coach.saveSettings(); });
-      });
+    if (this.coach.settings.provider === 'openai') {
+      new Setting(containerEl).setName('API endpoint').setDesc('Chat Completions-compatible URL.')
+        .addText(text => text.setPlaceholder('https://.../v1/chat/completions').setValue(this.coach.settings.endpoint)
+          .onChange(async value => { this.coach.settings.endpoint = value.trim(); await this.coach.saveSettings(); }));
+      new Setting(containerEl).setName('Model').setDesc('The model ID available at your endpoint.')
+        .addText(text => text.setValue(this.coach.settings.model)
+          .onChange(async value => { this.coach.settings.model = value.trim(); await this.coach.saveSettings(); }));
+      new Setting(containerEl).setName('API key').setDesc('Only used for OpenAI-compatible API mode. Stored in this vault’s plugin settings; avoid syncing keys to public repositories.')
+        .addText(text => {
+          text.inputEl.type = 'password';
+          text.setPlaceholder('sk-...').setValue(this.coach.settings.apiKey)
+            .onChange(async value => { this.coach.settings.apiKey = value.trim(); await this.coach.saveSettings(); });
+        });
+    }
     new Setting(containerEl).setName('Pangram API key')
       .setDesc('Optional paid AI detection. PARENO only sends your current article to Pangram after you choose Scan. Stored locally in plugin settings; never commit this key.')
       .addText(text => {
