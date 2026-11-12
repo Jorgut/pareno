@@ -57,7 +57,7 @@ Pangram AI 文本检测仍保留为**手动、可选的独立工具**。只有�
 
 ### 模型选择
 
-- **Ollama · 本机 / 云端**：默认。本机模型直接连接 `http://localhost:11434/v1/chat/completions`，默认 `qwen2.5:7b`；也可加载 ollama.com 的云端模型目录（含免费额度模型），选择云端模型时需要填写 ollama.com API 密钥（在 [ollama.com/settings/keys](https://ollama.com/settings/keys) 创建），请求会发送到 `https://ollama.com`。本机模型的英文质量取决于所选模型。
+- **Ollama · 本机 / 云端**：默认。本机模型直接连接 `http://localhost:11434/v1/chat/completions`，默认 `qwen2.5:7b`；也可加载 ollama.com 的云端模型目录（含免费额度模型），选择云端模型时需要填写 ollama.com API 密钥（在 [ollama.com/settings/keys](https://ollama.com/settings/keys) 创建），请求会发送到 `https://ollama.com`。也可以先在终端运行 `ollama signin`，让云端模型经本机 Ollama 转发；登录后它们会出现在本机模型列表中。本机模型的英文质量取决于所选模型。
 - **本机 Agent · Codex / Claude Code / Cursor Agent / OpenCode**：插件自动检测本机已安装的 CLI 并显示版本，使用各 CLI 已有的登录，不读取或复制令牌。可在设置里为每个 CLI 填完整路径；模型留空使用该 Agent 的默认模型。这些调用会把本次文本发送到对应 Agent 的云服务；Codex 工作流**不会同步到 ChatGPT 网站的 Project 或对话记录**。
 - **云端 · 兼容 API**：填写 Chat Completions 端点、模型和 API 密钥。API 费用与订阅分开计算。密钥保存在本库插件设置中，不要把该设置提交到公开仓库。
 
