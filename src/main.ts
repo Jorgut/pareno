@@ -11,6 +11,10 @@ import {
 } from './core';
 import { createInlineReview } from './inline-review';
 import { createTranslationPreview } from './translation-preview';
+import {
+  appendixTranslation, canInsertAfter, TranslationSegment, translationNote,
+  translationNoteTitle, translationText, TranslationVariant
+} from './document-translation';
 import { agentExecutable, Provider, requestWritingModel } from './provider';
 import { spawn } from 'node:child_process';
 import {
@@ -83,6 +87,14 @@ interface Analysis {
   appliedDocument?: string;
 }
 
+interface DocumentTranslation {
+  filePath: string;
+  source: string;
+  editor: Editor;
+  blocks: TranslationSegment[];
+  variant: TranslationVariant;
+}
+
 export default class ParenoPlugin extends Plugin {
   settings: CoachSettings = DEFAULT_SETTINGS;
   private inline = createInlineReview(() => {
@@ -95,6 +107,8 @@ export default class ParenoPlugin extends Plugin {
   });
   private translationPreview = createTranslationPreview();
   private analysis?: Analysis;
+  private documentTranslation?: DocumentTranslation;
+  private translationVariant: TranslationVariant = 'faithful';
   private documentIssues: InlineIssue[] = [];
   private documentEditor?: Editor;
   private scope: 'paragraph' | 'document' = 'paragraph';
@@ -438,6 +452,7 @@ export default class ParenoPlugin extends Plugin {
     this.translationPreview.clear();
     this.clearHighlights(this.analysis?.context);
     this.analysis = undefined;
+    this.documentTranslation = undefined;
     this.documentIssues = [];
     this.scope = 'paragraph';
     this.pendingMode = mode;
@@ -500,6 +515,7 @@ export default class ParenoPlugin extends Plugin {
     this.translationPreview.clear();
     this.scope = 'document';
     this.analysis = undefined;
+    this.documentTranslation = undefined;
     this.documentIssues = [];
     this.documentEditor = editor;
     this.inline.clear(editor);
@@ -532,6 +548,146 @@ export default class ParenoPlugin extends Plugin {
         this.renderPanel();
       }
     }
+  }
+
+  async translateDocument(editor: Editor, view: MarkdownView): Promise<void> {
+    if (!view.file) return;
+    const source = editor.getValue();
+    const path = view.file.path;
+    const blocks = documentReviewBlocks(source, 2200, true);
+    if (!blocks.length) { new Notice('当前文章没有可翻译的段落。'); return; }
+    if (blocks.length > 25) { new Notice('全文超过 25 个翻译批次，请先分章节翻译。'); return; }
+    const version = ++this.requestVersion;
+    this.translationPreview.clear();
+    this.scope = 'document';
+    this.analysis = undefined;
+    this.documentIssues = [];
+    this.documentTranslation = undefined;
+    this.documentEditor = editor;
+    this.inline.clear(editor);
+    this.pendingMode = 'translate';
+    this.pendingContext = undefined;
+    this.errorMessage = `整篇翻译 0/${blocks.length}`;
+    await this.openPanel();
+    this.renderPanel();
+    try {
+      const segments: TranslationSegment[] = [];
+      for (const [index, block] of blocks.entries()) {
+        if (version !== this.requestVersion || editor.getValue() !== source || view.file?.path !== path) throw new Error('已停止或原文改变；请重新翻译。');
+        this.errorMessage = `整篇翻译 ${index + 1}/${blocks.length}`;
+        this.renderPanel();
+        const content = await requestWritingModel(this.settings, buildMessages('translate', block.text, this.settings.register), () => version !== this.requestVersion);
+        if (version !== this.requestVersion || editor.getValue() !== source || view.file?.path !== path) throw new Error('已停止或原文改变；请重新翻译。');
+        const result = parseCoachResponse({ choices: [{ message: { content } }] }, block.text);
+        const heading = block.text.match(/^\s*(#{1,6})\s+/);
+        const hashes = heading ? heading[1] : '';
+        const withHeading = (value: string) => {
+          const text = (value || '').trim() || block.text;
+          return hashes ? `${hashes} ${text.replace(/^#{1,6}\s+/, '')}` : text;
+        };
+        segments.push({
+          from: block.from,
+          to: block.to,
+          heading: Boolean(hashes),
+          faithful: withHeading(result.minimal),
+          natural: withHeading(result.natural)
+        });
+      }
+      this.documentTranslation = { filePath: path, source, editor, blocks: segments, variant: this.translationVariant };
+      this.errorMessage = '';
+    } catch (error) {
+      if (version === this.requestVersion) {
+        this.errorMessage = error instanceof Error ? error.message : String(error);
+        new Notice(this.errorMessage);
+      }
+    } finally {
+      if (version === this.requestVersion) {
+        this.pendingMode = undefined;
+        this.pendingContext = undefined;
+        this.renderPanel();
+      }
+    }
+  }
+
+  translateActiveDocument(): void {
+    const view = this.currentMarkdownView();
+    if (view?.file) void this.translateDocument(view.editor, view);
+    else new Notice('请先打开一篇 Markdown 文章。');
+  }
+
+  getDocumentTranslation(): DocumentTranslation | undefined { return this.documentTranslation; }
+  getTranslationVariant(): TranslationVariant { return this.translationVariant; }
+
+  setTranslationVariant(variant: TranslationVariant): void {
+    this.translationVariant = variant;
+    if (this.documentTranslation) this.documentTranslation.variant = variant;
+    this.renderPanel();
+  }
+
+  insertDocumentTranslation(kind: 'paragraphs' | 'appendix' | 'note'): void {
+    const translation = this.documentTranslation;
+    if (!translation) return;
+    const { editor, source, blocks, variant, filePath } = translation;
+    if (kind === 'note') {
+      const fileName = filePath.split('/').pop() || 'PARENO';
+      const folder = filePath.includes('/') ? filePath.slice(0, filePath.lastIndexOf('/')) : '';
+      const title = translationNoteTitle(fileName);
+      const prefix = folder ? `${folder}/` : '';
+      let path = normalizePath(`${prefix}${title}.md`);
+      let counter = 2;
+      while (this.app.vault.getAbstractFileByPath(path)) {
+        path = normalizePath(`${prefix}${title} ${counter}.md`);
+        counter++;
+      }
+      void this.app.vault.create(path, translationNote(title, blocks, variant)).then(() => {
+        new Notice(`已新建译文：${path}`);
+        this.documentTranslation = undefined;
+        this.renderPanel();
+      }).catch(error => {
+        new Notice(`无法新建译文：${error instanceof Error ? error.message : String(error)}`);
+      });
+      return;
+    }
+    if (editor.getValue() !== source) { new Notice('原文已改变，请重新翻译后再插入。'); return; }
+    if (kind === 'paragraphs') {
+      const skipped = blocks.filter(block => block.heading || !canInsertAfter(source, block)).length;
+      for (const block of [...blocks].sort((left, right) => right.to - left.to)) {
+        const text = translationText(block, variant);
+        if (!text || block.heading || !canInsertAfter(source, block)) continue;
+        editor.replaceRange(`\n\n${text}`, editor.offsetToPos(block.to));
+      }
+      new Notice(skipped
+        ? `已分段插入；${skipped} 个片段（标题或跨段）未插入，请用整体插入或新建文档。`
+        : '已按段插入译文。');
+    } else {
+      editor.replaceRange(`\n\n${appendixTranslation(blocks, variant)}\n`, editor.offsetToPos(source.length));
+      new Notice('已在文末插入整篇译文。');
+    }
+    this.documentTranslation = undefined;
+    this.documentEditor = undefined;
+    this.inline.clear(editor);
+    this.renderPanel();
+  }
+
+  clearResult(): void {
+    this.requestVersion++;
+    this.pendingMode = undefined;
+    this.pendingContext = undefined;
+    if (this.analysis) this.inline.clear(this.analysis.context.editor);
+    if (this.documentEditor) this.inline.clear(this.documentEditor);
+    this.analysis = undefined;
+    this.translationPreview.clear();
+    this.documentIssues = [];
+    this.documentTranslation = undefined;
+    this.documentEditor = undefined;
+    this.errorMessage = '';
+    this.renderPanel();
+  }
+
+  rerunResult(): void {
+    if (this.analysis) { void this.analyze(this.analysis.mode, this.analysis.context); return; }
+    if (this.documentTranslation) { this.translateActiveDocument(); return; }
+    if (this.documentIssues.length) { this.reviewActiveDocument(); }
   }
 
   stopReview(): void {
@@ -846,13 +1002,18 @@ class CoachSidebar extends ItemView {
     const pending = this.coach.getPending();
     const context = this.coach.getCurrentContext();
     const current = body.createDiv({ cls: 'pareno-current' });
-    current.createEl('strong', { text: '当前选区 / 段落' });
-    current.createEl('span', { text: (context?.filePath ?? this.coach.getCurrentFilePath())?.split('/').pop() ?? '请打开文章' });
-    current.createEl('p', { text: context?.source.slice(0, 220) || '在正文中选中文字，或把光标放在有文字的段落里。' });
+    const currentHead = current.createDiv({ cls: 'pareno-current-head' });
+    currentHead.createEl('strong', { text: '当前选区 / 段落' });
+    currentHead.createEl('span', { text: (context?.filePath ?? this.coach.getCurrentFilePath())?.split('/').pop() ?? '请打开文章' });
+    const preview = current.createEl('p', { text: context?.source.slice(0, 220) || '在正文中选中文字，或把光标放在有文字的段落里。' });
+    if (!context?.source) preview.addClass('is-empty');
+    if (context?.source) current.setAttribute('title', context.source.slice(0, 600));
 
     const documentIssues = this.coach.getDocumentIssues();
-    const hasResult = Boolean(analysis || documentIssues.length);
+    const documentTranslation = this.coach.getDocumentTranslation();
+    const hasResult = Boolean(analysis || documentIssues.length || documentTranslation);
     if (analysis) this.renderAnalysis(body, analysis);
+    else if (documentTranslation) this.renderDocumentTranslation(body, documentTranslation);
     else if (documentIssues.length) this.renderDocumentIssues(body, documentIssues);
 
     const settings = body.createEl('details', { cls: 'pareno-settings' });
@@ -895,8 +1056,16 @@ class CoachSidebar extends ItemView {
     body.scrollTop = previousScroll;
   }
 
+  private resultBar(parent: HTMLElement, retryLabel: string): void {
+    const bar = parent.createDiv({ cls: 'pareno-result-bar' });
+    this.action(bar, retryLabel, () => this.coach.rerunResult());
+    this.action(bar, '设置', () => this.coach.openSettings());
+    this.action(bar, '清除', () => this.coach.clearResult());
+  }
+
   private renderDocumentIssues(parent: HTMLElement, documentIssues: InlineIssue[]): void {
     const result = parent.createDiv({ cls: 'pareno-result-area' });
+    this.resultBar(result, '重新审校');
     result.createEl('h4', { text: `${documentIssues.length} 处建议 · 点击定位到正文` });
     for (const issue of documentIssues) {
       const button = result.createEl('button', { text: `${issue.kind === 'grammar' ? '明确错误' : '可选表达'} · ${issue.quote.slice(0, 90)}`, cls: 'pareno-result-item' });
@@ -904,9 +1073,35 @@ class CoachSidebar extends ItemView {
     }
   }
 
+  private renderDocumentTranslation(parent: HTMLElement, translation: DocumentTranslation): void {
+    const result = parent.createDiv({ cls: 'pareno-result-area' });
+    this.resultBar(result, '重新翻译');
+    const heading = result.createDiv({ cls: 'pareno-result-heading' });
+    heading.createEl('h4', { text: `整篇翻译 · ${translation.blocks.length} 段` });
+    const toggle = heading.createDiv({ cls: 'pareno-variant' });
+    for (const [value, label] of [['faithful', '忠实'], ['natural', '自然']] as const) {
+      const button = toggle.createEl('button', { text: label });
+      if (translation.variant === value) button.addClass('is-active');
+      button.onclick = () => this.coach.setTranslationVariant(value);
+    }
+    const actions = result.createDiv({ cls: 'bwc-actions' });
+    this.action(actions, '分段插入', () => this.coach.insertDocumentTranslation('paragraphs'), true);
+    this.action(actions, '整体插入', () => this.coach.insertDocumentTranslation('appendix'));
+    this.action(actions, '新建文档', () => this.coach.insertDocumentTranslation('note'));
+    const list = result.createDiv({ cls: 'pareno-translation-list' });
+    translation.blocks.forEach((block, index) => {
+      const item = list.createDiv({ cls: 'pareno-translation-item' });
+      item.createEl('div', { text: `段 ${index + 1}`, cls: 'pareno-translation-label' });
+      const edited = item.createEl('textarea', { attr: { 'aria-label': `第 ${index + 1} 段译文` } });
+      edited.value = translationText(block, translation.variant);
+      edited.oninput = () => { block[translation.variant] = edited.value; };
+    });
+  }
+
   private renderAnalysis(parent: HTMLElement, analysis: Analysis): void {
     const result = parent.createDiv({ cls: 'pareno-result-area' });
     const { result: analysisResult, mode, applied } = analysis;
+    this.resultBar(result, mode === 'translate' ? '重新翻译' : '重新审校');
     if (mode !== 'explain' && mode !== 'compare') {
       for (const [label, value, insertBelow] of [
         [mode === 'translate' ? '忠实翻译' : '最小修改', analysisResult.minimal, mode === 'translate'],
@@ -1044,14 +1239,17 @@ class CoachSidebar extends ItemView {
       review: '开始检查', translate: '开始翻译', compare: '开始核对', explain: '开始解释', voice: '开始风格审阅'
     };
     const start = parent.createEl('button', {
-      text: pending.mode ? '正在处理…' : this.coach.getScope() === 'document' ? '开始全文审校' : startLabels[this.selectedMode],
+      text: pending.mode ? '正在处理…' : this.coach.getScope() === 'document'
+        ? this.selectedMode === 'translate' ? '开始整篇翻译' : '开始全文审校'
+        : startLabels[this.selectedMode],
       cls: 'pareno-start'
     });
     start.disabled = Boolean(pending.mode);
     start.onclick = () => {
       if (this.coach.getScope() === 'document') {
-        if (this.selectedMode !== 'review') { new Notice('全文范围目前支持“检查与润色”；其他任务请先选中段落。'); return; }
-        this.coach.reviewActiveDocument();
+        if (this.selectedMode === 'review') this.coach.reviewActiveDocument();
+        else if (this.selectedMode === 'translate') this.coach.translateActiveDocument();
+        else new Notice('全文范围支持“检查与润色”和“翻译”；其他任务请先选中段落。');
       } else if (context) void this.coach.analyze(this.selectedMode, context);
       else new Notice('请先打开文章并把光标放在段落中。');
     };
@@ -1066,7 +1264,7 @@ class CoachSidebar extends ItemView {
       : `只发送选区或当前段落至${destination}。`, cls: 'bwc-hint' });
 
     if (pending.mode) {
-      parent.createEl('p', { text: pending.error || '正在分析所选段落…', cls: 'bwc-status' });
+      parent.createEl('p', { text: pending.error || '正在处理…', cls: 'bwc-status' });
       this.action(parent, '停止本次审校', () => this.coach.stopReview());
     }
     if (pending.error && !pending.mode) parent.createEl('p', { text: pending.error, cls: 'bwc-error' });
