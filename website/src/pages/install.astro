@@ -7,7 +7,7 @@ import Base from '../layouts/Base.astro';
       <div class="page-head">
         <span class="eyebrow">GET STARTED</span>
         <h1>安装 PARENO</h1>
-        <p>当前版本 0.3.0，面向 Obsidian 桌面版。插件仍在迭代，尚未上架 Obsidian Community Plugins，请从 GitHub 源码安装。</p>
+        <p>当前版本 0.4.0，面向 Obsidian 桌面版。插件仍在迭代，尚未上架 Obsidian Community Plugins；推荐通过 BRAT 安装和更新。</p>
       </div>
 
       <div class="prose">
@@ -18,7 +18,15 @@ import Base from '../layouts/Base.astro';
           <li>只在开发插件时需要 Node.js 20+；普通使用不需要。</li>
         </ul>
 
-        <h2>安装步骤</h2>
+        <h2>通过 BRAT 安装（推荐，可更新）</h2>
+        <ol>
+          <li>在 Obsidian → <strong>设置 → 第三方插件 → 浏览</strong>，安装 <strong>BRAT</strong>（Obsidian42 - BRAT）。</li>
+          <li>命令面板运行 <strong>BRAT: Add a beta plugin for testing</strong>，输入 <code>Jorgut/pareno</code>。</li>
+          <li>BRAT 会安装最新 GitHub Release；以后在 BRAT 里检查更新，点一下即可升级。</li>
+        </ol>
+        <p class="small muted">已有手动安装的 PARENO 时，BRAT 会接管同一个 <code>.obsidian/plugins/pareno/</code> 目录；升级前建议备份旧文件和设置。</p>
+
+        <h2>手动安装</h2>
         <ol>
           <li>打开 <a href="https://github.com/Jorgut/pareno" target="_blank" rel="noopener noreferrer">GitHub 仓库</a>，选择 <strong>Code → Download ZIP</strong> 并解压。</li>
           <li>在你的 Obsidian 库里创建文件夹 <code>.obsidian/plugins/pareno/</code>。</li>
