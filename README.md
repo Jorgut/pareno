@@ -4,7 +4,7 @@
 
 编辑建议始终由作者决定：看到原句、修改理由和可编辑的建议稿之后，才确认替换。写作过程不需要离开 Obsidian。
 
-> 当前为 GitHub 源码版 `0.3.0`，尚未上架 Obsidian Community Plugins。界面仍在迭代。
+> 当前为 GitHub 源码版 `0.4.0`，尚未上架 Obsidian Community Plugins。界面仍在迭代。
 
 ## 界面方向
 
@@ -38,12 +38,22 @@ Pangram AI 文本检测仍保留为**手动、可选的独立工具**。只有�
 
 ## 安装
 
+### 通过 BRAT 安装（推荐，可更新）
+
+1. 在 Obsidian → **设置 → 第三方插件 → 浏览**，安装 **BRAT**（Obsidian42 - BRAT）。
+2. 命令面板运行 **BRAT: Add a beta plugin for testing**，输入 `Jorgut/pareno`。
+3. BRAT 会安装最新 GitHub Release；以后在 BRAT 里检查更新，点一下即可升级。
+
+已有手动安装的 PARENO 时，BRAT 会接管同一个 `.obsidian/plugins/pareno/` 目录；升级前建议备份旧文件和设置。
+
+### 手动安装
+
 1. 在 GitHub 选择 **Code → Download ZIP** 并解压。
 2. 将仓库根目录的 `main.js`、`manifest.json`、`styles.css` 复制到你的库：`.obsidian/plugins/pareno/`。
 3. Obsidian → **设置 → 第三方插件**，启用 **PARENO**。已有 PARENO 安装者先备份旧版插件文件与设置。
 4. 点击左侧语言图标打开侧栏。在 **PARENO 设置**里选择模型供应方式。
 
-这是桌面版插件。`0.3.0` 包含本机 Codex CLI 接入，因此清单标记为 desktop-only。它不会删除或迁移旧 Archintera Writing Companion 的文件和学习记录；两个插件若同时启用，可能同时显示各自侧栏，建议验证新版本后再停用旧插件。
+这是桌面版插件。`0.4.0` 包含本机 Codex CLI 接入，因此清单标记为 desktop-only。它不会删除或迁移旧 Archintera Writing Companion 的文件和学习记录；两个插件若同时启用，可能同时显示各自侧栏，建议验证新版本后再停用旧插件。
 
 ### 模型选择
 

@@ -31,7 +31,7 @@ const validBody = {
   category: '问题 / Bug',
   message: '全文审校到第 3 段时停止，但原文没有修改。',
   email: 'writer@example.com',
-  environment: 'PARENO: 0.3.0\nObsidian API: 1.8.7',
+  environment: 'PARENO: 0.4.0\nObsidian API: 1.8.7',
   _subject: '[PARENO] 反馈 · 问题 / Bug',
   _gotcha: ''
 };
@@ -67,7 +67,7 @@ test('valid feedback creates a private issue and returns an opaque receipt', asy
     assert.equal(issue.title, '[PARENO] 问题 / Bug');
     assert.match(issue.body, /全文审校到第 3 段时停止/);
     assert.match(issue.body, /writer&#64;example&#46;com/);
-    assert.match(issue.body, /PARENO&#58; 0&#46;3&#46;0/);
+    assert.match(issue.body, /PARENO&#58; 0&#46;4&#46;0/);
     const text = JSON.stringify(result);
     for (const privateValue of ['server-only-secret', 'private-owner', '全文审校', 'writer@example.com']) {
       assert.equal(text.includes(privateValue), false);
