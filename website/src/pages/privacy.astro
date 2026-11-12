@@ -1,0 +1,56 @@
+---
+import Base from '../layouts/Base.astro';
+---
+<Base title="隐私 · PARENO 并言" description="PARENO 的本地优先、模型发送范围和反馈数据处理说明。">
+  <section class="page">
+    <div class="wrap">
+      <div class="page-head">
+        <span class="eyebrow">PRIVACY</span>
+        <h1>隐私与数据</h1>
+        <p>PARENO 不收集分析遥测。只有你主动触发的任务才会调用模型；反馈也只有在你点击提交后才会发送。</p>
+      </div>
+
+      <div class="prose">
+        <h2>这个网站</h2>
+        <ul>
+          <li>不使用 Google Analytics、Plausible 等第三方分析脚本。</li>
+          <li>不使用广告或跨站追踪 Cookie。</li>
+          <li>服务器日志仅用于维持站点和反馈接口的正常运行。</li>
+        </ul>
+
+        <h2>写作时的数据范围</h2>
+        <ul>
+          <li><strong>段落任务</strong>只发送选区或当前段落；<strong>全文任务</strong>分批发送你当前的文章正文。</li>
+          <li>只有你主动点击开始，或你在设置中开启自动段落审校时，才会调用模型。</li>
+          <li>Ollama 在你的电脑上运行；Codex CLI 和兼容 API 会把本次文本发送到对应服务。</li>
+          <li>Pangram AI 文本检测是独立、手动、可选的付费工具；只有你点击检测时才会上传整篇笔记。</li>
+          <li>写作对话保存在本库 <code>PARENO/Conversations/</code>，学习卡片保存在 <code>PARENO/Learning Log.md</code>；它们可能随你的 Obsidian 同步方案同步。</li>
+        </ul>
+
+        <h2>反馈会发送什么</h2>
+        <p>反馈通过插件弹窗或本网站的反馈表单提交，经本站 <code>/api/feedback</code> 转发到作者的<strong>私有 GitHub 收件库</strong>。只有你主动提交时才会发送。</p>
+        <table>
+          <thead><tr><th>会发送</th><th>不会发送</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>你填写的反馈类型、问题描述、可选联系邮箱</td>
+              <td>笔记正文、笔记标题、文件路径、库名</td>
+            </tr>
+            <tr>
+              <td>PARENO 与 Obsidian 版本、平台、模型方式与名称、写作语体、自动审校开关</td>
+              <td>API 密钥、Codex 登录令牌、Pangram 密钥</td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="small muted">反馈内容由作者在私有仓库中查看和处理；请不要在反馈里填写敏感信息。删除请求可以直接通过反馈入口或 GitHub 联系作者。</p>
+
+        <h2>第三方服务</h2>
+        <ul>
+          <li>Cloudflare 托管本站静态页面和反馈接口。</li>
+          <li>GitHub 保存私有收件库中的反馈 Issue。</li>
+          <li>所选模型服务（Ollama / Codex / 兼容 API）按各自隐私政策处理发送的写作文本。</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+</Base>

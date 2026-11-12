@@ -147,3 +147,115 @@
 .bwc-pangram-stat { display: flex; flex-direction: column; gap: 2px; padding: 8px 4px; border-radius: 6px; background: var(--background-primary); text-align: center; }
 .bwc-pangram-stat strong { font-size: 15px; }
 .bwc-pangram-stat span { font-size: 10px; color: var(--text-muted); }
+
+/* Feedback entry and modal */
+.pareno-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 16px 10px;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+.pareno-feedback-link {
+  height: auto;
+  padding: 2px 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+.pareno-feedback-link:hover {
+  color: var(--pareno-gold);
+  background: transparent;
+  box-shadow: none;
+}
+.pareno-feedback-modal textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 120px;
+  resize: vertical;
+}
+.pareno-feedback-modal .pareno-feedback-intro {
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+.pareno-feedback-diagnostics {
+  margin: 14px 0 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  background: var(--background-secondary);
+}
+.pareno-feedback-diagnostics summary {
+  cursor: pointer;
+  font-size: 12px;
+}
+.pareno-feedback-diagnostics pre {
+  margin: 10px 0 0;
+  padding: 0;
+  background: transparent;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 11px;
+}
+.pareno-feedback-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+  margin: 16px 0 6px;
+}
+.pareno-feedback-note {
+  color: var(--text-muted);
+  font-size: 11px;
+  margin-top: 4px;
+}
+
+/* Feedback form fields */
+.pareno-feedback-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 14px;
+}
+.pareno-feedback-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12px;
+}
+.pareno-feedback-field > span {
+  color: var(--text-muted);
+}
+.pareno-feedback-field select,
+.pareno-feedback-field input,
+.pareno-feedback-field textarea {
+  box-sizing: border-box;
+  width: 100%;
+}
+.pareno-feedback-field textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+.pareno-feedback-field small {
+  color: var(--text-muted);
+  font-size: 10px;
+}
+.pareno-feedback-counter {
+  align-self: flex-end;
+}
+.pareno-feedback-status {
+  min-height: 1.4em;
+  margin: 10px 0 0;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.pareno-feedback-status.is-error {
+  color: var(--text-error);
+}
+.pareno-feedback-status.is-success {
+  color: var(--text-success);
+}

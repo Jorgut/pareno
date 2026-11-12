@@ -1,0 +1,16 @@
+{
+  "name": "pareno-website",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "deploy": "npx --yes wrangler@4.160.1 pages deploy dist --project-name parenowriter",
+    "deploy:preview": "npx --yes wrangler@4.160.1 pages deploy dist --project-name parenowriter --branch preview"
+  },
+  "devDependencies": {
+    "astro": "^7.4.11"
+  }
+}

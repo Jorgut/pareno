@@ -1,0 +1,113 @@
+---
+import Base from '../layouts/Base.astro';
+---
+<Base title="反馈 · PARENO 并言" description="在 Obsidian 插件或本网站提交 PARENO 使用反馈。">
+  <section class="page">
+    <div class="wrap">
+      <div class="page-head">
+        <span class="eyebrow">FEEDBACK</span>
+        <h1>遇到问题，直接说</h1>
+        <p>反馈会进入作者的私有 GitHub 收件库，只有作者能看到。你不需要 GitHub 账号；请先阅读下方的发送范围。</p>
+      </div>
+
+      <div class="split">
+        <div>
+          <h2>在 Obsidian 里反馈</h2>
+          <p class="muted">推荐方式。侧栏底部点击「反馈问题 ↗」，或在 <strong>设置 → PARENO → 反馈与支持</strong>里打开反馈窗口。填写类型、描述和可选邮箱后直接提交。</p>
+          <ul>
+            <li>不需要 GitHub 账号。</li>
+            <li>提交失败或服务不可用时，可以复制内容或改用 GitHub Issue。</li>
+            <li>反馈只附带版本、平台、模型方式与名称、写作语体和自动审校状态。</li>
+          </ul>
+          <p><a href="/install">查看安装说明</a> · <a href="/privacy">隐私与数据</a></p>
+        </div>
+
+        <div class="panel">
+          <h2 style="margin-top:0">在本网站反馈</h2>
+          <form id="site-feedback" class="site-form" novalidate>
+            <label>
+              <span>反馈类型</span>
+              <select name="category" required>
+                <option value="bug">问题 / Bug</option>
+                <option value="suggestion">功能建议</option>
+                <option value="quality">翻译或建议质量</option>
+                <option value="other">其他</option>
+              </select>
+            </label>
+            <label>
+              <span>问题描述</span>
+              <textarea name="message" rows="5" maxlength="2000" required placeholder="哪里有问题？你期望的结果是什么？"></textarea>
+            </label>
+            <label>
+              <span>联系邮箱（选填）</span>
+              <input type="email" name="email" maxlength="254" autocomplete="off" placeholder="you@example.com" />
+              <small>仅在你愿意被回复时填写。</small>
+            </label>
+            <label class="site-form-honeypot" aria-hidden="true">Website
+              <input name="_gotcha" tabindex="-1" autocomplete="off" />
+            </label>
+            <button class="button primary" type="submit">提交反馈</button>
+            <p id="site-feedback-status" class="site-form-status" role="status" aria-live="polite"></p>
+          </form>
+        </div>
+      </div>
+
+      <div class="callout" style="margin-top:32px">
+        <p><strong>也可以使用 GitHub Issues。</strong>如果你有 GitHub 账号，可以直接在 <a href="https://github.com/Jorgut/pareno/issues" target="_blank" rel="noopener noreferrer">公开仓库</a>提交；公开 Issue 适合可公开讨论的问题，不要放邮箱或未发表内容。</p>
+      </div>
+    </div>
+  </section>
+  <script is:inline>
+    const form = document.getElementById('site-feedback');
+    const status = document.getElementById('site-feedback-status');
+    if (form && status) {
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const data = new FormData(form);
+        const categorySelect = form.querySelector('select[name="category"]');
+        const category = categorySelect ? categorySelect.options[categorySelect.selectedIndex]?.text ?? '' : '';
+        const payload = {
+          category,
+          message: String(data.get('message') || '').trim(),
+          email: String(data.get('email') || '').trim(),
+          environment: '来源：网站 /feedback',
+          _subject: `[PARENO] 网站反馈 · ${category}`,
+          _gotcha: String(data.get('_gotcha') || '')
+        };
+        if (!payload.message) {
+          status.textContent = '请先填写问题描述。';
+          status.className = 'site-form-status is-error';
+          return;
+        }
+        const button = form.querySelector('button[type="submit"]');
+        if (button) { button.disabled = true; button.textContent = '正在发送…'; }
+        status.textContent = '正在发送…';
+        status.className = 'site-form-status';
+        try {
+          const response = await fetch('/api/feedback', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          const result = await response.json().catch(() => ({}));
+          if (response.ok && result && result.ok) {
+            form.reset();
+            status.textContent = '已收到反馈，谢谢！';
+            status.className = 'site-form-status is-success';
+          } else if (response.status === 429) {
+            status.textContent = '提交过于频繁，请稍后再试。';
+            status.className = 'site-form-status is-error';
+          } else {
+            status.textContent = '发送失败，请稍后重试，或使用 GitHub Issues。';
+            status.className = 'site-form-status is-error';
+          }
+        } catch {
+          status.textContent = '网络错误，请稍后重试，或使用 GitHub Issues。';
+          status.className = 'site-form-status is-error';
+        } finally {
+          if (button) { button.disabled = false; button.textContent = '提交反馈'; }
+        }
+      });
+    }
+  </script>
+</Base>

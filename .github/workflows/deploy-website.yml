@@ -1,0 +1,51 @@
+name: Deploy website
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'website/**'
+      - '.github/workflows/deploy-website.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: website-production
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Build and deploy to Cloudflare Pages
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: website
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_PAGES_PROJECT: ${{ vars.CLOUDFLARE_PAGES_PROJECT || 'parenowriter' }}
+      FEEDBACK_GITHUB_TOKEN: ${{ secrets.FEEDBACK_GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+      - run: npm ci
+      - run: npm run build
+        env:
+          ASTRO_TELEMETRY_DISABLED: '1'
+      - name: Ensure Pages project exists
+        run: npx --yes wrangler@4.160.1 pages project create "$CLOUDFLARE_PAGES_PROJECT" --production-branch main || true
+
+      - name: Configure feedback secrets
+        run: |
+          jq -n --arg token "$FEEDBACK_GITHUB_TOKEN" --arg repo "Jorgut/pareno-feedback" \
+            '{FEEDBACK_GITHUB_TOKEN: $token, FEEDBACK_REPO: $repo}' > /tmp/pages-secrets.json
+          npx --yes wrangler@4.160.1 pages secret bulk /tmp/pages-secrets.json --project-name "$CLOUDFLARE_PAGES_PROJECT"
+
+      - name: Deploy to Cloudflare Pages
+        run: npx --yes wrangler@4.160.1 pages deploy dist --project-name "$CLOUDFLARE_PAGES_PROJECT" --branch main

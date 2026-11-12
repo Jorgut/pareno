@@ -1,0 +1,71 @@
+---
+import Base from '../layouts/Base.astro';
+---
+<Base title="安装 · PARENO 并言" description="在 Obsidian 中安装 PARENO 并选择本地或云端写作模型。">
+  <section class="page">
+    <div class="wrap">
+      <div class="page-head">
+        <span class="eyebrow">GET STARTED</span>
+        <h1>安装 PARENO</h1>
+        <p>当前版本 0.3.0，面向 Obsidian 桌面版。插件仍在迭代，尚未上架 Obsidian Community Plugins，请从 GitHub 源码安装。</p>
+      </div>
+
+      <div class="prose">
+        <h2>系统要求</h2>
+        <ul>
+          <li>Obsidian 桌面版 <strong>1.5.0</strong> 或更新版本（Windows / macOS / Linux）。</li>
+          <li>至少一种模型来源：本机 Ollama，或已登录的 Codex CLI，或兼容 Chat Completions 的 API。</li>
+          <li>只在开发插件时需要 Node.js 20+；普通使用不需要。</li>
+        </ul>
+
+        <h2>安装步骤</h2>
+        <ol>
+          <li>打开 <a href="https://github.com/Jorgut/pareno" target="_blank" rel="noopener noreferrer">GitHub 仓库</a>，选择 <strong>Code → Download ZIP</strong> 并解压。</li>
+          <li>在你的 Obsidian 库里创建文件夹 <code>.obsidian/plugins/pareno/</code>。</li>
+          <li>把仓库根目录的 <code>main.js</code>、<code>manifest.json</code>、<code>styles.css</code> 复制进去。</li>
+          <li>打开 Obsidian → <strong>设置 → 第三方插件</strong>，关闭安全模式并启用 <strong>PARENO</strong>。</li>
+          <li>点击左侧语言图标打开侧栏；在 <strong>PARENO 设置</strong>里选择模型来源。</li>
+        </ol>
+
+        <div class="callout">
+          <p><strong>升级前请备份</strong>旧版插件文件和设置。PARENO 不会删除或迁移旧 Archintera Writing Companion 的文件；两个插件同时启用时可能显示两个侧栏，验证新版后再停用旧插件。</p>
+        </div>
+
+        <h2>模型选择</h2>
+        <table>
+          <thead>
+            <tr><th>方式</th><th>说明</th><th>适合</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>本地 · Ollama</td>
+              <td>默认。插件连接 <code>http://localhost:11434/v1/chat/completions</code>，内容留在本机。</td>
+              <td>隐私优先、愿意安装本地模型</td>
+            </tr>
+            <tr>
+              <td>云端 · Codex 登录</td>
+              <td>使用电脑上已登录的 <code>codex</code> CLI；不会读取或复制登录令牌。</td>
+              <td>已有 Codex CLI 工作流</td>
+            </tr>
+            <tr>
+              <td>云端 · 兼容 API</td>
+              <td>填写 Chat Completions 端点、模型和 API 密钥；费用与订阅分开计算。</td>
+              <td>使用 OpenAI 兼容服务</td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="small muted">不会从本地模型静默切换到云端。侧栏会显示当前模型与发送范围；全文审校须单独选择并点击开始。</p>
+
+        <h2>反馈问题</h2>
+        <p>侧栏底部有「反馈问题」入口，也可以在 <a href="/feedback">反馈说明</a>里查看什么会被发送。反馈只包含你填写的文字和版本、平台、模型方式等环境信息。</p>
+
+        <h2>开发与构建</h2>
+        <pre><code>npm ci
+npm run typecheck
+npm test
+npm run build</code></pre>
+        <p>构建产物是仓库根目录的 <code>main.js</code>。界面测试请使用演示库/演示笔记，不要把未审查的建议直接用于已发表文章。</p>
+      </div>
+    </div>
+  </section>
+</Base>

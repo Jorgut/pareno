@@ -71,6 +71,23 @@ Pangram AI 文本检测仍保留为**手动、可选的独立工具**。只有�
 - 写作对话按文章保存到本库 `PARENO/Conversations/`；学习卡片保存到 `PARENO/Learning Log.md`。这些文件可能随你的 Obsidian 同步方案同步。
 - PARENO 不收集分析遥测。插件内的历史记录不等同于 ChatGPT Project 同步。
 
+## 反馈问题
+
+使用中遇到问题时，可以直接从插件里反馈：
+
+- 侧栏底部点击「反馈问题 ↗」，或在 **设置 → PARENO → 反馈与支持** 里打开反馈窗口。
+- 填写反馈类型、问题描述和可选邮箱后点「提交反馈」；反馈经官网 `/api/feedback` 发送到作者的**私有 GitHub 收件库**，**不需要 GitHub 账号**。
+- 提交服务不可用时，可以「复制反馈内容」粘贴到邮件或微信，或「在 GitHub 提交」公开 issue。
+- 反馈只附带 PARENO 与 Obsidian 版本、平台、模型方式与名称、写作语体和自动审校状态；不会包含笔记内容、文件路径或 API 密钥，只有主动点击提交才会发送。
+
+反馈接口的字段、隐私边界和部署步骤见 [docs/FEEDBACK.md](docs/FEEDBACK.md) 与 [docs/DEPLOY-CLOUDFLARE.md](docs/DEPLOY-CLOUDFLARE.md)。也可以直接在 [GitHub Issues](https://github.com/Jorgut/pareno/issues) 提交。
+
+## 官网
+
+官网：https://parenowriter.pages.dev
+
+源码在 `website/`（Astro 静态站 + Cloudflare Pages Function 反馈接口），与插件共用反馈收件库。本地构建与部署步骤见 [docs/DEPLOY-CLOUDFLARE.md](docs/DEPLOY-CLOUDFLARE.md)。
+
 ## 开发
 
 需要 Node.js 20 或更新版本。

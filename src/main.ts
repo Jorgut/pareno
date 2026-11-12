@@ -1,6 +1,6 @@
 import {
-  Editor, EditorPosition, ItemView, MarkdownView, Notice, Plugin, PluginSettingTab,
-  Setting, TFile, WorkspaceLeaf, editorInfoField, normalizePath, requestUrl
+  Editor, EditorPosition, ItemView, MarkdownView, Modal, Notice, Platform, Plugin, PluginSettingTab,
+  Setting, TFile, WorkspaceLeaf, apiVersion, editorInfoField, normalizePath, requestUrl
 } from 'obsidian';
 import { EditorView } from '@codemirror/view';
 import {
@@ -11,6 +11,12 @@ import {
 } from './core';
 import { createInlineReview } from './inline-review';
 import { Provider, requestWritingModel } from './provider';
+import {
+  buildFeedbackCopyText, buildFeedbackDiagnostics, buildFeedbackIssueUrl, buildFeedbackSubmission,
+  FEEDBACK_CATEGORIES, FeedbackCategory, FeedbackDraft, FeedbackEnvironment, FeedbackValidationError,
+  feedbackCategoryLabel, isFeedbackDeliveryConfigured, MAX_FEEDBACK_MESSAGE, parseFeedbackDelivery,
+  validateFeedbackDraft, describePlatform
+} from './feedback';
 
 const PANEL_TYPE = 'pareno-panel';
 const LOG_FOLDER = 'PARENO';
@@ -75,6 +81,7 @@ export default class ParenoPlugin extends Plugin {
   private pendingContext?: TextContext;
   private errorMessage = '';
   private requestVersion = 0;
+  private chatRequestVersion = 0;
   private autoTimer?: ReturnType<typeof setTimeout>;
   private lastAutoSource = '';
   private pangramVersion = 0;
@@ -158,6 +165,13 @@ export default class ParenoPlugin extends Plugin {
 
     this.registerEvent(this.app.workspace.on('file-open', file => {
       if (file?.path === this.chatFilePath) { this.renderPanel(); return; }
+      this.requestVersion++;
+      this.chatRequestVersion++;
+      this.pendingMode = undefined;
+      this.pendingContext = undefined;
+      this.errorMessage = '';
+      this.chatBusy = false;
+      this.chatError = '';
       if (this.analysis) this.inline.clear(this.analysis.context.editor);
       if (this.documentEditor) this.inline.clear(this.documentEditor);
       this.messages = [];
@@ -176,10 +190,34 @@ export default class ParenoPlugin extends Plugin {
     if (this.autoTimer) clearTimeout(this.autoTimer);
     if (this.refreshTimer) clearTimeout(this.refreshTimer);
     this.requestVersion++;
+    this.chatRequestVersion++;
     this.pangramVersion++;
   }
 
   async saveSettings(): Promise<void> { await this.saveData(this.settings); }
+
+  getFeedbackEnvironment(): FeedbackEnvironment {
+    return {
+      pluginVersion: this.manifest.version,
+      obsidianVersion: apiVersion,
+      platform: describePlatform(Platform),
+      provider: this.settings.provider,
+      model: this.settings.model,
+      register: this.settings.register,
+      autoReview: this.settings.autoReview
+    };
+  }
+
+  openFeedback(): void { new FeedbackModal(this.app, this).open(); }
+
+  async copyFeedbackDiagnostics(): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(buildFeedbackDiagnostics(this.getFeedbackEnvironment()));
+      new Notice('已复制环境信息，可粘贴到邮件或 GitHub Issue。');
+    } catch {
+      new Notice('无法访问剪贴板；请打开反馈窗口手动复制。');
+    }
+  }
 
   private capture(editor: Editor, view: MarkdownView, onlyParagraph = false): TextContext | undefined {
     const file = view.file;
@@ -495,23 +533,26 @@ export default class ParenoPlugin extends Plugin {
     if (this.chatFilePath !== context.filePath) { this.messages = []; this.chatFilePath = context.filePath; }
     this.chatBusy = true;
     this.chatError = '';
-    const version = this.requestVersion;
+    const version = ++this.chatRequestVersion;
     const history = this.messages.map(message => ({ role: message.role, content: message.content }));
     this.messages.push({ role: 'user', content: instruction.trim(), source: context.source });
     this.renderPanel();
     try {
-      const content = await requestWritingModel(this.settings, buildChatMessages(context.source, instruction.trim(), history), () => version !== this.requestVersion);
-      if (version !== this.requestVersion) return;
+      const content = await requestWritingModel(this.settings, buildChatMessages(context.source, instruction.trim(), history), () => version !== this.chatRequestVersion);
+      if (version !== this.chatRequestVersion) return;
       const result = parseChatResponse(content);
       this.messages.push({ role: 'assistant', content: result.reply + (result.explanation ? `\n\n${result.explanation}` : ''),
         revision: result.revision, source: context.source, from: context.from, to: context.to, documentText: context.editor.getValue() });
       await this.appendChatRecord(context.filePath, instruction.trim(), context.source, result);
     } catch (error) {
+      if (version !== this.chatRequestVersion) return;
       this.chatError = error instanceof Error ? error.message : String(error);
       new Notice(this.chatError);
     } finally {
-      this.chatBusy = false;
-      this.renderPanel();
+      if (version === this.chatRequestVersion) {
+        this.chatBusy = false;
+        this.renderPanel();
+      }
     }
   }
 
@@ -701,6 +742,11 @@ class CoachSidebar extends ItemView {
     sendButton.disabled = chat.busy;
     sendButton.onclick = send;
     composer.createEl('small', { text: '⌘ / Ctrl + Enter 发送 · 修改需确认 · 对话记录保存在本库' });
+    const footer = root.createDiv({ cls: 'pareno-footer' });
+    footer.createEl('span', { text: `v${this.coach.manifest.version}` });
+    const feedback = footer.createEl('button', { text: '反馈问题 ↗', cls: 'pareno-feedback-link' });
+    feedback.setAttribute('aria-label', '打开反馈问题窗口');
+    feedback.onclick = () => this.coach.openFeedback();
     body.scrollTop = previousScroll;
   }
 
@@ -758,6 +804,197 @@ class CoachSidebar extends ItemView {
     section.createEl('p', { text: body, cls: 'bwc-section-body' });
   }
 }
+
+class FeedbackModal extends Modal {
+  private readonly coach: ParenoPlugin;
+  private category: FeedbackCategory = 'bug';
+  private message = '';
+  private email = '';
+  private sending = false;
+  private messageInput?: HTMLTextAreaElement;
+  private counterEl?: HTMLElement;
+  private statusEl?: HTMLElement;
+  private submitButton?: HTMLButtonElement;
+
+  constructor(app: ParenoPlugin['app'], coach: ParenoPlugin) {
+    super(app);
+    this.coach = coach;
+  }
+
+  onOpen(): void {
+    const environment = this.coach.getFeedbackEnvironment();
+    const configured = isFeedbackDeliveryConfigured();
+    const { contentEl } = this;
+    contentEl.addClass('pareno-feedback-modal');
+    this.titleEl.setText('反馈问题 · PARENO');
+    contentEl.createEl('p', {
+      text: configured
+        ? '描述你遇到的问题或建议。提交后会发送到作者的私有收件库，不会公开，也不会自动附带笔记内容、文件路径或 API 密钥。'
+        : '反馈提交尚未配置；你可以复制反馈内容，或到 GitHub 提交公开 issue。',
+      cls: 'pareno-feedback-intro'
+    });
+
+    const form = contentEl.createDiv({ cls: 'pareno-feedback-form' });
+    const categoryField = form.createEl('label', { cls: 'pareno-feedback-field' });
+    categoryField.createEl('span', { text: '反馈类型' });
+    const category = categoryField.createEl('select', { attr: { 'aria-label': '反馈类型' } });
+    for (const option of FEEDBACK_CATEGORIES) category.createEl('option', { value: option.value, text: option.label });
+    category.value = this.category;
+    category.onchange = () => { this.category = category.value as FeedbackCategory; };
+
+    const messageField = form.createEl('label', { cls: 'pareno-feedback-field' });
+    messageField.createEl('span', { text: '问题描述' });
+    const message = messageField.createEl('textarea', {
+      attr: {
+        placeholder: '例如：全文审校到第 3 段时提示「已停止或原文改变」，但原文没有修改。\n\n复现步骤：…\n期望结果：…',
+        'aria-label': '反馈问题描述',
+        maxlength: String(MAX_FEEDBACK_MESSAGE)
+      }
+    });
+    message.value = this.message;
+    const counter = messageField.createEl('small', { cls: 'pareno-feedback-counter' });
+    const updateCounter = () => { counter.textContent = `${[...message.value].length} / ${MAX_FEEDBACK_MESSAGE}`; };
+    updateCounter();
+    message.oninput = () => { this.message = message.value; updateCounter(); this.setStatus(''); };
+
+    const emailField = form.createEl('label', { cls: 'pareno-feedback-field' });
+    emailField.createEl('span', { text: '联系邮箱（选填）' });
+    const email = emailField.createEl('input', {
+      attr: { type: 'email', placeholder: 'you@example.com', autocomplete: 'off', maxlength: '254', 'aria-label': '联系邮箱（选填）' }
+    });
+    email.value = this.email;
+    email.oninput = () => { this.email = email.value; this.setStatus(''); };
+    emailField.createEl('small', { text: '仅在你愿意被回复时填写，会作为邮件回复地址。' });
+
+    const diagnostics = form.createEl('details', { cls: 'pareno-feedback-diagnostics' });
+    diagnostics.createEl('summary', { text: '将附带的环境信息（不含笔记内容）' });
+    diagnostics.createEl('pre', { text: buildFeedbackDiagnostics(environment) });
+
+    contentEl.createEl('p', {
+      text: '反馈经站点的反馈接口发送到作者的私有 GitHub 收件库；只包含你填写的内容和上面的环境信息，不会自动发送。',
+      cls: 'pareno-feedback-note'
+    });
+
+    const actions = contentEl.createDiv({ cls: 'pareno-feedback-actions' });
+    const copyButton = actions.createEl('button', { text: '复制反馈内容' });
+    copyButton.onclick = () => { void this.copy(environment); };
+    const issueButton = actions.createEl('button', { text: '在 GitHub 提交 ↗' });
+    issueButton.onclick = () => this.openIssue(environment);
+    const submitButton = actions.createEl('button', {
+      text: configured ? '提交反馈' : '提交反馈（未配置）',
+      cls: 'mod-cta'
+    });
+    submitButton.disabled = !configured;
+    submitButton.onclick = () => { void this.submit(environment); };
+
+    const statusEl = contentEl.createEl('p', { cls: 'pareno-feedback-status', attr: { role: 'status', 'aria-live': 'polite' } });
+    this.messageInput = message;
+    this.counterEl = counter;
+    this.statusEl = statusEl;
+    this.submitButton = submitButton;
+    message.focus();
+  }
+
+  onClose(): void { this.contentEl.empty(); }
+
+  private setStatus(message: string, kind: 'info' | 'success' | 'error' = 'info'): void {
+    if (!this.statusEl) return;
+    this.statusEl.textContent = message;
+    this.statusEl.className = `pareno-feedback-status${kind === 'info' ? '' : ` is-${kind}`}`;
+  }
+
+  private draft(): FeedbackDraft {
+    return { category: this.category, message: this.message, email: this.email };
+  }
+
+  private async copy(environment: FeedbackEnvironment): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(buildFeedbackCopyText(this.draft(), environment));
+      new Notice('已复制反馈内容，尚未发送。');
+    } catch {
+      new Notice('无法访问剪贴板；请手动选择内容复制。');
+    }
+  }
+
+  private openIssue(environment: FeedbackEnvironment): void {
+    const description = this.message.trim()
+      ? `[${feedbackCategoryLabel(this.category)}] ${this.message.trim()}`
+      : `[${feedbackCategoryLabel(this.category)}] `;
+    try {
+      window.open(buildFeedbackIssueUrl(description, environment), '_blank');
+      this.close();
+    } catch {
+      new Notice('无法打开浏览器；请使用「复制反馈内容」后手动提交。');
+    }
+  }
+
+  private async submit(environment: FeedbackEnvironment): Promise<void> {
+    if (this.sending) return;
+    const draft = this.draft();
+    const error = validateFeedbackDraft(draft);
+    if (error) {
+      this.setStatus(FEEDBACK_ERROR_TEXT[error], 'error');
+      this.messageInput?.focus();
+      return;
+    }
+    if (!isFeedbackDeliveryConfigured()) {
+      this.setStatus('反馈提交尚未配置；请复制内容或使用 GitHub。', 'error');
+      return;
+    }
+    this.sending = true;
+    if (this.submitButton) { this.submitButton.disabled = true; this.submitButton.textContent = '正在发送…'; }
+    this.setStatus('正在发送…');
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      const submission = buildFeedbackSubmission(draft, environment);
+      const timeout = new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error('timeout')), 20000);
+      });
+      const response = await Promise.race([
+        requestUrl({
+          url: submission.url,
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify(submission.payload),
+          throw: false
+        }),
+        timeout
+      ]);
+      const result = parseFeedbackDelivery(response.status, response.json);
+      if (result.ok) {
+        this.message = '';
+        this.email = '';
+        if (this.messageInput) this.messageInput.value = '';
+        if (this.counterEl) this.counterEl.textContent = `0 / ${MAX_FEEDBACK_MESSAGE}`;
+        const emailInput = this.contentEl.querySelector<HTMLInputElement>('input[type="email"]');
+        if (emailInput) emailInput.value = '';
+        this.setStatus('已收到反馈，谢谢！', 'success');
+        new Notice('反馈已发送，谢谢！');
+      } else if (result.reason === 'rate') {
+        this.setStatus('提交过于频繁，请稍后再试；你填写的内容已保留。', 'error');
+      } else if (result.reason === 'invalid') {
+        this.setStatus('提交未通过校验，请检查内容；你填写的内容已保留。', 'error');
+      } else {
+        this.setStatus('发送失败，请稍后重试；你填写的内容已保留，也可复制或使用 GitHub。', 'error');
+      }
+    } catch {
+      this.setStatus('发送失败或超时；你填写的内容已保留，可重试、复制或使用 GitHub。', 'error');
+    } finally {
+      if (timer) clearTimeout(timer);
+      this.sending = false;
+      if (this.submitButton) {
+        this.submitButton.disabled = !isFeedbackDeliveryConfigured();
+        this.submitButton.textContent = isFeedbackDeliveryConfigured() ? '提交反馈' : '提交反馈（未配置）';
+      }
+    }
+  }
+}
+
+const FEEDBACK_ERROR_TEXT: Record<FeedbackValidationError, string> = {
+  empty: '请先填写问题描述。',
+  'too-long': `问题描述请控制在 ${MAX_FEEDBACK_MESSAGE} 字以内。`,
+  'email-invalid': '请检查邮箱格式，或留空。'
+};
 
 class CoachSettingsTab extends PluginSettingTab {
   private readonly coach: ParenoPlugin;
@@ -820,6 +1057,12 @@ class CoachSettingsTab extends PluginSettingTab {
           this.coach.settings.autoDelay = ms; await this.coach.saveSettings();
         }
       }));
+    containerEl.createEl('h3', { text: '反馈与支持 · Feedback' });
+    new Setting(containerEl)
+      .setName('反馈问题 / Feedback')
+      .setDesc('打开反馈窗口：填写后直接发送到作者（私有收件库），也可复制内容或去 GitHub。仅附带版本、平台、模型方式与名称、写作语体与自动审校状态，不含笔记内容或密钥。')
+      .addButton(button => button.setButtonText('打开反馈窗口').setCta().onClick(() => { this.coach.openFeedback(); }))
+      .addButton(button => button.setButtonText('复制环境信息').onClick(async () => { await this.coach.copyFeedbackDiagnostics(); }));
     containerEl.createEl('p', { text: 'Paragraph tasks send the selected text or current paragraph. Whole-article review sends the current note in batches after you click Start. The plugin never edits the article without your confirmation.', cls: 'setting-item-description' });
   }
 }
