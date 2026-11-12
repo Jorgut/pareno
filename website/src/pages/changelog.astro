@@ -1,0 +1,40 @@
+---
+import Base from '../layouts/Base.astro';
+---
+<Base title="更新日志 · PARENO 并言" description="PARENO 插件与官网的版本更新记录。">
+  <section class="page">
+    <div class="wrap">
+      <div class="page-head">
+        <span class="eyebrow">CHANGELOG</span>
+        <h1>更新日志</h1>
+        <p>记录插件与网站的功能变化。更早的提交历史见 <a href="https://github.com/Jorgut/pareno/commits/main" target="_blank" rel="noopener noreferrer">GitHub</a>。</p>
+      </div>
+
+      <div class="prose">
+        <div class="timeline">
+          <div class="timeline-item">
+            <time>2026-11</time>
+            <div>
+              <h3>0.3.0 · 统一写作助手</h3>
+              <p>正文批注与全文审校合并进 PARENO 侧栏；新增翻译、中英核对、解释表达、作者风格、写作对话、学习卡片和 Pangram 手动检测；本版本加入反馈入口。</p>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <time>2026-11</time>
+            <div>
+              <h3>官网 v0.1</h3>
+              <p>上线静态官网与平台无关的反馈接口：插件和网站共用 <code>/api/feedback</code>，反馈进入私有 GitHub 收件库。</p>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <time>更早</time>
+            <div>
+              <h3>早期版本</h3>
+              <p>从 Archintera Writing Companion 演进：原文批注、全文审校、学习记录和多项模型接入。旧插件不会被自动删除或迁移。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</Base>
