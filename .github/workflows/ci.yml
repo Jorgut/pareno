@@ -40,3 +40,10 @@ jobs:
       - run: npm run build
         env:
           ASTRO_TELEMETRY_DISABLED: '1'
+
+  desktop:
+    name: Pareno Desktop build
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - run: swift build --package-path desktop
