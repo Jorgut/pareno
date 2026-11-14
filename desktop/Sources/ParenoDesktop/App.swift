@@ -51,6 +51,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             defaults.set(legacy, forKey: Prefs.visible)
         }
         settingsWindow = SettingsWindowController()
+        if CommandLine.arguments.contains("--settings") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
+                self?.settingsWindow?.show()
+            }
+        }
         applyDockPolicy()
         applyAppearance()
         settingsObserver = NotificationCenter.default.addObserver(
@@ -201,21 +206,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc func checkSelection() {
-        log("hotkey fired trusted=\(SelectionService.isTrusted)")
-        guard SelectionService.isTrusted else {
-            SelectionService.requestTrust()
-            panel.showMessage("需要辅助功能权限：打开 系统设置 → 隐私与安全性 → 辅助功能，勾选 Pareno Desktop，然后再按 ⌥⌘G。")
-            return
-        }
-        guard let element = SelectionService.focusedElement(),
-              let selected = SelectionService.selectedText(from: element)?.trimmingCharacters(in: .whitespacesAndNewlines),
-              !selected.isEmpty else {
-            panel.showMessage("请先在任意输入框里选中要检查的文字，再按 ⌥⌘G。")
-            return
-        }
-        let sourceApp = NSWorkspace.shared.frontmostApplication
-        log("selection length=\(selected.count)")
-        panel.show(text: selected, mode: .check, modelName: currentModel, element: element, app: sourceApp, caret: SelectionService.caretRect())
+        runTask(.check)
     }
 
     @objc private func openSettings() {
@@ -304,11 +295,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func updateHUD() {
-        if CommandLine.arguments.contains("--settings") {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
-                self?.settingsWindow?.show()
-            }
-        }
         if CommandLine.arguments.contains("--hud-demo") { return }
         guard hudEnabled, SelectionService.isTrusted else {
             hud.hide()
@@ -332,15 +318,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             hud.hide()
             return
         }
-        if let caret = SelectionService.caretRect() {
-            if let context = SelectionService.currentParagraph() {
-                cachedContext = (context.text, context.element, caret, Date())
+        let caret = SelectionService.caretRect()
+        let field = SelectionService.textInputFrame()
+        if let caret, let field {
+            let inside = field.insetBy(dx: -10, dy: -16).contains(NSPoint(x: caret.minX, y: caret.minY))
+            if inside {
+                if let context = SelectionService.currentParagraph() {
+                    cachedContext = (context.text, context.element, caret, Date())
+                }
+                hud.update(caret: caret)
+                lastHUDOrigin = hud.origin
+                return
             }
+            hud.update(caret: NSRect(x: field.minX, y: field.maxY, width: 2, height: 2))
+            lastHUDOrigin = hud.origin
+            return
+        }
+        if let caret, caret.minX > 1 || caret.minY > 1 {
             hud.update(caret: caret)
             lastHUDOrigin = hud.origin
             return
         }
-        if let field = SelectionService.textInputFrame() {
+        if let field {
             hud.update(caret: NSRect(x: field.minX, y: field.maxY, width: 2, height: 2))
             lastHUDOrigin = hud.origin
             return
