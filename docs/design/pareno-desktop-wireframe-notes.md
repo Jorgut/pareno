@@ -12,7 +12,9 @@
 
 ## 2. 线框图包含
 
-文件：`pareno-wireframes.html`（可改），`pareno-wireframes.png`（预览）。
+线框：`pareno-wireframes.html`（可改），`pareno-wireframes.png`（预览）。
+
+高保真：`pareno-desktop-hifi.html`（可改），`pareno-desktop-hifi.png`（预览）。
 
 1. **桌面端 · 检查**：光标上方的小工具（检查 / 翻译），下方 380px 结果卡。
 2. **桌面端 · 翻译**：同一张卡，切换忠实 / 自然译文，替换 / 插入下方 / 复制。
