@@ -14,7 +14,7 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
 <dict>
   <key>CFBundleName</key><string>Pareno Desktop</string>
   <key>CFBundleDisplayName</key><string>Pareno Desktop</string>
-  <key>CFBundleIdentifier</key><string>com.jorgut.pareno.desktop</string>
+  <key>CFBundleIdentifier</key><string>com.archintera.ParenoDesktop</string>
   <key>CFBundleExecutable</key><string>ParenoDesktop</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleShortVersionString</key><string>0.1.0</string>
