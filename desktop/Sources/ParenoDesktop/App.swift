@@ -13,7 +13,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var currentModel: String = UserDefaults.standard.string(forKey: "ParenoDesktopModel") ?? ""
     private var hud: CursorHUD!
     private var hudTimer: Timer?
-    private var hudEnabled = UserDefaults.standard.object(forKey: "ParenoDesktopFollowCaret") as? Bool ?? true
+    private var hudEnabled = UserDefaults.standard.object(forKey: Prefs.visible) as? Bool
+        ?? UserDefaults.standard.object(forKey: Prefs.legacyVisible) as? Bool ?? true
+    private var settingsWindow: SettingsWindowController?
+    private var lastDockPolicy = false
+    private var settingsObserver: NSObjectProtocol?
     private var hudMode: HUDMode = {
         let raw = UserDefaults.standard.string(forKey: "ParenoDesktopHUDMode") ?? "follow"
         return HUDMode(rawValue: raw) ?? .follow
@@ -41,6 +45,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         panel = ResultPanelController()
+        let defaults = UserDefaults.standard
+        if defaults.object(forKey: Prefs.visible) == nil,
+           let legacy = defaults.object(forKey: Prefs.legacyVisible) as? Bool {
+            defaults.set(legacy, forKey: Prefs.visible)
+        }
+        settingsWindow = SettingsWindowController()
+        applyDockPolicy()
+        settingsObserver = NotificationCenter.default.addObserver(
+            forName: .parenoSettingsChanged, object: nil, queue: .main
+        ) { [weak self] _ in
+            self?.applyDockPolicy()
+            self?.reloadPreferences()
+            self?.rebuildMenu()
+            self?.updateHUD()
+        }
         hud = CursorHUD()
         hud.onCheck = { [weak self] in self?.runTask(.check) }
         hud.onTranslate = { [weak self] in self?.runTask(.translate) }
@@ -67,6 +86,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.panel.showMessage("面板测试：在任意 App 选中文字后按 ⌥⌘G。若没有反应，请在系统设置里给 Pareno Desktop 辅助功能权限。")
             }
         }
+        if CommandLine.arguments.contains("--settings") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
+                self?.settingsWindow?.show()
+            }
+        }
         if CommandLine.arguments.contains("--hud-demo") {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
                 let mouse = NSEvent.mouseLocation
@@ -80,6 +104,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let check = NSMenuItem(title: "检查选区  ⌥⌘G", action: #selector(checkSelection), keyEquivalent: "")
         check.target = self
         menu.addItem(check)
+        let settingsItem = NSMenuItem(title: "设置…", action: #selector(openSettings), keyEquivalent: ",")
+        settingsItem.target = self
+        menu.addItem(settingsItem)
+        menu.addItem(.separator())
+
         let translateItem = NSMenuItem(title: "翻译当前段落", action: #selector(translateSelection), keyEquivalent: "")
         translateItem.target = self
         menu.addItem(translateItem)
@@ -87,7 +116,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         explainItem.target = self
         menu.addItem(explainItem)
 
-        let show = NSMenuItem(title: "显示光标小工具", action: #selector(toggleFollowCaret), keyEquivalent: "")
+        let show = NSMenuItem(title: hudEnabled ? "隐藏 Pareno HUD" : "显示 Pareno HUD", action: #selector(toggleFollowCaret), keyEquivalent: "h")
+        show.keyEquivalentModifierMask = [.command, .option]
         show.target = self
         show.state = hudEnabled ? .on : .off
         menu.addItem(show)
@@ -186,6 +216,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         panel.show(text: selected, mode: .check, modelName: currentModel, element: element, app: sourceApp, caret: SelectionService.caretRect())
     }
 
+    @objc private func openSettings() {
+        settingsWindow?.show()
+    }
+
+    private func applyDockPolicy() {
+        let show = UserDefaults.standard.bool(forKey: Prefs.showInDock)
+        guard show != lastDockPolicy else { return }
+        lastDockPolicy = show
+        NSApp.setActivationPolicy(show ? .regular : .accessory)
+    }
+
+    private func reloadPreferences() {
+        let defaults = UserDefaults.standard
+        if let value = defaults.object(forKey: Prefs.visible) as? Bool { hudEnabled = value }
+        if let raw = defaults.string(forKey: Prefs.mode) { hudMode = HUDMode(rawValue: raw) ?? .follow }
+    }
+
     @objc private func translateSelection() {
         runTask(.translate)
     }
@@ -196,7 +243,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func toggleFollowCaret() {
         hudEnabled.toggle()
-        UserDefaults.standard.set(hudEnabled, forKey: "ParenoDesktopFollowCaret")
+        UserDefaults.standard.set(hudEnabled, forKey: Prefs.visible)
         if !hudEnabled { hud.hide() }
         rebuildMenu()
         updateHUD()
@@ -204,7 +251,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func useFollowMode() {
         hudMode = .follow
-        UserDefaults.standard.set(hudMode.rawValue, forKey: "ParenoDesktopHUDMode")
+        UserDefaults.standard.set(hudMode.rawValue, forKey: Prefs.mode)
         hud.setMode(.follow, origin: nil)
         rebuildMenu()
         updateHUD()
@@ -213,7 +260,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func resetHUD() {
         fixedOrigin = nil
         hudMode = .follow
-        UserDefaults.standard.set(hudMode.rawValue, forKey: "ParenoDesktopHUDMode")
+        UserDefaults.standard.set(hudMode.rawValue, forKey: Prefs.mode)
         hud.setMode(.follow, origin: nil)
         rebuildMenu()
         updateHUD()
@@ -221,7 +268,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func useFixedMode() {
         hudMode = .fixed
-        UserDefaults.standard.set(hudMode.rawValue, forKey: "ParenoDesktopHUDMode")
+        UserDefaults.standard.set(hudMode.rawValue, forKey: Prefs.mode)
         if fixedOrigin == nil, let visible = NSScreen.main?.visibleFrame {
             fixedOrigin = NSPoint(x: visible.maxX - 220, y: visible.minY + 80)
         }
@@ -233,9 +280,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func installActivityMonitors() {
         let mark = { [weak self] in self?.lastTextActivity = Date() }
         if let monitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown, handler: { _ in mark() }) {
-            activityMonitors.append(monitor)
-        }
-        if let monitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDragged, .leftMouseUp], handler: { _ in mark() }) {
             activityMonitors.append(monitor)
         }
     }
@@ -250,6 +294,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func updateHUD() {
+        if CommandLine.arguments.contains("--settings") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
+                self?.settingsWindow?.show()
+            }
+        }
         if CommandLine.arguments.contains("--hud-demo") { return }
         guard hudEnabled, SelectionService.isTrusted else {
             hud.hide()
@@ -263,9 +312,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             hud.keepVisible()
             return
         }
+        let defaults = UserDefaults.standard
+        let showTyping = defaults.object(forKey: Prefs.showTyping) as? Bool ?? true
+        let showSelection = defaults.object(forKey: Prefs.showSelection) as? Bool ?? true
+        let autoHide = defaults.object(forKey: Prefs.autoHide) as? Double ?? 3
         let selection = SelectionService.selectedText()?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        let recentlyActive = Date().timeIntervalSince(lastTextActivity) < 3
-        guard recentlyActive || !selection.isEmpty else {
+        let recentlyActive = Date().timeIntervalSince(lastTextActivity) < autoHide
+        guard (showTyping && recentlyActive) || (showSelection && !selection.isEmpty) else {
             hud.hide()
             return
         }
@@ -280,15 +333,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if let field = SelectionService.textInputFrame() {
             hud.update(caret: NSRect(x: field.minX, y: field.maxY, width: 2, height: 2))
             lastHUDOrigin = hud.origin
-            return
-        }
-        if SelectionService.focusedHasSelectionRange() {
-            if let lastHUDOrigin {
-                hud.show(at: lastHUDOrigin)
-            } else {
-                hud.update(caret: NSRect(x: NSEvent.mouseLocation.x, y: NSEvent.mouseLocation.y, width: 2, height: 18))
-                lastHUDOrigin = hud.origin
-            }
             return
         }
         hud.hide()
