@@ -19,6 +19,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return HUDMode(rawValue: raw) ?? .follow
     }()
     private var cachedContext: (text: String, element: AXUIElement, caret: NSRect, time: Date)?
+    private var lastTextActivity = Date.distantPast
+    private var activityMonitors: [Any] = []
     private var lastHUDOrigin: NSPoint?
     private var fixedOrigin: NSPoint? {
         get {
@@ -42,6 +44,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         hud = CursorHUD()
         hud.onCheck = { [weak self] in self?.runTask(.check) }
         hud.onTranslate = { [weak self] in self?.runTask(.translate) }
+        hud.onExplain = { [weak self] in self?.runTask(.explain) }
         hud.onMove = { [weak self] origin in self?.fixedOrigin = origin }
         hud.setMode(hudMode, origin: fixedOrigin)
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
@@ -57,6 +60,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             SelectionService.requestTrust()
         }
         refreshModels()
+        installActivityMonitors()
         startHUDTimer()
         if demoMode {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
@@ -79,6 +83,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let translateItem = NSMenuItem(title: "翻译当前段落", action: #selector(translateSelection), keyEquivalent: "")
         translateItem.target = self
         menu.addItem(translateItem)
+        let explainItem = NSMenuItem(title: "解释当前段落", action: #selector(explainSelection), keyEquivalent: "")
+        explainItem.target = self
+        menu.addItem(explainItem)
 
         let show = NSMenuItem(title: "显示光标小工具", action: #selector(toggleFollowCaret), keyEquivalent: "")
         show.target = self
@@ -183,6 +190,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         runTask(.translate)
     }
 
+    @objc private func explainSelection() {
+        runTask(.explain)
+    }
+
     @objc private func toggleFollowCaret() {
         hudEnabled.toggle()
         UserDefaults.standard.set(hudEnabled, forKey: "ParenoDesktopFollowCaret")
@@ -219,6 +230,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         updateHUD()
     }
 
+    private func installActivityMonitors() {
+        let mark = { [weak self] in self?.lastTextActivity = Date() }
+        if let monitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown, handler: { _ in mark() }) {
+            activityMonitors.append(monitor)
+        }
+        if let monitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDragged, .leftMouseUp], handler: { _ in mark() }) {
+            activityMonitors.append(monitor)
+        }
+    }
+
     private func startHUDTimer() {
         hudTimer?.invalidate()
         let timer = Timer(timeInterval: 0.6, repeats: true) { [weak self] _ in
@@ -240,6 +261,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         if panel.panel.isVisible {
             hud.keepVisible()
+            return
+        }
+        let selection = SelectionService.selectedText()?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let recentlyActive = Date().timeIntervalSince(lastTextActivity) < 3
+        guard recentlyActive || !selection.isEmpty else {
+            hud.hide()
             return
         }
         if let caret = SelectionService.caretRect() {

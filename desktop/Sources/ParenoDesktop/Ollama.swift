@@ -25,7 +25,7 @@ struct OllamaClient {
     init(baseURL: URL? = nil) {
         if let baseURL {
             self.baseURL = baseURL
-        } else if let override = ProcessInfo.processInfo.environment["WRITECHECK_OLLAMA"], let url = URL(string: override) {
+        } else if let override = (ProcessInfo.processInfo.environment["PARENO_DESKTOP_OLLAMA"] ?? ProcessInfo.processInfo.environment["WRITECHECK_OLLAMA"]), let url = URL(string: override) {
             self.baseURL = url
         } else {
             self.baseURL = URL(string: "http://localhost:11434")!

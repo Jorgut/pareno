@@ -18,12 +18,13 @@ final class CursorHUD: NSObject {
     private let stack = NSStackView()
     var onCheck: (() -> Void)?
     var onTranslate: (() -> Void)?
+    var onExplain: (() -> Void)?
     var onMove: ((NSPoint) -> Void)?
     private(set) var mode: HUDMode = .follow
 
     override init() {
         panel = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 200, height: 36),
+            contentRect: NSRect(x: 0, y: 0, width: 272, height: 38),
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false
@@ -41,9 +42,9 @@ final class CursorHUD: NSObject {
         effect.blendingMode = .behindWindow
         effect.state = .active
         effect.wantsLayer = true
-        effect.layer?.cornerRadius = 18
+        effect.layer?.cornerRadius = 19
         effect.layer?.masksToBounds = true
-        effect.frame = NSRect(x: 0, y: 0, width: 200, height: 36)
+        effect.frame = NSRect(x: 0, y: 0, width: 272, height: 38)
         effect.autoresizingMask = [.width, .height]
         panel.contentView = effect
 
@@ -71,6 +72,12 @@ final class CursorHUD: NSObject {
         divider.heightAnchor.constraint(equalToConstant: 14).isActive = true
         stack.addArrangedSubview(divider)
         addButton(title: "翻译", symbol: "character.book.closed", action: #selector(translateTapped))
+        let divider2 = NSBox()
+        divider2.boxType = .separator
+        divider2.translatesAutoresizingMaskIntoConstraints = false
+        divider2.heightAnchor.constraint(equalToConstant: 14).isActive = true
+        stack.addArrangedSubview(divider2)
+        addButton(title: "解释", symbol: "questionmark.circle", action: #selector(explainTapped))
 
         NotificationCenter.default.addObserver(self, selector: #selector(windowMoved), name: NSWindow.didMoveNotification, object: panel)
     }
@@ -89,6 +96,7 @@ final class CursorHUD: NSObject {
 
     @objc private func checkTapped() { onCheck?() }
     @objc private func translateTapped() { onTranslate?() }
+    @objc private func explainTapped() { onExplain?() }
 
     @objc private func windowMoved() {
         guard mode == .fixed else { return }

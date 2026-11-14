@@ -12,6 +12,7 @@ enum PanelState {
 enum CheckMode: String, CaseIterable {
     case check = "检查"
     case translate = "翻译"
+    case explain = "解释"
 }
 
 @MainActor
@@ -36,14 +37,24 @@ final class PanelModel: ObservableObject {
         return variant == .natural ? result.natural : result.minimal
     }
 
+    var explainPayload: String {
+        guard let result else { return "" }
+        return [result.why, result.better, result.example]
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: "\n\n")
+    }
+
+    var copyPayload: String { mode == .explain ? explainPayload : improvedText }
+
     func replace() {
-        guard state == .result, !improvedText.isEmpty else { return }
+        guard mode != .explain, state == .result, !improvedText.isEmpty else { return }
         onReplace?(improvedText)
     }
 
     func copy() {
-        guard state == .result, !improvedText.isEmpty else { return }
-        onCopy?(improvedText)
+        guard state == .result, !copyPayload.isEmpty else { return }
+        onCopy?(copyPayload)
     }
 
     func close() { onClose?() }
@@ -73,9 +84,15 @@ final class PanelModel: ObservableObject {
                 let selected = models.contains(self.modelName) ? self.modelName : (models.first ?? "")
                 guard !selected.isEmpty else { throw CheckError.noModel }
                 self.modelName = selected
-                let checked = requestedMode == .translate
-                    ? try await Checker.translate(text: self.sourceText, model: selected, client: client)
-                    : try await Checker.check(text: self.sourceText, model: selected, client: client)
+                let checked: CheckResult
+                switch requestedMode {
+                case .translate:
+                    checked = try await Checker.translate(text: self.sourceText, model: selected, client: client)
+                case .explain:
+                    checked = try await Checker.explain(text: self.sourceText, model: selected, client: client)
+                case .check:
+                    checked = try await Checker.check(text: self.sourceText, model: selected, client: client)
+                }
                 self.result = checked
                 self.state = .result
             } catch {
@@ -132,7 +149,7 @@ struct ResultView: View {
             }
             .pickerStyle(.segmented)
             .labelsHidden()
-            .frame(width: 128)
+            .frame(width: 190)
             Button {
                 model.close()
             } label: {
@@ -166,7 +183,7 @@ struct ResultView: View {
         case .loading:
             HStack(spacing: 8) {
                 ProgressView().controlSize(.small)
-                Text(model.mode == .translate ? "正在翻译…" : "正在检查语法、用词与表达…")
+                Text(model.mode == .translate ? "正在翻译…" : model.mode == .explain ? "正在解释这句话…" : "正在检查语法、用词与表达…")
                     .font(.system(size: 12))
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -213,43 +230,79 @@ struct ResultView: View {
                         .frame(maxHeight: 150)
                     }
                 }
-                HStack(spacing: 8) {
-                    Picker("", selection: $model.variant) {
-                        ForEach(PanelModel.Variant.allCases, id: \.self) { variant in
-                            Text(model.mode == .translate ? (variant == .natural ? "自然译文" : "忠实译文") : variant.rawValue)
-                                .tag(variant)
+                if model.mode == .explain {
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 9) {
+                            if !result.why.isEmpty { explainBlock("为什么", result.why, highlight: false) }
+                            if !result.better.isEmpty { explainBlock("更自然", result.better, highlight: true) }
+                            if !result.example.isEmpty { explainBlock("例句", result.example, highlight: false) }
                         }
                     }
-                    .pickerStyle(.segmented)
-                    .labelsHidden()
-                    .frame(width: 180)
-                    if model.mode == .check, !result.explanation.isEmpty {
-                        Text(result.explanation).font(.system(size: 10)).foregroundStyle(.secondary).lineLimit(1)
+                    .frame(maxHeight: 220)
+                } else {
+                    HStack(spacing: 8) {
+                        Picker("", selection: $model.variant) {
+                            ForEach(PanelModel.Variant.allCases, id: \.self) { variant in
+                                Text(model.mode == .translate ? (variant == .natural ? "自然译文" : "忠实译文") : variant.rawValue)
+                                    .tag(variant)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                        .labelsHidden()
+                        .frame(width: 180)
+                        if model.mode == .check, !result.explanation.isEmpty {
+                            Text(result.explanation).font(.system(size: 10)).foregroundStyle(.secondary).lineLimit(1)
+                        }
                     }
+                    ScrollView {
+                        Text(model.improvedText.isEmpty ? "（暂无内容）" : model.improvedText)
+                            .font(.system(size: 12))
+                            .textSelection(.enabled)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(9)
+                    }
+                    .frame(maxHeight: 170)
+                    .background(Color.primary.opacity(0.045), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
                 }
-                ScrollView {
-                    Text(model.improvedText.isEmpty ? "（暂无内容）" : model.improvedText)
-                        .font(.system(size: 12))
-                        .textSelection(.enabled)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(9)
-                }
-                .frame(maxHeight: 170)
-                .background(Color.primary.opacity(0.045), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
             }
+        }
+    }
+
+    private func explainBlock(_ title: String, _ text: String, highlight: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.system(size: 9, weight: .semibold))
+                .foregroundStyle(.secondary)
+                .textCase(.uppercase)
+            Text(text)
+                .font(.system(size: 12))
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(8)
+                .background(
+                    highlight ? Color.accentColor.opacity(0.10) : Color.primary.opacity(0.045),
+                    in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+                )
         }
     }
 
     private var footer: some View {
         HStack(spacing: 8) {
-            Button(model.mode == .translate ? "替换为译文" : "替换选区") { model.replace() }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.small)
-                .disabled(model.state != .result)
-            Button("复制") { model.copy() }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-                .disabled(model.state != .result)
+            if model.mode == .explain {
+                Button("复制解释") { model.copy() }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
+                    .disabled(model.state != .result)
+            } else {
+                Button(model.mode == .translate ? "替换为译文" : "替换选区") { model.replace() }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
+                    .disabled(model.state != .result)
+                Button("复制") { model.copy() }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .disabled(model.state != .result)
+            }
             Spacer()
             Text(model.modelName).font(.system(size: 10)).foregroundStyle(.secondary).lineLimit(1)
         }

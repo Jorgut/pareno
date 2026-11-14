@@ -22,6 +22,9 @@ struct CheckResult: Codable {
     var minimal: String = ""
     var natural: String = ""
     var explanation: String = ""
+    var why: String = ""
+    var better: String = ""
+    var example: String = ""
 }
 
 enum Checker {
@@ -66,6 +69,27 @@ enum Checker {
     {"language":"en|zh|mixed","issues":[],"minimal":"faithful translation","natural":"more natural, fluent translation","explanation":"中文一句话说明翻译取舍"}
     """
 
+    static let explainPrompt = """
+    You are Pareno Desktop Explain. Explain the grammar, vocabulary or expression problem in the user text, in Simplified Chinese.
+    Do not rewrite the whole paragraph. Give:
+    - why: what is wrong and why, in 1-2 Chinese sentences.
+    - better: one natural corrected sentence.
+    - example: one short English example that shows the same pattern.
+    Preserve the author's meaning. Never invent facts.
+    Return ONLY a JSON object:
+    {"language":"en|zh|mixed","issues":[],"why":"中文解释","better":"a natural corrected sentence","example":"one short example","explanation":"一句话总结"}
+    """
+
+    static func explain(text: String, model: String, client: OllamaClient = OllamaClient()) async throws -> CheckResult {
+        let payload = (try? JSONSerialization.data(withJSONObject: ["text": text])) ?? Data("{}".utf8)
+        let content = String(data: payload, encoding: .utf8) ?? "{}"
+        let raw = try await client.chat(model: model, messages: [
+            ChatMessage(role: "system", content: explainPrompt),
+            ChatMessage(role: "user", content: content)
+        ])
+        return try decode(raw, original: text)
+    }
+
     static func translate(text: String, model: String, client: OllamaClient = OllamaClient()) async throws -> CheckResult {
         let payload = (try? JSONSerialization.data(withJSONObject: ["text": text])) ?? Data("{}".utf8)
         let content = String(data: payload, encoding: .utf8) ?? "{}"
@@ -87,6 +111,9 @@ enum Checker {
         result.minimal = (object["minimal"] as? String) ?? original
         result.natural = (object["natural"] as? String) ?? result.minimal
         result.explanation = (object["explanation"] as? String) ?? ""
+        result.why = (object["why"] as? String) ?? ""
+        result.better = (object["better"] as? String) ?? ""
+        result.example = (object["example"] as? String) ?? ""
         if let issues = object["issues"] as? [[String: Any]] {
             result.issues = issues.compactMap { item in
                 guard let source = item["source"] as? String, !source.isEmpty,

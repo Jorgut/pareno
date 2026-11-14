@@ -28,12 +28,13 @@ The app lives in the menu bar (a `text.badge.checkmark` icon). It has no Dock ic
 
 ## Use
 
-While you type in any text field, a small pill follows the caret with two actions:
+While you type in any text field, a small pill follows the caret with three actions:
 
 - **检查** — grammar, vocabulary and expression fixes
 - **翻译** — Chinese ↔ English, with faithful and natural versions
+- **解释** — why it is wrong, a corrected sentence, and an example; it never rewrites your text
 
-Click either action, or select text and press **⌥⌘G**.
+Click any action, or select text and press **⌥⌘G**.
 
 The pill sits directly above the text caret, like an input-method candidate bar. If an app does not expose caret bounds, it falls back to the focused text field, then to its last position. It stays visible while the result card is open.
 
@@ -75,6 +76,6 @@ Useful for testing the engine without the UI:
 
 ## Privacy
 
-- Text is sent only to `http://localhost:11434` (overridable with `WRITECHECK_OLLAMA`).
+- Text is sent only to `http://localhost:11434` (overridable with `PARENO_DESKTOP_OLLAMA`).
 - No analytics, no accounts, no telemetry.
 - The only data stored is the selected model name in `UserDefaults`.
