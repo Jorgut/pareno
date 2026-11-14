@@ -1,0 +1,363 @@
+import Cocoa
+import SwiftUI
+import Combine
+
+enum PanelState {
+    case idle
+    case loading
+    case result
+    case error
+}
+
+enum CheckMode: String, CaseIterable {
+    case check = "检查"
+    case translate = "翻译"
+}
+
+@MainActor
+final class PanelModel: ObservableObject {
+    @Published var sourceText = ""
+    @Published var state: PanelState = .idle
+    @Published var result: CheckResult?
+    @Published var error = ""
+    @Published var modelName = ""
+    @Published var mode: CheckMode = .check
+    @Published var variant: Variant = .natural
+
+    enum Variant: String, CaseIterable { case natural = "自然", minimal = "最小修改" }
+
+    var onReplace: ((String) -> Void)?
+    var onCopy: ((String) -> Void)?
+    var onClose: (() -> Void)?
+    var onOpenSettings: (() -> Void)?
+
+    var improvedText: String {
+        guard let result else { return "" }
+        return variant == .natural ? result.natural : result.minimal
+    }
+
+    func replace() {
+        guard state == .result, !improvedText.isEmpty else { return }
+        onReplace?(improvedText)
+    }
+
+    func copy() {
+        guard state == .result, !improvedText.isEmpty else { return }
+        onCopy?(improvedText)
+    }
+
+    func close() { onClose?() }
+
+    func setMode(_ newMode: CheckMode) {
+        guard mode != newMode else { return }
+        mode = newMode
+        if !sourceText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, state == .result || state == .error {
+            run()
+        }
+    }
+
+    func run() {
+        guard !sourceText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            error = "没有找到可检查的文字。请把光标放进一段文字，或先选中一段。"
+            state = .error
+            return
+        }
+        state = .loading
+        result = nil
+        error = ""
+        let requestedMode = mode
+        Task {
+            do {
+                let client = OllamaClient()
+                let models = try await client.models()
+                let selected = models.contains(self.modelName) ? self.modelName : (models.first ?? "")
+                guard !selected.isEmpty else { throw CheckError.noModel }
+                self.modelName = selected
+                let checked = requestedMode == .translate
+                    ? try await Checker.translate(text: self.sourceText, model: selected, client: client)
+                    : try await Checker.check(text: self.sourceText, model: selected, client: client)
+                self.result = checked
+                self.state = .result
+            } catch {
+                self.error = error.localizedDescription
+                self.state = .error
+            }
+        }
+    }
+}
+
+struct ResultView: View {
+    @ObservedObject var model: PanelModel
+
+    private var height: CGFloat {
+        switch model.state {
+        case .loading: return 190
+        case .error: return 210
+        case .result: return 520
+        case .idle: return 180
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            header
+            sourceBox
+            content
+            Spacer(minLength: 0)
+            footer
+        }
+        .padding(14)
+        .frame(width: 380, height: height, alignment: .topLeading)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(Color.white.opacity(0.10), lineWidth: 1)
+        )
+    }
+
+    private var header: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "text.badge.checkmark")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.secondary)
+            Text("Pareno Desktop").font(.system(size: 13, weight: .semibold))
+            Spacer()
+            Picker("", selection: Binding(
+                get: { model.mode },
+                set: { model.setMode($0) }
+            )) {
+                ForEach(CheckMode.allCases, id: \.self) { mode in
+                    Text(mode.rawValue).tag(mode)
+                }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .frame(width: 128)
+            Button {
+                model.close()
+            } label: {
+                Image(systemName: "xmark.circle.fill").font(.system(size: 14))
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
+        }
+    }
+
+    private var sourceBox: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(model.mode == .translate ? "原文" : "原文")
+                .font(.system(size: 10))
+                .foregroundStyle(.secondary)
+            Text(model.sourceText.isEmpty ? "（未读取到选区）" : model.sourceText)
+                .font(.system(size: 12))
+                .lineLimit(3)
+                .textSelection(.enabled)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(9)
+        .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        switch model.state {
+        case .idle:
+            EmptyView()
+        case .loading:
+            HStack(spacing: 8) {
+                ProgressView().controlSize(.small)
+                Text(model.mode == .translate ? "正在翻译…" : "正在检查语法、用词与表达…")
+                    .font(.system(size: 12))
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        case .error:
+            VStack(alignment: .leading, spacing: 8) {
+                Text(model.error)
+                    .font(.system(size: 12))
+                    .foregroundStyle(.red)
+                    .textSelection(.enabled)
+                if model.error.contains("权限") {
+                    Button("打开辅助功能设置") { model.onOpenSettings?() }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                }
+            }
+        case .result:
+            if let result = model.result {
+                if model.mode == .check {
+                    if result.issues.isEmpty {
+                        Text("没有发现明确错误。").font(.system(size: 12)).foregroundStyle(.secondary)
+                    } else {
+                        ScrollView {
+                            VStack(alignment: .leading, spacing: 7) {
+                                ForEach(result.issues) { issue in
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        HStack(spacing: 5) {
+                                            Text(issue.label)
+                                                .font(.system(size: 9, weight: .semibold))
+                                                .padding(.horizontal, 5)
+                                                .padding(.vertical, 1)
+                                                .background(Color.secondary.opacity(0.16))
+                                                .clipShape(Capsule())
+                                            Text(issue.source).strikethrough().font(.system(size: 11))
+                                            Text("→").font(.system(size: 10)).foregroundStyle(.secondary)
+                                            Text(issue.replacement).font(.system(size: 11, weight: .medium))
+                                        }
+                                        if !issue.reason.isEmpty {
+                                            Text(issue.reason).font(.system(size: 10)).foregroundStyle(.secondary)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        .frame(maxHeight: 150)
+                    }
+                }
+                HStack(spacing: 8) {
+                    Picker("", selection: $model.variant) {
+                        ForEach(PanelModel.Variant.allCases, id: \.self) { variant in
+                            Text(model.mode == .translate ? (variant == .natural ? "自然译文" : "忠实译文") : variant.rawValue)
+                                .tag(variant)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                    .frame(width: 180)
+                    if model.mode == .check, !result.explanation.isEmpty {
+                        Text(result.explanation).font(.system(size: 10)).foregroundStyle(.secondary).lineLimit(1)
+                    }
+                }
+                ScrollView {
+                    Text(model.improvedText.isEmpty ? "（暂无内容）" : model.improvedText)
+                        .font(.system(size: 12))
+                        .textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(9)
+                }
+                .frame(maxHeight: 170)
+                .background(Color.primary.opacity(0.045), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+            }
+        }
+    }
+
+    private var footer: some View {
+        HStack(spacing: 8) {
+            Button(model.mode == .translate ? "替换为译文" : "替换选区") { model.replace() }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
+                .disabled(model.state != .result)
+            Button("复制") { model.copy() }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .disabled(model.state != .result)
+            Spacer()
+            Text(model.modelName).font(.system(size: 10)).foregroundStyle(.secondary).lineLimit(1)
+        }
+    }
+}
+
+@MainActor
+final class ResultPanelController {
+    let panel: NSPanel
+    let model = PanelModel()
+    var sourceElement: AXUIElement?
+    var sourceApp: NSRunningApplication?
+    private var hosting: NSHostingView<ResultView>!
+    private var cancellables: Set<AnyCancellable> = []
+
+    init() {
+        panel = NSPanel(
+            contentRect: NSRect(x: 0, y: 0, width: 380, height: 520),
+            styleMask: [.borderless, .nonactivatingPanel],
+            backing: .buffered,
+            defer: false
+        )
+        panel.isFloatingPanel = true
+        panel.level = .floating
+        panel.hidesOnDeactivate = false
+        panel.isReleasedWhenClosed = false
+        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .ignoresCycle]
+        panel.isMovableByWindowBackground = true
+        panel.isOpaque = false
+        panel.backgroundColor = .clear
+        panel.hasShadow = true
+
+        hosting = NSHostingView(rootView: ResultView(model: model))
+        panel.contentView = hosting
+
+        model.onReplace = { [weak self] text in
+            guard let self else { return }
+            if let element = self.sourceElement, SelectionService.setSelectedText(text, on: element) {
+                self.panel.orderOut(nil)
+                return
+            }
+            self.panel.orderOut(nil)
+            self.sourceApp?.activate(options: [.activateIgnoringOtherApps])
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                SelectionService.paste(text)
+            }
+        }
+        model.onCopy = { text in
+            let pasteboard = NSPasteboard.general
+            pasteboard.clearContents()
+            pasteboard.setString(text, forType: .string)
+        }
+        model.onClose = { [weak self] in self?.panel.orderOut(nil) }
+        model.onOpenSettings = { SelectionService.openAccessibilitySettings() }
+
+        model.$state.sink { [weak self] state in
+            guard let self else { return }
+            let height: CGFloat
+            switch state {
+            case .loading: height = 190
+            case .error: height = 210
+            case .result: height = 520
+            case .idle: height = 180
+            }
+            self.panel.setContentSize(NSSize(width: 380, height: height))
+        }
+        .store(in: &cancellables)
+    }
+
+    func show(text: String, mode: CheckMode, modelName: String, element: AXUIElement?, app: NSRunningApplication?, caret: NSRect?) {
+        sourceElement = element
+        sourceApp = app
+        model.sourceText = text
+        model.mode = mode
+        model.modelName = modelName
+        model.result = nil
+        model.error = ""
+        model.state = .loading
+        place(caret: caret)
+        panel.orderFrontRegardless()
+        model.run()
+    }
+
+    func showMessage(_ message: String) {
+        sourceElement = nil
+        sourceApp = nil
+        model.sourceText = ""
+        model.result = nil
+        model.error = message
+        model.state = .error
+        place(caret: SelectionService.caretRect())
+        panel.orderFrontRegardless()
+    }
+
+    private func place(caret: NSRect?) {
+        let size = panel.frame.size
+        let screen = NSScreen.screens.first { $0.frame.contains(NSEvent.mouseLocation) } ?? NSScreen.main
+        guard let visible = screen?.visibleFrame else { return }
+        var origin: NSPoint
+        if let caret {
+            origin = NSPoint(x: caret.maxX + 8, y: caret.minY - size.height - 8)
+            if origin.x + size.width > visible.maxX { origin.x = max(visible.minX + 8, caret.minX - size.width - 8) }
+            if origin.y < visible.minY { origin.y = caret.maxY + 8 }
+        } else {
+            origin = NSPoint(x: visible.midX - size.width / 2, y: visible.midY - size.height / 2)
+        }
+        origin.x = min(max(origin.x, visible.minX + 8), visible.maxX - size.width - 8)
+        origin.y = min(max(origin.y, visible.minY + 8), visible.maxY - size.height - 8)
+        panel.setFrameOrigin(origin)
+    }
+}

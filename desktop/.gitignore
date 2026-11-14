@@ -1,0 +1,6 @@
+.build/
+WriteCheck.app/
+.DS_Store
+*.xcuserstate
+
+.cache/
