@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Pareno Desktop · High-fidelity UI</title>
+<style>
+  :root{
+    --bg:#10100f; --bg2:#161513; --scene:#1b1a17;
+    --panel:#23211d; --panel2:#2a2823; --panel3:#312e28;
+    --text:#f3efe5; --muted:#a6a096; --faint:#756f65;
+    --gold:#d8bc78; --gold-2:#efd9a6; --gold-ink:#2a2317;
+    --sage:#a3bcae; --rose:#dca7a2; --blue:#9fb6c6;
+    --line:rgba(255,255,255,.085); --line-2:rgba(255,255,255,.14);
+    --shadow:0 28px 70px rgba(0,0,0,.55), 0 2px 0 rgba(255,255,255,.03) inset;
+    --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","Helvetica Neue",sans-serif;
+    --serif:Georgia,"Songti SC","Times New Roman",serif;
+    --mono:ui-monospace,"SF Mono",Menlo,monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);-webkit-font-smoothing:antialiased;}
+  .board{width:1720px;margin:0 auto;padding:54px 60px 80px;}
+  .kicker{font:11px/1 var(--mono);letter-spacing:.18em;color:var(--faint);text-transform:uppercase;}
+  h1{font:500 38px/1.15 var(--serif);margin:12px 0 10px;letter-spacing:.01em;}
+  .lede{font-size:14px;line-height:1.75;color:var(--muted);max-width:1000px;margin:0;}
+  .meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;}
+  .pill{font-size:11px;padding:6px 11px;border:1px solid var(--line-2);border-radius:999px;color:var(--muted);background:rgba(255,255,255,.03);}
+  .pill.gold{color:var(--gold-2);border-color:rgba(216,188,120,.5);background:rgba(216,188,120,.08);}
+  .section{margin-top:58px;}
+  .sec-head{display:flex;align-items:baseline;gap:12px;border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:22px;}
+  .sec-head h2{font:500 19px/1.3 var(--serif);margin:0;}
+  .sec-head span{font-size:12px;color:var(--faint);}
+  .scene{position:relative;border-radius:16px;overflow:hidden;background:
+      radial-gradient(1200px 600px at 20% -10%, #2a2720 0%, transparent 60%),
+      radial-gradient(900px 500px at 110% 110%, #1d2622 0%, transparent 55%),
+      #121210;
+      border:1px solid var(--line);box-shadow:var(--shadow);}
+  .scene.wide{height:790px;}
+  .scene.half{height:690px;}
+  .app{position:absolute;left:64px;top:58px;width:980px;height:590px;border-radius:12px;overflow:hidden;
+    background:linear-gradient(180deg,#1e1c19 0%,#191816 100%);border:1px solid rgba(255,255,255,.10);
+    box-shadow:0 30px 60px rgba(0,0,0,.45);}
+  .app.light{background:linear-gradient(180deg,#fdfbf6 0%,#f4f0e7 100%);color:#2b2822;border-color:rgba(0,0,0,.12);}
+  .titlebar{height:42px;display:flex;align-items:center;gap:8px;padding:0 16px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.02);}
+  .app.light .titlebar{border-color:rgba(0,0,0,.08);background:rgba(0,0,0,.02);}
+  .dot{width:11px;height:11px;border-radius:50%;}
+  .dot.r{background:#e5897f;} .dot.y{background:#dfc07a;} .dot.g{background:#93b98c;}
+  .title{font-size:12px;color:var(--muted);margin-left:8px;}
+  .app.light .title{color:#7a746a;}
+  .doc{padding:44px 58px;font-size:16px;line-height:2;color:#d8d2c5;max-width:760px;}
+  .app.light .doc{color:#3b372f;}
+  .doc .dim{color:var(--faint);}
+  .doc .sentence{background:rgba(216,188,120,.12);border-radius:4px;padding:1px 2px;box-shadow:0 0 0 1px rgba(216,188,120,.18);}
+  .caret{display:inline-block;width:2px;height:19px;background:var(--gold);vertical-align:-3px;margin-left:1px;border-radius:1px;}
+  /* ---------- HUD ---------- */
+  .hud{position:absolute;display:inline-flex;align-items:center;height:38px;padding:0 6px;
+    background:linear-gradient(180deg,rgba(45,42,37,.92),rgba(31,29,26,.94));
+    border:1px solid rgba(255,255,255,.16);border-radius:19px;backdrop-filter:blur(24px) saturate(150%);
+    box-shadow:0 16px 34px rgba(0,0,0,.55), 0 1px 0 rgba(255,255,255,.14) inset, 0 0 0 1px rgba(0,0,0,.35);
+    color:#efe9dd;font-size:12.5px;letter-spacing:.01em;}
+  .hud .grip{width:14px;height:20px;display:flex;align-items:center;justify-content:center;margin:0 2px 0 4px;color:#7c766c;}
+  .hud .grip i{display:block;width:2px;height:2px;border-radius:50%;background:currentColor;box-shadow:0 -4px 0 currentColor,0 4px 0 currentColor;}
+  .hud .grip::after{content:"";}
+  .hud button{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;margin:0 1px;border:0;border-radius:15px;
+    background:transparent;color:#cfc8bb;font:inherit;}
+  .hud button.active{background:linear-gradient(180deg,rgba(216,188,120,.28),rgba(216,188,120,.16));
+    color:var(--gold-2);box-shadow:0 0 0 1px rgba(216,188,120,.45) inset,0 4px 14px rgba(216,188,120,.10) inset;}
+  .hud .sep{width:1px;height:16px;background:rgba(255,255,255,.12);margin:0 2px;}
+  .ico{width:15px;height:15px;display:inline-block;flex:none;}
+  .ico svg{width:15px;height:15px;display:block;}
+  /* ---------- card ---------- */
+  .card{position:absolute;width:392px;border-radius:18px;padding:16px;
+    background:linear-gradient(180deg,rgba(44,41,36,.985),rgba(31,29,26,.985));
+    border:1px solid rgba(255,255,255,.13);
+    box-shadow:0 34px 80px rgba(0,0,0,.62), 0 1px 0 rgba(255,255,255,.12) inset, 0 0 0 1px rgba(0,0,0,.4);
+    backdrop-filter:blur(30px) saturate(140%);}
+  .card.light{background:linear-gradient(180deg,#fffdf8,#f7f2e8);border-color:rgba(0,0,0,.10);color:#2c2922;
+    box-shadow:0 30px 70px rgba(60,45,20,.20),0 1px 0 #fff inset;}
+  .card-head{display:flex;align-items:center;gap:9px;margin-bottom:12px;}
+  .brandmark{width:22px;height:22px;border-radius:7px;background:linear-gradient(145deg,#e9d195,#c6a35e);
+    color:#2b2416;display:grid;place-items:center;font:600 12px/1 var(--serif);box-shadow:0 1px 0 rgba(255,255,255,.5) inset;}
+  .card-title{font-size:13px;font-weight:600;letter-spacing:.01em;}
+  .card-mode{font-size:10.5px;color:var(--muted);padding-left:7px;border-left:1px solid var(--line-2);margin-left:1px;}
+  .model{margin-left:auto;font:10px/1 var(--mono);color:var(--faint);background:rgba(255,255,255,.04);
+    border:1px solid var(--line);border-radius:999px;padding:4px 7px;}
+  .close{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;color:#8f897d;background:rgba(255,255,255,.05);border:1px solid var(--line);font-size:10px;}
+  .source{border-radius:11px;padding:10px 11px;background:rgba(255,255,255,.045);border:1px solid var(--line);
+    font-size:12px;line-height:1.65;color:#c9c2b5;}
+  .source b{display:block;font:9px/1.7 var(--mono);letter-spacing:.12em;color:var(--faint);font-weight:400;text-transform:uppercase;}
+  .issues{margin-top:12px;display:grid;gap:10px;}
+  .issue{padding-bottom:10px;border-bottom:1px solid var(--line);}
+  .issue:last-child{border-bottom:0;padding-bottom:2px;}
+  .issue .row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12px;}
+  .tag{font:9px/1 var(--mono);letter-spacing:.06em;padding:4px 6px;border-radius:999px;border:1px solid transparent;}
+  .tag.g{color:#efb6ae;background:rgba(220,167,162,.12);border-color:rgba(220,167,162,.22);}
+  .tag.v{color:#efd9a6;background:rgba(216,188,120,.12);border-color:rgba(216,188,120,.24);}
+  .tag.e{color:#b9d0c2;background:rgba(163,188,174,.12);border-color:rgba(163,188,174,.22);}
+  .bad{text-decoration:line-through;text-decoration-color:rgba(255,255,255,.35);color:#8f897e;}
+  .arrow{color:#6c665c;font-size:10px;}
+  .good{color:#f1ecdf;font-weight:600;}
+  .reason{margin-top:4px;font-size:10.5px;line-height:1.6;color:#989186;}
+  .tabs{display:flex;gap:3px;margin:13px 0 9px;padding:3px;border-radius:9px;background:rgba(0,0,0,.22);border:1px solid var(--line);width:max-content;}
+  .tabs span{font-size:11px;color:#8f897d;padding:5px 13px;border-radius:6px;}
+  .tabs .on{color:#f0e9da;background:rgba(255,255,255,.08);box-shadow:0 1px 0 rgba(255,255,255,.08) inset,0 1px 3px rgba(0,0,0,.35);}
+  .improved{border-radius:11px;padding:10px 11px;font-size:12px;line-height:1.7;color:#d9d2c5;
+    background:linear-gradient(180deg,rgba(0,0,0,.26),rgba(0,0,0,.16));border:1px solid var(--line);
+    box-shadow:0 1px 0 rgba(255,255,255,.04) inset;}
+  .actions{display:flex;align-items:center;gap:8px;margin-top:13px;}
+  .btn{font-size:11.5px;height:30px;padding:0 13px;border-radius:8px;display:inline-flex;align-items:center;gap:6px;
+    border:1px solid var(--line-2);background:rgba(255,255,255,.04);color:#d6cfc2;}
+  .btn.primary{background:linear-gradient(180deg,#edd39a,#d3b171);border-color:#e4c98e;color:#2b2415;
+    font-weight:600;box-shadow:0 1px 0 rgba(255,255,255,.45) inset,0 6px 16px rgba(216,188,120,.18);}
+  .btn.ghost{border-color:transparent;background:transparent;color:#8d877b;}
+  .spacer{flex:1;}
+  .explain p{font-size:12px;line-height:1.75;color:#c3bcaf;margin:7px 0 0;}
+  .explain h5{font:9px/1 var(--mono);letter-spacing:.12em;color:var(--faint);margin:13px 0 0;text-transform:uppercase;}
+  .example{margin-top:7px;border-left:2px solid var(--gold);padding:7px 10px;border-radius:0 8px 8px 0;
+    background:rgba(216,188,120,.07);font-size:12px;line-height:1.7;color:#ded7c8;}
+  /* ---------- sidebar ---------- */
+  .sidebar{width:372px;border-radius:16px;overflow:hidden;background:linear-gradient(180deg,#23211d,#1b1a17);
+    border:1px solid var(--line-2);box-shadow:var(--shadow);}
+  .sb-head{padding:18px 18px 14px;border-bottom:1px solid var(--line);}
+  .sb-brand{display:flex;align-items:baseline;gap:8px;}
+  .sb-brand b{font:500 21px/1 var(--serif);letter-spacing:.02em;}
+  .sb-brand span{font:9px/1 var(--mono);letter-spacing:.16em;color:var(--gold);}
+  .sb-sub{font-size:11px;color:var(--faint);margin-top:6px;}
+  .sb-body{padding:14px 16px 18px;}
+  .current{border-radius:11px;padding:9px 11px;background:rgba(255,255,255,.04);border:1px solid var(--line);}
+  .current .hline{display:flex;justify-content:space-between;font-size:10px;color:var(--faint);}
+  .current p{margin:5px 0 0;font-size:11.5px;line-height:1.55;color:#c6bfb2;}
+  .step{font:9px/1 var(--mono);letter-spacing:.14em;color:var(--faint);text-transform:uppercase;margin:15px 0 7px;}
+  .seg{display:grid;grid-template-columns:1fr 1fr;gap:3px;padding:3px;border-radius:9px;background:rgba(0,0,0,.2);border:1px solid var(--line);}
+  .seg span{text-align:center;font-size:11px;padding:6px 0;border-radius:6px;color:#8e887d;}
+  .seg .on{color:#2b2415;background:linear-gradient(180deg,#edd39a,#d3b171);font-weight:600;}
+  .tasks{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+  .task{padding:8px 9px;border-radius:8px;border:1px solid var(--line);background:rgba(255,255,255,.03);font-size:11.5px;color:#b8b1a4;}
+  .task.on{border-color:rgba(216,188,120,.45);background:rgba(216,188,120,.10);color:#efd9a6;}
+  .modelrow{display:flex;justify-content:space-between;align-items:center;font-size:10.5px;color:var(--faint);margin:15px 0 8px;}
+  .modelrow b{font-weight:500;color:#c9c2b5;}
+  .mini-card{border-radius:11px;border:1px solid var(--line);background:rgba(255,255,255,.03);padding:11px;}
+  .mini-bar{display:flex;justify-content:flex-end;gap:6px;margin-bottom:8px;}
+  .chip{font:9px/1 var(--mono);border:1px solid var(--line);border-radius:5px;padding:4px 6px;color:#8d877b;}
+  .sb-foot{display:flex;justify-content:space-between;padding:11px 18px;border-top:1px solid var(--line);font-size:10px;color:var(--faint);}
+  /* ---------- notes / tokens ---------- */
+  .notes{font-size:12.5px;line-height:1.8;color:#9a9489;}
+  .notes h4{font:9px/1.4 var(--mono);letter-spacing:.14em;color:var(--faint);text-transform:uppercase;margin:0 0 8px;}
+  .notes ul{margin:0;padding-left:16px;}
+  .notes li{margin:3px 0;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:26px;}
+  .scene-label{position:absolute;top:16px;left:18px;font:10px/1 var(--mono);letter-spacing:.14em;color:rgba(255,255,255,.40);text-transform:uppercase;}
+  .scene.wide .scene-label{top:20px;left:24px;}
+  .tokens{display:grid;grid-template-columns:1.1fr 1.2fr 1fr;gap:30px;align-items:start;}
+  .swatches{display:flex;gap:10px;flex-wrap:wrap;}
+  .sw{width:72px;}
+  .sw i{display:block;height:44px;border-radius:8px;border:1px solid var(--line-2);}
+  .sw span{display:block;font:9px/1.6 var(--mono);color:var(--faint);margin-top:5px;}
+  .spec-row{display:flex;justify-content:space-between;gap:20px;border-bottom:1px solid var(--line);padding:7px 0;font-size:12px;color:#b7b0a2;}
+  .spec-row b{font-weight:500;color:#e6dfd1;}
+  .type-sample{border:1px solid var(--line);border-radius:10px;padding:14px 16px;background:rgba(255,255,255,.02);}
+  .t1{font:500 24px/1.2 var(--serif);}
+  .t2{font-size:14px;margin-top:6px;}
+  .t3{font:10px/1.6 var(--mono);color:var(--faint);margin-top:6px;letter-spacing:.08em;}
+  .legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:26px;font-size:11px;color:#7d776c;}
+  .legend b{color:#b7b0a2;font-weight:500;}
+</style>
+</head>
+<body>
+<div class="board">
+  <div class="kicker">PARENO · High-fidelity UI · 2026-11-14</div>
+  <h1>Pareno Desktop</h1>
+  <p class="lede">像输入法一样贴着光标的写作工具。检查、翻译、解释共用一条 HUD 与一张结果卡；在任意 App 的输入框上方出现，不打断输入。以下为最终视觉方向：暖黑 + 香槟金，毛玻璃材质，克制的层次。</p>
+  <div class="meta">
+    <span class="pill gold">Pareno Desktop</span>
+    <span class="pill">PARENO · Obsidian</span>
+    <span class="pill">gpt-oss:20b</span>
+    <span class="pill">HUD 272 × 38</span>
+    <span class="pill">Card 392px</span>
+  </div>
+
+  <div class="section">
+    <div class="sec-head"><h2>01 · 检查 · 桌面端主场景</h2><span>光标上方 HUD + 下方结果卡</span></div>
+    <div class="scene wide">
+      <span class="scene-label">DESKTOP / CHECK / DARK</span>
+      <div class="app">
+        <div class="titlebar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="title">Field Notes — 2026-11-14.md</span></div>
+        <div class="doc" style="padding:58px 58px 40px;">
+          <span class="dim">Draft — client note</span><br><br>
+          <span class="sentence">I have a big wrong for expression in English and I very like this building.<span class="caret"></span></span><br><br>
+          <span class="dim">A cleaner version keeps the same meaning and the same hesitation.</span>
+        </div>
+      </div>
+
+      <div class="hud" style="left:196px;top:96px;">
+        <span class="grip"><i></i></span>
+        <button class="active"><span class="ico"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="6.4"/><path d="M4.9 8.2l2.1 2.1 4.2-4.4" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>检查</button>
+        <span class="sep"></span>
+        <button><span class="ico"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.35"><path d="M2.4 4.2h6.2M5.5 2.6v1.6M7.9 4.2c-.7 3.2-2.7 5.6-5.5 7.1M4.2 7.5c.9 2 2.4 3.4 4.3 4.2" stroke-linecap="round"/><path d="M9.4 13.4l2.5-6.4 2.5 6.4M10.3 11.3h3.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>翻译</button>
+        <span class="sep"></span>
+        <button><span class="ico"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="6.4"/><path d="M6.2 6.3c.1-.9.8-1.5 1.8-1.5 1.1 0 1.8.6 1.8 1.5 0 1.2-1.8 1.3-1.8 2.5" stroke-linecap="round"/><circle cx="8" cy="11.4" r=".7" fill="currentColor" stroke="none"/></svg></span>解释</button>
+      </div>
+
+      <div class="card" style="left:238px;top:202px;">
+        <div class="card-head">
+          <span class="brandmark">P</span>
+          <span class="card-title">Pareno Desktop</span>
+          <span class="card-mode">检查</span>
+          <span class="model">gpt-oss:20b</span>
+          <span class="close">×</span>
+        </div>
+        <div class="source"><b>原文</b>I have a big wrong for expression in English and I very like this building.</div>
+        <div class="issues">
+          <div class="issue">
+            <div class="row"><span class="tag v">用词</span><span class="bad">big wrong</span><span class="arrow">→</span><span class="good">big problem</span></div>
+            <div class="reason">wrong 在这里不是可数名词；说“很大的问题”用 big problem。</div>
+          </div>
+          <div class="issue">
+            <div class="row"><span class="tag g">语法</span><span class="bad">for expression</span><span class="arrow">→</span><span class="good">with expressing myself</span></div>
+            <div class="reason">介词搭配与反身代词，表达“表达自己”要用 express myself。</div>
+          </div>
+          <div class="issue">
+            <div class="row"><span class="tag e">表达</span><span class="bad">I very like</span><span class="arrow">→</span><span class="good">I really like</span></div>
+            <div class="reason">very 不能直接修饰动词；英文用 really like。</div>
+          </div>
+        </div>
+        <div class="tabs"><span>最小修改</span><span class="on">自然表达</span></div>
+        <div class="improved">I have a big problem expressing myself in English, and I really like this building.</div>
+        <div class="actions">
+          <span class="btn primary">替换选区</span>
+          <span class="btn">复制</span>
+          <span class="spacer"></span>
+          <span class="btn ghost">⋯</span>
+        </div>
+      </div>
+
+      <div class="notes" style="position:absolute;left:1130px;top:90px;width:470px;">
+        <h4>Design intent</h4>
+        <ul>
+          <li>HUD 贴着光标上方 6px，像输入法候选条；结果卡在下方，视线不离开句子。</li>
+          <li>暖黑背景 + 香槟金，避免“AI 工具”的冷蓝紫。</li>
+          <li>问题行严格三层：类型标签 / 原文 → 修改 / 中文理由。</li>
+          <li>主按钮只有「检查 / 翻译 / 解释」，其余收进 ⋯。</li>
+          <li>卡片 392px，足够放下两行原文与三条问题。</li>
+        </ul>
+        <h4 style="margin-top:22px;">Material</h4>
+        <ul>
+          <li>HUD 与卡片使用 24–30px backdrop blur，边缘 1px 高光。</li>
+          <li>阴影分两层：环境阴影 + 内侧 1px 高光。</li>
+          <li>金色只用于 active 与主操作，不铺满。</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="sec-head"><h2>02 · 翻译与解释</h2><span>同一张卡，换内容与动作</span></div>
+    <div class="grid2">
+      <div class="scene half">
+        <span class="scene-label">DESKTOP / TRANSLATE</span>
+        <div class="app" style="left:44px;top:48px;width:700px;height:520px;">
+          <div class="titlebar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="title">Client message — draft</span></div>
+          <div class="doc" style="padding:90px 46px 38px;font-size:15px;">
+            这个报价单我还没有最终确认，<br>还需要和团队再核对一下单价。</div>
+        </div>
+        <div class="hud" style="left:88px;top:100px;">
+          <span class="grip"><i></i></span>
+          <button><span class="ico"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="6.4"/><path d="M4.9 8.2l2.1 2.1 4.2-4.4" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>检查</button>
+          <span class="sep"></span>
+          <button class="active"><span class="ico"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.35"><path d="M2.4 4.2h6.2M5.5 2.6v1.6M7.9 4.2c-.7 3.2-2.7 5.6-5.5 7.1M4.2 7.5c.9 2 2.4 3.4 4.3 4.2" stroke-linecap="round"/><path d="M9.4 13.4l2.5-6.4 2.5 6.4M10.3 11.3h3.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>翻译</button>
+          <span class="sep"></span>
+          <button><span class="ico"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="6.4"/><path d="M6.2 6.3c.1-.9.8-1.5 1.8-1.5 1.1 0 1.8.6 1.8 1.5 0 1.2-1.8 1.3-1.8 2.5" stroke-linecap="round"/><circle cx="8" cy="11.4" r=".7" fill="currentColor" stroke="none"/></svg></span>解释</button>
+        </div>
+        <div class="card" style="left:110px;top:240px;">
+          <div class="card-head"><span class="brandmark">P</span><span class="card-title">Pareno Desktop</span><span class="card-mode">翻译</span><span class="model">gpt-oss:20b</span><span class="close">×</span></div>
+          <div class="source"><b>原文</b>这个报价单我还没有最终确认，还需要和团队再核对一下单价。</div>
+          <div class="tabs"><span>忠实译文</span><span class="on">自然译文</span></div>
+          <div class="improved" style="min-height:58px;">I haven’t finalized this quotation yet — I still need to check the unit price with the team.</div>
+          <div class="actions"><span class="btn primary">替换原文</span><span class="btn">插入下方</span><span class="btn">复制</span><span class="spacer"></span><span class="btn ghost">⋯</span></div>
+        </div>
+      </div>
+
+      <div class="scene half">
+        <span class="scene-label">DESKTOP / EXPLAIN</span>
+        <div class="app" style="left:44px;top:48px;width:700px;height:520px;">
+          <div class="titlebar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="title">Notebook — language notes</span></div>
+          <div class="doc" style="padding:90px 46px 38px;font-size:15px;">
+            I very like the way this courtyard opens to the street.<span class="caret"></span><br><br>
+            <span class="dim">想弄明白为什么不对，而不只是拿到改写。</span>
+          </div>
+        </div>
+        <div class="hud" style="left:88px;top:100px;">
+          <span class="grip"><i></i></span>
+          <button><span class="ico"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="6.4"/><path d="M4.9 8.2l2.1 2.1 4.2-4.4" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>检查</button>
+          <span class="sep"></span>
+          <button><span class="ico"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.35"><path d="M2.4 4.2h6.2M5.5 2.6v1.6M7.9 4.2c-.7 3.2-2.7 5.6-5.5 7.1M4.2 7.5c.9 2 2.4 3.4 4.3 4.2" stroke-linecap="round"/><path d="M9.4 13.4l2.5-6.4 2.5 6.4M10.3 11.3h3.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>翻译</button>
+          <span class="sep"></span>
+          <button class="active"><span class="ico"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="6.4"/><path d="M6.2 6.3c.1-.9.8-1.5 1.8-1.5 1.1 0 1.8.6 1.8 1.5 0 1.2-1.8 1.3-1.8 2.5" stroke-linecap="round"/><circle cx="8" cy="11.4" r=".7" fill="currentColor" stroke="none"/></svg></span>解释</button>
+        </div>
+        <div class="card" style="left:110px;top:240px;">
+          <div class="card-head"><span class="brandmark">P</span><span class="card-title">Pareno Desktop</span><span class="card-mode">解释</span><span class="model">gpt-oss:20b</span><span class="close">×</span></div>
+          <div class="source"><b>原文</b>I very like the way this courtyard opens to the street.</div>
+          <div class="explain">
+            <h5>问题在哪</h5>
+            <p>very 是副词，不能直接修饰动词 like。中文的“很喜欢”在英文里是 really like，或 like … very much。</p>
+            <h5>更自然</h5>
+            <div class="example">I really like the way this courtyard opens to the street.</div>
+          </div>
+          <div class="actions"><span class="btn">复制解释</span><span class="spacer"></span><span class="btn ghost">关闭</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="sec-head"><h2>03 · Obsidian 插件 · 同一套语言</h2><span>完整任务保留在插件，桌面端只留高频三键</span></div>
+    <div style="display:grid;grid-template-columns:420px 1fr;gap:44px;align-items:start;">
+      <div class="sidebar">
+        <div class="sb-head">
+          <div class="sb-brand"><b>PARENO</b><span>并言</span></div>
+          <div class="sb-sub">在正文里写，在侧栏里判断。</div>
+        </div>
+        <div class="sb-body">
+          <div class="current">
+            <div class="hline"><b>当前选区 / 段落</b><span>2026-11-12 当AI开始画图…</span></div>
+            <p>I have a big wrong for expression in English.</p>
+          </div>
+          <div class="step">01 / 检查范围</div>
+          <div class="seg"><span class="on">选区 / 当前段落</span><span>整篇文章</span></div>
+          <div class="step">02 / 我想做什么</div>
+          <div class="tasks">
+            <div class="task on">检查与润色</div><div class="task">翻译</div>
+            <div class="task">核对中英</div><div class="task">解释表达</div>
+            <div class="task">作者风格</div>
+          </div>
+          <div class="modelrow"><span>模型与数据范围</span><b>Ollama · 本机 / 云端</b></div>
+          <div class="mini-card">
+            <div class="mini-bar"><span class="chip">重新审校</span><span class="chip">设置</span><span class="chip">清除</span></div>
+            <div class="issue" style="padding-bottom:8px;">
+              <div class="row"><span class="tag v">用词</span><span class="bad">big wrong</span><span class="arrow">→</span><span class="good">big problem</span></div>
+              <div class="reason">wrong 在这里不是名词用法</div>
+            </div>
+            <div class="issue" style="border:0;padding-bottom:0;">
+              <div class="row"><span class="tag e">表达</span><span class="bad">I very like</span><span class="arrow">→</span><span class="good">I really like</span></div>
+            </div>
+            <div class="tabs" style="margin:10px 0 7px;"><span>最小修改</span><span class="on">自然表达</span></div>
+            <div class="improved" style="font-size:11.5px;">I have a big problem with expressing myself in English.</div>
+            <div class="actions" style="margin-top:9px;"><span class="btn primary" style="height:27px;font-size:10.5px;">替换原文</span><span class="btn" style="height:27px;font-size:10.5px;">复制</span></div>
+          </div>
+        </div>
+        <div class="sb-foot"><span>v0.7.0</span><span>反馈问题 ↗</span></div>
+      </div>
+      <div class="notes" style="padding-top:8px;">
+        <h4>Consistency rules</h4>
+        <ul>
+          <li>两端共用 IssueRow、VariantTabs、ResultActions、SourceQuote。</li>
+          <li>插件保留 5 个任务；桌面端 HUD 只放 检查 / 翻译 / 解释。</li>
+          <li>金色只用于选中与主操作；插件标题用衬线，正文用无衬线。</li>
+          <li>“最小修改 / 自然表达” 文案两端完全一致。</li>
+        </ul>
+        <h4 style="margin-top:24px;">Light mode</h4>
+        <div class="card light" style="position:relative;width:380px;margin-top:8px;">
+          <div class="card-head"><span class="brandmark">P</span><span class="card-title">Pareno Desktop</span><span class="card-mode">检查</span><span class="model" style="color:#8c8578;background:rgba(0,0,0,.04);border-color:rgba(0,0,0,.08);">gpt-oss:20b</span><span class="close" style="background:rgba(0,0,0,.05);color:#8c8578;border-color:rgba(0,0,0,.08);">×</span></div>
+          <div class="source" style="background:rgba(0,0,0,.035);border-color:rgba(0,0,0,.07);color:#4a453c;"><b style="color:#9a9284;">原文</b>I very like this building.</div>
+          <div class="issues">
+            <div class="issue" style="border-color:rgba(0,0,0,.06);">
+              <div class="row"><span class="tag e" style="color:#5a735f;background:rgba(90,115,95,.10);border-color:rgba(90,115,95,.18);">表达</span><span class="bad" style="color:#928a7c;">I very like</span><span class="arrow" style="color:#b0a898;">→</span><span class="good" style="color:#2f2b24;">I really like</span></div>
+              <div class="reason" style="color:#8f8779;">very 不能直接修饰动词</div>
+            </div>
+          </div>
+          <div class="tabs" style="background:rgba(0,0,0,.05);border-color:rgba(0,0,0,.07);"><span style="color:#8f8779;">最小修改</span><span class="on" style="background:#fff;color:#2f2b24;box-shadow:0 1px 2px rgba(0,0,0,.08);">自然表达</span></div>
+          <div class="improved" style="background:rgba(0,0,0,.035);border-color:rgba(0,0,0,.07);color:#403b33;">I really like this building.</div>
+          <div class="actions"><span class="btn primary" style="height:28px;font-size:10.5px;">替换选区</span><span class="btn" style="height:28px;font-size:10.5px;background:#fff;border-color:rgba(0,0,0,.10);color:#4a453c;">复制</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="sec-head"><h2>04 · Design tokens</h2><span>颜色 / 字体 / 尺寸</span></div>
+    <div class="tokens">
+      <div>
+        <h4 style="font:9px/1.4 var(--mono);letter-spacing:.14em;color:var(--faint);text-transform:uppercase;margin:0 0 10px;">Palette</h4>
+        <div class="swatches">
+          <div class="sw"><i style="background:#10100f;"></i><span>#10100F<br>canvas</span></div>
+          <div class="sw"><i style="background:#23211d;"></i><span>#23211D<br>surface</span></div>
+          <div class="sw"><i style="background:#d8bc78;"></i><span>#D8BC78<br>gold</span></div>
+          <div class="sw"><i style="background:#a3bcae;"></i><span>#A3BCAE<br>sage</span></div>
+          <div class="sw"><i style="background:#dca7a2;"></i><span>#DCA7A2<br>rose</span></div>
+        </div>
+      </div>
+      <div>
+        <h4 style="font:9px/1.4 var(--mono);letter-spacing:.14em;color:var(--faint);text-transform:uppercase;margin:0 0 10px;">Type &amp; shape</h4>
+        <div class="type-sample">
+          <div class="t1">PARENO 并言</div>
+          <div class="t2">Pareno Desktop · 检查 / 翻译 / 解释</div>
+          <div class="t3">SF PRO TEXT · PINGFANG SC · GEORGIA WORDMARK</div>
+        </div>
+        <div class="spec-row"><span>HUD</span><b>272 × 38 · r19</b></div>
+        <div class="spec-row"><span>Result card</span><b>392 × auto · r18</b></div>
+        <div class="spec-row"><span>Issue row</span><b>tag 9px · text 12px</b></div>
+        <div class="spec-row"><span>Shadow</span><b>0 34 80 rgba(0,0,0,.62)</b></div>
+      </div>
+      <div class="notes">
+        <h4>Rules</h4>
+        <ul>
+          <li>金色只用于 active、主按钮、品牌标记。</li>
+          <li>语法问题用玫瑰色，用词用金色，表达用鼠尾草绿。</li>
+          <li>卡片永远 392px；HUD 永远贴光标上方 6px。</li>
+          <li>浅色模式保留同一层级，只反转表面与文字。</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <span><b>Direction</b> · warm black / champagne gold / frosted glass</span>
+    <span><b>Not final</b> · spacing may shift ±2px after implementation</span>
+    <span><b>Icons</b> · outline, 1.4px, 15px box</span>
+  </div>
+</div>
+</body>
+</html>
