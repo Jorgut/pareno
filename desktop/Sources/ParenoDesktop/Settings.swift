@@ -9,6 +9,7 @@ enum Prefs {
     static let autoHide = "ParenoDesktopAutoHide"
     static let showInDock = "ParenoDesktopShowInDock"
     static let model = "ParenoDesktopModel"
+    static let appearance = "ParenoDesktopAppearance"
     static let origin = "ParenoDesktopHUDOrigin"
     static let legacyVisible = "ParenoDesktopFollowCaret"
 }
@@ -25,6 +26,7 @@ struct SettingsView: View {
     @AppStorage(Prefs.showInDock) private var showInDock = false
     @AppStorage(Prefs.mode) private var mode = HUDMode.follow.rawValue
     @AppStorage(Prefs.model) private var model = ""
+    @AppStorage(Prefs.appearance) private var appearance = "system"
 
     var body: some View {
         Form {
@@ -40,6 +42,14 @@ struct SettingsView: View {
                     Text("停止输入后隐藏")
                     Slider(value: $autoHide, in: 1...8, step: 1)
                     Text("\(Int(autoHide)) 秒").monospacedDigit().foregroundStyle(.secondary)
+                }
+            }
+
+            Section("外观") {
+                Picker("主题", selection: $appearance) {
+                    Text("跟随系统").tag("system")
+                    Text("深色").tag("dark")
+                    Text("浅色").tag("light")
                 }
             }
 
@@ -70,6 +80,7 @@ struct SettingsView: View {
         .onChange(of: autoHide) { _ in notifyChange() }
         .onChange(of: showInDock) { _ in notifyChange() }
         .onChange(of: mode) { _ in notifyChange() }
+        .onChange(of: appearance) { _ in notifyChange() }
         .onDisappear { notifyChange() }
     }
 }

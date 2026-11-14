@@ -52,10 +52,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         settingsWindow = SettingsWindowController()
         applyDockPolicy()
+        applyAppearance()
         settingsObserver = NotificationCenter.default.addObserver(
             forName: .parenoSettingsChanged, object: nil, queue: .main
         ) { [weak self] _ in
             self?.applyDockPolicy()
+            self?.applyAppearance()
             self?.reloadPreferences()
             self?.rebuildMenu()
             self?.updateHUD()
@@ -218,6 +220,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func openSettings() {
         settingsWindow?.show()
+    }
+
+    private func applyAppearance() {
+        switch UserDefaults.standard.string(forKey: Prefs.appearance) ?? "system" {
+        case "dark": NSApp.appearance = NSAppearance(named: .darkAqua)
+        case "light": NSApp.appearance = NSAppearance(named: .aqua)
+        default: NSApp.appearance = nil
+        }
     }
 
     private func applyDockPolicy() {

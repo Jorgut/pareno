@@ -134,9 +134,17 @@ struct ResultView: View {
 
     private var header: some View {
         HStack(spacing: 8) {
-            Image(systemName: "text.badge.checkmark")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(.secondary)
+            Text("P")
+                .font(.system(size: 11, weight: .bold, design: .serif))
+                .foregroundStyle(Color(red: 0.17, green: 0.14, blue: 0.08))
+                .frame(width: 20, height: 20)
+                .background(
+                    LinearGradient(
+                        colors: [Color(red: 0.93, green: 0.82, blue: 0.58), Color(red: 0.78, green: 0.64, blue: 0.37)],
+                        startPoint: .topLeading, endPoint: .bottomTrailing
+                    ),
+                    in: RoundedRectangle(cornerRadius: 6, style: .continuous)
+                )
             Text("Pareno Desktop").font(.system(size: 13, weight: .semibold))
             Spacer()
             Picker("", selection: Binding(
@@ -212,9 +220,10 @@ struct ResultView: View {
                                         HStack(spacing: 5) {
                                             Text(issue.label)
                                                 .font(.system(size: 9, weight: .semibold))
+                                                .foregroundStyle(tagColor(issue.type))
                                                 .padding(.horizontal, 5)
                                                 .padding(.vertical, 1)
-                                                .background(Color.secondary.opacity(0.16))
+                                                .background(tagColor(issue.type).opacity(0.14))
                                                 .clipShape(Capsule())
                                             Text(issue.source).strikethrough().font(.system(size: 11))
                                             Text("→").font(.system(size: 10)).foregroundStyle(.secondary)
@@ -268,6 +277,14 @@ struct ResultView: View {
         }
     }
 
+    private func tagColor(_ type: String) -> Color {
+        switch type {
+        case "grammar": return Color(red: 0.86, green: 0.65, blue: 0.63)
+        case "vocabulary": return Color(red: 0.85, green: 0.74, blue: 0.47)
+        default: return Color(red: 0.64, green: 0.74, blue: 0.68)
+        }
+    }
+
     private func explainBlock(_ title: String, _ text: String, highlight: Bool) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title)
@@ -291,11 +308,13 @@ struct ResultView: View {
             if model.mode == .explain {
                 Button("复制解释") { model.copy() }
                     .buttonStyle(.borderedProminent)
+                    .tint(Color(red: 0.85, green: 0.74, blue: 0.47))
                     .controlSize(.small)
                     .disabled(model.state != .result)
             } else {
                 Button(model.mode == .translate ? "替换为译文" : "替换选区") { model.replace() }
                     .buttonStyle(.borderedProminent)
+                    .tint(Color(red: 0.85, green: 0.74, blue: 0.47))
                     .controlSize(.small)
                     .disabled(model.state != .result)
                 Button("复制") { model.copy() }

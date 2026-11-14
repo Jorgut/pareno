@@ -1,8 +1,5 @@
 .build/
-WriteCheck.app/
+Pareno Desktop.app/
+.cache/
 .DS_Store
 *.xcuserstate
-
-.cache/
-
-desktop/*.app
