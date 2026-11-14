@@ -33,6 +33,7 @@ While you type in any text field, a small pill follows the caret with three acti
 - **检查** — grammar, vocabulary and expression fixes
 - **翻译** — Chinese ↔ English, with faithful and natural versions
 - **解释** — why it is wrong, a corrected sentence, and an example; it never rewrites your text
+- **⚙ / ×** — open settings, or hide the HUD immediately
 
 Click any action, or select text and press **⌥⌘G**.
 

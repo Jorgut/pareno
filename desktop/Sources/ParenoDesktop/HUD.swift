@@ -19,12 +19,14 @@ final class CursorHUD: NSObject {
     var onCheck: (() -> Void)?
     var onTranslate: (() -> Void)?
     var onExplain: (() -> Void)?
+    var onSettings: (() -> Void)?
+    var onClose: (() -> Void)?
     var onMove: ((NSPoint) -> Void)?
     private(set) var mode: HUDMode = .follow
 
     override init() {
         panel = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 272, height: 38),
+            contentRect: NSRect(x: 0, y: 0, width: 340, height: 38),
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false
@@ -44,7 +46,7 @@ final class CursorHUD: NSObject {
         effect.wantsLayer = true
         effect.layer?.cornerRadius = 19
         effect.layer?.masksToBounds = true
-        effect.frame = NSRect(x: 0, y: 0, width: 272, height: 38)
+        effect.frame = NSRect(x: 0, y: 0, width: 340, height: 38)
         effect.autoresizingMask = [.width, .height]
         panel.contentView = effect
 
@@ -78,6 +80,13 @@ final class CursorHUD: NSObject {
         divider2.heightAnchor.constraint(equalToConstant: 14).isActive = true
         stack.addArrangedSubview(divider2)
         addButton(title: "解释", symbol: "questionmark.circle", action: #selector(explainTapped))
+        let divider3 = NSBox()
+        divider3.boxType = .separator
+        divider3.translatesAutoresizingMaskIntoConstraints = false
+        divider3.heightAnchor.constraint(equalToConstant: 14).isActive = true
+        stack.addArrangedSubview(divider3)
+        addIconButton(symbol: "gearshape", tooltip: "设置", action: #selector(settingsTapped))
+        addIconButton(symbol: "xmark", tooltip: "隐藏 HUD", action: #selector(closeTapped))
 
         NotificationCenter.default.addObserver(self, selector: #selector(windowMoved), name: NSWindow.didMoveNotification, object: panel)
     }
@@ -94,9 +103,22 @@ final class CursorHUD: NSObject {
         stack.addArrangedSubview(button)
     }
 
+    private func addIconButton(symbol: String, tooltip: String, action: Selector) {
+        let button = NSButton(image: NSImage(systemSymbolName: symbol, accessibilityDescription: tooltip) ?? NSImage(), target: self, action: action)
+        button.isBordered = false
+        button.imagePosition = .imageOnly
+        button.contentTintColor = .secondaryLabelColor
+        button.toolTip = tooltip
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.widthAnchor.constraint(equalToConstant: 24).isActive = true
+        stack.addArrangedSubview(button)
+    }
+
     @objc private func checkTapped() { onCheck?() }
     @objc private func translateTapped() { onTranslate?() }
     @objc private func explainTapped() { onExplain?() }
+    @objc private func settingsTapped() { onSettings?() }
+    @objc private func closeTapped() { onClose?() }
 
     @objc private func windowMoved() {
         guard mode == .fixed else { return }

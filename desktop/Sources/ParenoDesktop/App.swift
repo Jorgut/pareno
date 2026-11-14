@@ -71,6 +71,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         hud.onCheck = { [weak self] in self?.runTask(.check) }
         hud.onTranslate = { [weak self] in self?.runTask(.translate) }
         hud.onExplain = { [weak self] in self?.runTask(.explain) }
+        hud.onSettings = { [weak self] in self?.openSettings() }
+        hud.onClose = { [weak self] in self?.hideHUD() }
         hud.onMove = { [weak self] origin in self?.fixedOrigin = origin }
         hud.setMode(hudMode, origin: fixedOrigin)
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
@@ -207,6 +209,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc func checkSelection() {
         runTask(.check)
+    }
+
+    private func hideHUD() {
+        hudEnabled = false
+        UserDefaults.standard.set(false, forKey: Prefs.visible)
+        hud.hide()
+        rebuildMenu()
     }
 
     @objc private func openSettings() {
