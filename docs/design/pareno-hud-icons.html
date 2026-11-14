@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Pareno HUD · 图标探索</title>
+<style>
+  :root{
+    --bg:#0f0f0e; --panel:#1b1a17; --panel2:#23211d;
+    --text:#f2eee4; --muted:#a29b8f; --faint:#746e63;
+    --gold:#d8bc78; --gold2:#efd9a6;
+    --line:rgba(255,255,255,.09); --line2:rgba(255,255,255,.16);
+    --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC",sans-serif;
+    --serif:Georgia,"Songti SC",serif;
+    --mono:ui-monospace,"SF Mono",Menlo,monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);-webkit-font-smoothing:antialiased;}
+  .board{width:1500px;margin:0 auto;padding:48px 56px 64px;}
+  .kicker{font:11px/1 var(--mono);letter-spacing:.18em;color:var(--faint);text-transform:uppercase;}
+  h1{font:500 34px/1.15 var(--serif);margin:10px 0 8px;}
+  .lede{font-size:13.5px;line-height:1.7;color:var(--muted);max-width:980px;margin:0;}
+  .rows{margin-top:38px;display:grid;gap:18px;}
+  .row{display:grid;grid-template-columns:150px 1fr 390px;gap:26px;align-items:center;
+    border:1px solid var(--line);border-radius:14px;padding:22px 24px;background:linear-gradient(180deg,rgba(255,255,255,.025),rgba(0,0,0,.12));}
+  .label{font:10px/1.5 var(--mono);letter-spacing:.12em;color:var(--faint);text-transform:uppercase;}
+  .label b{display:block;font:500 15px/1.4 var(--font);letter-spacing:0;color:var(--text);margin-bottom:3px;text-transform:none;}
+  .stage{display:flex;align-items:center;justify-content:flex-start;min-height:86px;}
+  .note{font-size:11.5px;line-height:1.7;color:#8f887b;}
+  .note b{color:#cfc7b8;font-weight:500;}
+  /* HUD */
+  .hud{display:inline-flex;align-items:center;height:38px;padding:0 6px;
+    background:linear-gradient(180deg,rgba(45,42,37,.94),rgba(31,29,26,.96));
+    border:1px solid var(--line2);border-radius:19px;
+    box-shadow:0 16px 34px rgba(0,0,0,.55), 0 1px 0 rgba(255,255,255,.14) inset;
+    font-size:12.5px;color:#cfc8bb;}
+  .hud .grip{width:14px;height:20px;margin:0 3px 0 5px;display:flex;align-items:center;justify-content:center;color:#7c766c;}
+  .hud .grip i{width:2px;height:2px;border-radius:50%;background:currentColor;box-shadow:0 -4px 0 currentColor,0 4px 0 currentColor;}
+  .hud button{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;margin:0 1px;border:0;border-radius:15px;
+    background:transparent;color:#cfc8bb;font:inherit;}
+  .hud button.active{background:linear-gradient(180deg,rgba(216,188,120,.28),rgba(216,188,120,.16));
+    color:var(--gold2);box-shadow:0 0 0 1px rgba(216,188,120,.45) inset;}
+  .hud .sep{width:1px;height:16px;background:rgba(255,255,255,.12);margin:0 2px;}
+  .ico{width:15px;height:15px;display:inline-block;flex:none;}
+  .ico svg{width:15px;height:15px;display:block;}
+  .mark{width:12px;height:12px;display:inline-block;border:1px solid currentColor;flex:none;}
+  .mark.dot{border-radius:50%;}
+  .mark.diamond{transform:rotate(45deg);width:9px;height:9px;margin:0 1.5px;}
+  .mark.bar{width:2px;height:11px;border:0;background:currentColor;}
+  .textonly{gap:0;}
+  .textonly button{padding:0 14px;}
+  .footer{margin-top:30px;border-top:1px solid var(--line);padding-top:18px;display:grid;grid-template-columns:1.2fr 1fr;gap:40px;font-size:12px;line-height:1.75;color:#8f887b;}
+  .footer b{color:#cfc7b8;font-weight:500;}
+  .rec{border:1px solid rgba(216,188,120,.35);background:rgba(216,188,120,.07);border-radius:10px;padding:14px 16px;color:#cfc3a8;}
+  .rec b{color:var(--gold2);}
+  .caption{font:10px/1.6 var(--mono);color:var(--faint);margin-top:8px;}
+</style>
+</head>
+<body>
+<div class="board">
+  <div class="kicker">PARENO · HUD icon study · 2026-11-14</div>
+  <h1>把三个图标换成中性符号</h1>
+  <p class="lede">同一枚 HUD，四种图标方案。目标是：图标不抢字、不表达情绪，只做“可以点”的提示；不改变三键的文字与顺序（检查 / 翻译 / 解释）。</p>
+
+  <div class="rows">
+    <div class="row">
+      <div class="label"><b>A · 当前</b>语义图标</div>
+      <div class="stage">
+        <div class="hud">
+          <span class="grip"><i></i></span>
+          <button class="active"><span class="ico"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="6.4"/><path d="M4.9 8.2l2.1 2.1 4.2-4.4" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>检查</button>
+          <span class="sep"></span>
+          <button><span class="ico"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.35"><path d="M2.4 4.2h6.2M5.5 2.6v1.6M7.9 4.2c-.7 3.2-2.7 5.6-5.5 7.1M4.2 7.5c.9 2 2.4 3.4 4.3 4.2" stroke-linecap="round"/><path d="M9.4 13.4l2.5-6.4 2.5 6.4M10.3 11.3h3.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>翻译</button>
+          <span class="sep"></span>
+          <button><span class="ico"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="6.4"/><path d="M6.2 6.3c.1-.9.8-1.5 1.8-1.5 1.1 0 1.8.6 1.8 1.5 0 1.2-1.8 1.3-1.8 2.5" stroke-linecap="round"/><circle cx="8" cy="11.4" r=".7" fill="currentColor" stroke="none"/></svg></span>解释</button>
+        </div>
+      </div>
+      <div class="note">现状。<b>语义太明确</b>：勾、翻译、问号各自在讲故事，视觉上也偏“工具集合”。</div>
+    </div>
+
+    <div class="row">
+      <div class="label"><b>B · 纯文字</b>无图标</div>
+      <div class="stage">
+        <div class="hud textonly">
+          <span class="grip"><i></i></span>
+          <button class="active">检查</button>
+          <span class="sep"></span>
+          <button>翻译</button>
+          <span class="sep"></span>
+          <button>解释</button>
+        </div>
+      </div>
+      <div class="note">最中性。<b>文字本身已经足够清楚</b>，按钮更安静；缺点是少了“可点”的视觉锚点，需要靠胶囊背景与 hover 补足。</div>
+    </div>
+
+    <div class="row">
+      <div class="label"><b>C · 极简线条</b>无外圈</div>
+      <div class="stage">
+        <div class="hud">
+          <span class="grip"><i></i></span>
+          <button class="active"><span class="ico"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3.4 8.4l2.9 2.9 6.3-6.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>检查</button>
+          <span class="sep"></span>
+          <button><span class="ico"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 6h9.4M9.6 3.4L12.4 6 9.6 8.6M13 10H3.6M6.4 7.4L3.6 10l2.8 2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>翻译</button>
+          <span class="sep"></span>
+          <button><span class="ico"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="6.2"/><path d="M8 7.1v4.1" stroke-linecap="round"/><circle cx="8" cy="5.1" r=".8" fill="currentColor" stroke="none"/></svg></span>解释</button>
+        </div>
+      </div>
+      <div class="note">保留“点得动”的暗示，但去掉图标外圈。<b>中性、克制</b>，与 15px 字号最协调；推荐作为折中方案。</div>
+    </div>
+
+    <div class="row">
+      <div class="label"><b>D · 几何符号</b>抽象标记</div>
+      <div class="stage">
+        <div class="hud">
+          <span class="grip"><i></i></span>
+          <button class="active"><span class="mark bar"></span>检查</button>
+          <span class="sep"></span>
+          <button><span class="mark dot"></span>翻译</button>
+          <span class="sep"></span>
+          <button><span class="mark diamond"></span>解释</button>
+        </div>
+      </div>
+      <div class="note">最抽象：竖线 / 圆 / 菱形。<b>完全不表意</b>，但容易变成装饰噪音，用户第一次用会不知道符号含义。</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="rec"><b>建议</b><br>选 <b>C · 极简线条</b>：去掉外圈、保留最小可读的勾 / 双向箭头 / i。既有“可点”的视觉提示，又不讲故事。若想更安静，选 <b>B · 纯文字</b>。</div>
+    <div><b>说明</b><br>这四种方案只改图标，不改三键的文案、顺序、宽度（272×38）与金色 active 状态。<br><span class="caption">图标的 stroke 统一 1.4px；尺寸 15×15；与文字间距 6px。</span></div>
+  </div>
+</div>
+</body>
+</html>

@@ -7,7 +7,7 @@
 - 一个项目、一个品牌：**PARENO**；桌面端标注为 **Pareno Desktop**。
 - 两个端口：
   - `PARENO · Obsidian`：现有 Obsidian 插件。
-  - `Pareno Desktop`：可下载的桌面写作工具，像输入法候选条一样贴着光标。
+  - `Pareno Desktop`：可下载的桌面写作工具；浮在光标上的小工具条命名为 `Pareno HUD`（产品名仍是 Pareno Desktop）。
 - 两端共享同一套结果语言：检查 / 翻译、最小修改 / 自然表达、替换 / 复制。
 
 ## 2. 线框图包含
@@ -53,13 +53,15 @@ PARENO/
 
 构建脚本、release 资产与 Obsidian 插件相互独立；`desktop/Pareno Desktop.app` 由 `desktop/scripts/build-app.sh` 生成。
 
-## 6. 已确认
+## 6. 已确认（2026-11-14）
 
 1. HUD 增加第三个按钮「解释」；顺序固定为 检查 / 翻译 / 解释。
 2. 默认吸附光标上方。
 3. 结果卡宽度 380px。
-4. 品牌标注用 `Pareno Desktop`。
-5. 桌面端代码迁入本仓库 `desktop/`，原 `WriteCheck/` 已删除。
+4. 品牌标注用 `Pareno Desktop`；浮条组件名为 `Pareno HUD`。
+5. HUD 保留原来的语义图标（勾圈 / 翻译 / 问号圈，即方案 A）。
+6. 主题默认跟随系统，后续在设置里增加主题选择。
+7. 桌面端代码迁入本仓库 `desktop/`，原 `WriteCheck/` 已删除。
 
 ## 7. 下一步
 
