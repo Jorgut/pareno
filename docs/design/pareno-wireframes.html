@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>PARENO 双端线框图</title>
+<style>
+  :root{--ink:#2c2c2a;--muted:#8b8b86;--line:#c9c8c2;--soft:#dedcd6;--paper:#fff;--fill:#f6f5f1;--accent:#c6a469;--accent-soft:#f0e6d2;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:#e9e7e2;color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue",sans-serif;}
+  .board{width:1720px;margin:0 auto;padding:46px 60px 70px;}
+  .kicker{font:11px/1 ui-monospace,Menlo,monospace;letter-spacing:.16em;color:var(--muted);text-transform:uppercase;}
+  h1{font:600 30px/1.2 Georgia,"Songti SC",serif;margin:10px 0 6px;}
+  .lede{font-size:14px;color:#5d5d58;max-width:980px;line-height:1.7;margin:0;}
+  .meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;}
+  .chip{font-size:11px;padding:5px 9px;border:1px solid var(--line);border-radius:999px;background:var(--paper);color:#555;}
+  .chip.gold{border-color:var(--accent);background:var(--accent-soft);}
+  .section{display:grid;grid-template-columns:1080px 1fr;gap:44px;margin-top:54px;align-items:start;}
+  .section-head{grid-column:1/-1;display:flex;align-items:baseline;gap:12px;border-bottom:1px solid var(--line);padding-bottom:10px;}
+  .section-head h2{font:600 18px/1.3 Georgia,"Songti SC",serif;margin:0;}
+  .section-head span{font-size:12px;color:var(--muted);}
+  .artboard{position:relative;background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:22px;min-height:600px;box-shadow:0 1px 0 rgba(0,0,0,.02);}
+  .canvas-label{position:absolute;top:10px;right:14px;font:10px/1 ui-monospace,Menlo,monospace;color:#b0aea7;letter-spacing:.08em;}
+  .notes{font-size:13px;line-height:1.8;color:#4f4f4a;padding-top:6px;}
+  .notes h3{font-size:12px;letter-spacing:.08em;color:var(--muted);margin:0 0 8px;text-transform:uppercase;}
+  .notes h4{font-size:13px;margin:18px 0 4px;}
+  .notes ul{padding-left:16px;margin:4px 0 0;}
+  .notes li{margin:2px 0;}
+  .notes .spec{font:11px/1.7 ui-monospace,Menlo,monospace;color:#6d6d67;background:var(--fill);border:1px solid var(--soft);border-radius:5px;padding:9px 11px;margin-top:10px;white-space:pre-line;}
+  .dashed{position:absolute;border:1px dashed #bdbab2;border-radius:3px;}
+  .tag{position:absolute;font:10px/1 ui-monospace,Menlo,monospace;color:#8f8c84;background:#fff;padding:2px 5px;border:1px solid var(--soft);}
+  .win{border:1px solid var(--line);border-radius:8px;background:var(--fill);overflow:hidden;}
+  .win-bar{height:30px;display:flex;align-items:center;gap:6px;padding:0 10px;border-bottom:1px solid var(--soft);background:#efede8;}
+  .dot{width:8px;height:8px;border-radius:50%;background:#cfccc5;}
+  .win-title{margin-left:8px;font-size:11px;color:var(--muted);}
+  .win-body{padding:18px 20px;font-size:14px;line-height:1.8;color:#3a3a37;background:#fff;}
+  .caret{display:inline-block;width:1.5px;height:18px;background:#3a3a37;vertical-align:-3px;margin-left:1px;}
+  .hud{position:absolute;display:flex;align-items:center;background:#fff;border:1px solid var(--line);border-radius:18px;height:34px;box-shadow:0 4px 14px rgba(0,0,0,.08);font-size:12px;}
+  .hud .grip{width:12px;height:18px;margin-left:8px;border-left:2px dotted #c9c6bf;border-right:2px dotted #c9c6bf;opacity:.7;}
+  .hud button{border:0;background:transparent;font:inherit;color:inherit;padding:0 11px;height:32px;display:flex;align-items:center;gap:5px;}
+  .hud .active{background:var(--accent-soft);border-radius:14px;}
+  .hud .sep{width:1px;height:14px;background:var(--soft);}
+  .pointer{position:absolute;width:8px;height:8px;background:#fff;border-right:1px solid var(--line);border-bottom:1px solid var(--line);transform:rotate(45deg);bottom:-5px;left:48px;}
+  .card{position:absolute;width:380px;background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 18px 40px rgba(0,0,0,.10);padding:14px;font-size:12px;}
+  .card-head{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+  .card-title{font-weight:600;font-size:13px;}
+  .model{font:10px/1 ui-monospace,Menlo,monospace;color:var(--muted);margin-left:auto;}
+  .close{width:16px;height:16px;border:1px solid var(--line);border-radius:50%;display:grid;place-items:center;font-size:9px;color:var(--muted);}
+  .source{border:1px solid var(--soft);background:var(--fill);border-radius:9px;padding:8px 9px;color:#555;line-height:1.6;}
+  .source b{display:block;font:9px/1.6 ui-monospace,Menlo,monospace;color:var(--muted);font-weight:400;letter-spacing:.06em;}
+  .issues{margin-top:10px;display:grid;gap:8px;}
+  .issue{display:grid;gap:2px;}
+  .issue .line{display:flex;align-items:center;gap:5px;flex-wrap:wrap;}
+  .kind{font:9px/1 ui-monospace,Menlo,monospace;padding:3px 6px;border-radius:999px;background:#ebe9e3;color:#6b6a63;}
+  .strike{text-decoration:line-through;color:#777;}
+  .arrow{color:#a5a29a;}
+  .fix{font-weight:600;}
+  .reason{color:var(--muted);font-size:10.5px;}
+  .tabs{display:flex;gap:4px;margin:12px 0 8px;border:1px solid var(--soft);border-radius:8px;padding:3px;width:max-content;}
+  .tabs span{padding:4px 12px;border-radius:6px;color:#6f6d66;font-size:11px;}
+  .tabs .on{background:#fff;border:1px solid var(--line);color:var(--ink);}
+  .textbox{border:1px solid var(--soft);background:#fbfaf7;border-radius:9px;padding:9px;line-height:1.6;color:#3f3f3b;min-height:64px;}
+  .card-actions{display:flex;gap:8px;align-items:center;margin-top:10px;}
+  .btn{font-size:11px;padding:6px 12px;border-radius:7px;border:1px solid var(--line);background:#fff;}
+  .btn.primary{background:#2f2f2c;color:#fff;border-color:#2f2f2c;}
+  .btn.ghost{background:transparent;color:#777;}
+  .spacer{flex:1;}
+  .sidebar{width:330px;border:1px solid var(--line);border-radius:12px;background:#fff;overflow:hidden;box-shadow:0 12px 30px rgba(0,0,0,.06);}
+  .sb-head{padding:14px 14px 10px;border-bottom:1px solid var(--soft);}
+  .sb-title{font:600 16px/1.2 Georgia,serif;}
+  .sb-sub{font-size:11px;color:var(--muted);margin-top:3px;}
+  .sb-body{padding:12px 14px;}
+  .current{border:1px solid var(--soft);background:var(--fill);border-radius:9px;padding:7px 9px;}
+  .current .row{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);}
+  .current p{margin:4px 0 0;font-size:11px;color:#555;line-height:1.5;}
+  .step{font:9px/1 ui-monospace,Menlo,monospace;color:var(--muted);letter-spacing:.08em;margin:12px 0 5px;}
+  .seg{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--soft);border-radius:8px;padding:3px;gap:3px;}
+  .seg span{font-size:11px;text-align:center;padding:5px 0;border-radius:6px;color:#666;}
+  .seg .on{background:var(--accent-soft);border:1px solid var(--accent);color:#4a3d24;}
+  .tasks{display:grid;grid-template-columns:1fr 1fr;gap:5px;}
+  .task{border:1px solid var(--soft);border-radius:7px;padding:7px 8px;font-size:11px;color:#555;background:#fff;}
+  .task.on{border-color:var(--accent);background:var(--accent-soft);color:#4a3d24;}
+  .modelrow{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin:12px 0 6px;}
+  .result{border:1px solid var(--line);border-radius:9px;padding:10px;margin-top:8px;}
+  .result-bar{display:flex;justify-content:flex-end;gap:6px;margin-bottom:6px;}
+  .mini{font:9px/1 ui-monospace,Menlo,monospace;border:1px solid var(--soft);border-radius:5px;padding:3px 6px;color:#777;}
+  .sb-foot{display:flex;justify-content:space-between;padding:8px 14px;border-top:1px solid var(--soft);font-size:10px;color:var(--muted);}
+  .states{display:grid;grid-template-columns:repeat(2,1fr);gap:22px;}
+  .state-card{border:1px dashed #c8c5bd;border-radius:8px;padding:16px;background:#fcfbf8;}
+  .state-card h4{margin:0 0 4px;font-size:12px;}
+  .state-card p{margin:0;font-size:11px;color:#74736c;line-height:1.6;}
+  .mini-hud{display:inline-flex;align-items:center;gap:0;border:1px solid var(--line);border-radius:16px;background:#fff;height:30px;font-size:11px;margin-top:12px;}
+  .mini-hud span{padding:0 9px;}
+  .mini-hud .on{background:var(--accent-soft);border-radius:12px;}
+  .pin{border:1px solid var(--accent);background:var(--accent-soft);}
+  .flow{display:flex;align-items:center;gap:10px;font-size:11px;color:#6d6b64;margin-top:10px;flex-wrap:wrap;}
+  .flow .box{border:1px solid var(--line);background:#fff;border-radius:6px;padding:6px 9px;}
+  .flow .arrow2{color:#aaa;}
+  .legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:26px;font-size:11px;color:#6d6b64;}
+  .legend b{font-weight:600;color:#4b4a44;}
+  .keyline{display:inline-block;width:12px;height:0;border-top:1px solid #333;vertical-align:middle;margin-right:5px;}
+  .keydash{display:inline-block;width:12px;height:0;border-top:1px dashed #999;vertical-align:middle;margin-right:5px;}
+</style>
+</head>
+<body>
+<div class="board">
+  <div class="kicker">PARENO · Design wireframe · 2026-11-14</div>
+  <h1>PARENO 双端线框图</h1>
+  <p class="lede">一个项目，两个端口：Obsidian 插件与桌面端写作工具。桌面端像输入法一样贴着光标，主按钮沿用插件里已经实现的「检查」「翻译」；两端的检查结果、修改方式与文案保持一致。</p>
+  <div class="meta">
+    <span class="chip gold">PARENO · Obsidian</span>
+    <span class="chip gold">PARENO · Desktop</span>
+    <span class="chip">低 fidelity / 结构优先</span>
+    <span class="chip">检查 · 翻译 · 解释</span>
+  </div>
+
+  <div class="section">
+    <div class="section-head"><h2>01 · 桌面端：输入框上方的小工具与检查结果</h2><span>Follow caret · 380px card</span></div>
+    <div class="artboard" style="height:660px;">
+      <span class="canvas-label">DESKTOP / CHECK</span>
+      <div class="win" style="position:absolute;left:40px;top:64px;width:640px;">
+        <div class="win-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="win-title">任意 App 的输入框 · 豆包语音 / 键盘输入</span></div>
+        <div class="win-body">I have a big wrong for expression in English.<span class="caret"></span></div>
+      </div>
+      <div class="hud" style="left:410px;top:158px;width:206px;">
+        <span class="grip"></span>
+        <button class="active">✓ 检查</button>
+        <span class="sep"></span>
+        <button>▤ 翻译</button>
+        <span class="pointer" style="left:150px;"></span>
+      </div>
+      <div class="card" style="left:170px;top:245px;">
+        <div class="card-head"><span class="card-title">PARENO 检查</span><span class="model">gpt-oss:20b</span><span class="close">×</span></div>
+        <div class="source"><b>原文</b>I have a big wrong for expression in English.</div>
+        <div class="issues">
+          <div class="issue"><div class="line"><span class="kind">用词</span><span class="strike">big wrong</span><span class="arrow">→</span><span class="fix">big problem</span></div><div class="reason">wrong 在这里不是“错误”的名词用法</div></div>
+          <div class="issue"><div class="line"><span class="kind">语法</span><span class="strike">for expression</span><span class="arrow">→</span><span class="fix">with expressing myself</span></div><div class="reason">介词搭配与反身代词</div></div>
+          <div class="issue"><div class="line"><span class="kind">表达</span><span class="strike">I very like</span><span class="arrow">→</span><span class="fix">I really like</span></div><div class="reason">副词不能直接修饰 like</div></div>
+        </div>
+        <div class="tabs"><span>最小修改</span><span class="on">自然表达</span></div>
+        <div class="textbox">I have a big problem with expressing myself in English. I really like this building, and its design is better than before.</div>
+        <div class="card-actions"><span class="btn primary">替换选区</span><span class="btn">复制</span><span class="spacer"></span><span class="btn ghost">⋯</span></div>
+      </div>
+      <div class="dashed" style="left:402px;top:150px;width:222px;height:48px;"></div>
+      <span class="tag" style="left:632px;top:154px;">HUD 200×34</span>
+      <div class="dashed" style="left:162px;top:237px;width:396px;height:380px;"></div>
+      <span class="tag" style="left:560px;top:596px;">结果卡 380px</span>
+    </div>
+    <aside class="notes">
+      <h3>Spec</h3>
+      <ul>
+        <li>小工具贴光标上方 6px，左对齐光标；空间不足时翻到下方。</li>
+        <li>主按钮只有两个：<b>检查</b>、<b>翻译</b>；更多任务收进 ⋯。</li>
+        <li>结果卡在光标下方展开，不遮住正在写的这一行。</li>
+        <li>「最小修改 / 自然表达」沿用 Obsidian 插件的双版本结构。</li>
+        <li>替换后卡片关闭，小工具回到光标上方。</li>
+      </ul>
+      <div class="spec">HUD   200 × 34  r18
+Card  380 × auto r16
+Issues ≤ 6 条，超出滚动
+Actions 替换 / 复制 / ⋯</div>
+      <h4>为什么这样</h4>
+      <p>输入法候选条的位置关系最容易被理解：工具在上、结果在下，视线不用离开正在写的句子。</p>
+    </aside>
+  </div>
+
+  <div class="section">
+    <div class="section-head"><h2>02 · 桌面端：翻译模式</h2><span>Same card · faithful / natural</span></div>
+    <div class="artboard" style="height:620px;">
+      <span class="canvas-label">DESKTOP / TRANSLATE</span>
+      <div class="win" style="position:absolute;left:40px;top:64px;width:640px;">
+        <div class="win-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="win-title">任意 App 的输入框 · 中文输入</span></div>
+        <div class="win-body">这个报价单还需要再确认一下。<span class="caret"></span></div>
+      </div>
+      <div class="hud" style="left:410px;top:158px;width:206px;">
+        <span class="grip"></span><button>✓ 检查</button><span class="sep"></span><button class="active">▤ 翻译</button>
+        <span class="pointer" style="left:150px;"></span>
+      </div>
+      <div class="card" style="left:170px;top:235px;height:330px;">
+        <div class="card-head"><span class="card-title">PARENO 翻译</span><span class="model">gpt-oss:20b</span><span class="close">×</span></div>
+        <div class="source"><b>原文</b>这个报价单还需要再确认一下。</div>
+        <div class="tabs"><span>忠实译文</span><span class="on">自然译文</span></div>
+        <div class="textbox" style="min-height:96px;">This quotation still needs another round of confirmation.</div>
+        <div class="card-actions"><span class="btn primary">替换原文</span><span class="btn">插入下方</span><span class="btn">复制</span><span class="spacer"></span><span class="btn ghost">⋯</span></div>
+      </div>
+      <div class="dashed" style="left:402px;top:150px;width:222px;height:48px;"></div>
+      <span class="tag" style="left:632px;top:154px;">同一 HUD，切换 active</span>
+    </div>
+    <aside class="notes">
+      <h3>Spec</h3>
+      <ul>
+        <li>翻译始终给两版：<b>忠实</b> 与 <b>自然</b>；默认自然。</li>
+        <li>动作：替换原文 / 插入下方 / 复制。中文→英文、英文→中文自动判断。</li>
+        <li>不做自动替换；必须点击。</li>
+        <li>检查与翻译共用同一个卡片组件，只换中间内容。</li>
+      </ul>
+      <div class="spec">检测到语言 → 自动定方向
+源语言中文 → 英文
+源语言英文 → 中文
+混合 → 英文</div>
+    </aside>
+  </div>
+
+  <div class="section">
+    <div class="section-head"><h2>03 · Obsidian 插件：同一套按钮语言</h2><span>PARENO · Obsidian</span></div>
+    <div class="artboard" style="height:840px;display:flex;justify-content:center;">
+      <span class="canvas-label">OBSIDIAN / SIDEBAR</span>
+      <div class="sidebar" style="margin-top:20px;">
+        <div class="sb-head"><div class="sb-title">PARENO 并言</div><div class="sb-sub">在正文里写，在侧栏里判断。</div></div>
+        <div class="sb-body">
+          <div class="current"><div class="row"><b>当前选区 / 段落</b><span>2026-11-12 当AI开始画图…</span></div><p>I have a big wrong for expression in English.</p></div>
+          <div class="step">01 / 检查范围</div>
+          <div class="seg"><span class="on">选区 / 当前段落</span><span>整篇文章</span></div>
+          <div class="step">02 / 我想做什么</div>
+          <div class="tasks"><div class="task on">检查与润色</div><div class="task">翻译</div><div class="task">核对中英</div><div class="task">解释表达</div><div class="task">作者风格</div></div>
+          <div class="modelrow"><span>模型与数据范围</span><span>Ollama · 本机 / 云端</span></div>
+          <div class="result">
+            <div class="result-bar"><span class="mini">重新审校</span><span class="mini">设置</span><span class="mini">清除</span></div>
+            <div class="issue"><div class="line"><span class="kind">用词</span><span class="strike">big wrong</span><span class="arrow">→</span><span class="fix">big problem</span></div><div class="reason">wrong 在这里不是名词用法</div></div>
+            <div class="issue"><div class="line"><span class="kind">表达</span><span class="strike">I very like</span><span class="arrow">→</span><span class="fix">I really like</span></div></div>
+            <div class="tabs"><span>最小修改</span><span class="on">自然表达</span></div>
+            <div class="textbox" style="min-height:52px;">I have a big problem with expressing myself in English.</div>
+            <div class="card-actions"><span class="btn primary">替换原文</span><span class="btn">复制</span></div>
+          </div>
+        </div>
+        <div class="sb-foot"><span>v0.7.0</span><span>反馈问题 ↗</span></div>
+      </div>
+    </div>
+    <aside class="notes">
+      <h3>Spec</h3>
+      <ul>
+        <li>桌面端只保留最高频的「检查 / 翻译」，插件保留完整任务：核对中英、解释表达、作者风格。</li>
+        <li>两端的 issue 行、<b>最小修改 / 自然表达</b>、替换动作、模型标识保持一致。</li>
+        <li>插件侧栏继续用 640px 上限宽度与结果区顶部操作条。</li>
+      </ul>
+      <div class="spec">共享组件
+IssueRow / VariantTabs /
+ResultActions / SourceQuote
+文案：检查、翻译、最小修改、自然表达</div>
+    </aside>
+  </div>
+
+  <div class="section">
+    <div class="section-head"><h2>04 · 状态与吸附方式</h2><span>Follow / Fixed / Empty / No permission</span></div>
+    <div class="artboard" style="height:560px;">
+      <span class="canvas-label">STATES</span>
+      <div class="states" style="margin-top:34px;">
+        <div class="state-card"><h4>吸附光标 · 空闲</h4><p>在任意输入框聚焦时出现在光标上方；离开输入框 1 秒后隐藏。</p><div class="mini-hud"><span>✓ 检查</span><span>▤ 翻译</span></div></div>
+        <div class="state-card"><h4>检查中</h4><p>按钮变为进度状态，结果卡占位；仍贴着光标，不跳走。</p><div class="mini-hud"><span>◌ 检查中…</span><span>▤ 翻译</span></div></div>
+        <div class="state-card"><h4>固定位置</h4><p>拖动左侧握把放到任意位置，记住坐标；不随光标移动。</p><div class="mini-hud pin"><span class="grip" style="border-left:2px dotted #b9a77f;border-right:2px dotted #b9a77f;width:10px;height:14px;"></span><span>✓ 检查</span><span>▤ 翻译</span></div></div>
+        <div class="state-card"><h4>无权限 / 无文本</h4><p>明确说明缺什么，并给「打开辅助功能设置」；不静默消失。</p><div class="mini-hud"><span>⚠ 需要辅助功能权限</span></div></div>
+      </div>
+      <div class="flow" style="margin-top:26px;">
+        <span class="box">选中 / 光标在段落</span><span class="arrow2">→</span>
+        <span class="box">HUD 出现</span><span class="arrow2">→</span>
+        <span class="box">点检查 / 翻译</span><span class="arrow2">→</span>
+        <span class="box">结果卡</span><span class="arrow2">→</span>
+        <span class="box">替换 / 复制</span>
+      </div>
+    </div>
+    <aside class="notes">
+      <h3>交互规则</h3>
+      <ul>
+        <li>HUD 不抢焦点；点击按钮不打断输入。</li>
+        <li>检查中仍可继续打字；结果基于点击瞬间的文本。</li>
+        <li>固定模式适合放在屏幕角落反复使用；吸附模式适合长文连续写。</li>
+        <li>默认吸附；菜单里可切换并记住选择。</li>
+      </ul>
+      <h4>待定</h4>
+      <ul>
+        <li>是否需要在 HUD 上加第三个按钮「解释」？</li>
+        <li>固定模式下是否保留「检查当前段落」的上下文按钮？</li>
+      </ul>
+    </aside>
+  </div>
+
+  <div class="legend">
+    <span><span class="keyline"></span>实线：实际界面边界</span>
+    <span><span class="keydash"></span>虚线：组件尺寸标注</span>
+    <span><b>灰阶 + 金色</b> = 线框阶段，颜色不最终</span>
+    <span><b>字号</b> 12–14px 接近 macOS 原生</span>
+  </div>
+</div>
+</body>
+</html>
