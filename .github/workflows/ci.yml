@@ -43,7 +43,7 @@ jobs:
 
   desktop:
     name: Pareno Desktop build
-    runs-on: macos-14
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
       - run: swift build --package-path desktop
