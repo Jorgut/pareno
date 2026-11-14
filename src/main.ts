@@ -257,7 +257,26 @@ export default class ParenoPlugin extends Plugin {
     if (!force && (this.agentChecking || fresh)) return this.agentStatuses;
     this.agentChecking = true;
     try {
-      this.agentStatuses = await Promise.all((['codex', 'claude', 'cursor-agent', 'opencode'] as AgentKind[]).map(kind => this.probeAgent(kind)));
+      const kinds: AgentKind[] = ['codex', 'claude', 'cursor-agent', 'opencode'];
+      const results = await Promise.all(kinds.map(async kind => {
+        const definition = agentDefinition(kind);
+        const executable = resolveAgentCommand(agentExecutable(this.settings, kind));
+        const timeout = new Promise<AgentStatus>(resolve => {
+          setTimeout(() => resolve({
+            kind, label: definition.label, executable, state: 'error',
+            version: '', message: `${definition.label} 检测超时`, checkedAt: Date.now()
+          }), 8000);
+        });
+        try {
+          return await Promise.race([this.probeAgent(kind), timeout]);
+        } catch {
+          return {
+            kind, label: definition.label, executable, state: 'error' as const,
+            version: '', message: `${definition.label} 检测失败`, checkedAt: Date.now()
+          };
+        }
+      }));
+      this.agentStatuses = results;
     } finally {
       this.agentChecking = false;
       this.renderPanel();
