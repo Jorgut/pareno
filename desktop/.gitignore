@@ -4,3 +4,5 @@ WriteCheck.app/
 *.xcuserstate
 
 .cache/
+
+desktop/*.app
