@@ -359,12 +359,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             panel.show(text: cached.text, mode: mode, modelName: currentModel, element: cached.element, app: sourceApp, caret: cached.caret)
             return
         }
-        guard let context = SelectionService.currentParagraph() else {
-            panel.showMessage("没有找到可检查的文字。请把光标放进一段文字，或先选中一段。")
+        if let context = SelectionService.currentParagraph() {
+            let caret = SelectionService.caretRect()
+            panel.show(text: context.text, mode: mode, modelName: currentModel, element: context.element, app: sourceApp, caret: caret)
             return
         }
-        let caret = SelectionService.caretRect()
-        panel.show(text: context.text, mode: mode, modelName: currentModel, element: context.element, app: sourceApp, caret: caret)
+        if let fallback = SelectionService.copySelectionViaKeyboard(), let element = SelectionService.focusedElement() {
+            panel.show(text: fallback, mode: mode, modelName: currentModel, element: element, app: sourceApp, caret: SelectionService.caretRect())
+            return
+        }
+        panel.showMessage("没有找到可检查的文字。请把光标放进一段文字，或先选中一段。")
     }
 
     @objc private func selectModel(_ sender: NSMenuItem) {

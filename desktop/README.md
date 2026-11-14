@@ -38,7 +38,16 @@ Click any action, or select text and press **⌥⌘G**.
 
 The pill sits directly above the text caret, like an input-method candidate bar. If an app does not expose caret bounds, it falls back to the focused text field, then to its last position. It stays visible while the result card is open.
 
-The pill has two docking modes in the menu bar:
+Open **设置…** from the menu bar icon (⌘,) to control:
+
+- show / hide the HUD
+- appear while typing, while selecting text, or both
+- follow the caret or stay at a fixed, draggable position
+- hide after 1–8 seconds without typing
+- follow the system appearance, or force dark / light
+- show a Dock icon for easier relaunching
+
+The pill has two docking modes as well:
 
 - **吸附光标** — follows the text caret in any app (default).
 - **固定位置（可拖动）** — stays where you drag it, and the position is remembered. Drag the small grip on the left edge of the pill.

@@ -47,3 +47,4 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: swift build --package-path desktop
+      - run: swift run --package-path desktop ParenoDesktop --selftest

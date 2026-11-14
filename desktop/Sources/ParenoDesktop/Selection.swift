@@ -98,6 +98,27 @@ enum SelectionService {
         return (String(text.prefix(1500)), element)
     }
 
+    static func copySelectionViaKeyboard() -> String? {
+        let pasteboard = NSPasteboard.general
+        let previousItems = pasteboard.pasteboardItems
+        let previousCount = pasteboard.changeCount
+        guard let source = CGEventSource(stateID: .combinedSessionState) else { return nil }
+        let down = CGEvent(keyboardEventSource: source, virtualKey: 8, keyDown: true)
+        let up = CGEvent(keyboardEventSource: source, virtualKey: 8, keyDown: false)
+        down?.flags = .maskCommand
+        up?.flags = .maskCommand
+        down?.post(tap: .cghidEventTap)
+        up?.post(tap: .cghidEventTap)
+        usleep(160_000)
+        let changed = pasteboard.changeCount != previousCount
+        let copied = changed ? pasteboard.string(forType: .string)?.trimmingCharacters(in: .whitespacesAndNewlines) : nil
+        if changed, let previousItems {
+            pasteboard.clearContents()
+            pasteboard.writeObjects(previousItems)
+        }
+        return (copied?.isEmpty == false) ? copied : nil
+    }
+
     static func paste(_ text: String) {
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
