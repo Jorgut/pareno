@@ -27,7 +27,7 @@
 | Secret | `CLOUDFLARE_API_TOKEN` | Cloudflare API Token，权限：Account → Cloudflare Pages: Edit（可用 “Edit Cloudflare Workers” 模板后补 Pages 权限） |
 | Secret | `CLOUDFLARE_ACCOUNT_ID` | Cloudflare Dashboard 右侧的 Account ID |
 | Secret | `FEEDBACK_GITHUB_TOKEN` | fine-grained token，只给 `Jorgut/pareno-feedback` 的 Issues 读写 |
-| Variable（可选） | `CLOUDFLARE_PAGES_PROJECT` | Pages 项目名，默认 `parenowriter` |
+| Variable（可选） | `CLOUDFLARE_PAGES_PROJECT` | Pages 项目名，默认 `pareno` |
 
 Cloudflare API Token 创建：Dashboard → **My Profile → API Tokens → Create Token**。不需要 `wrangler login`，也没有限时 OAuth。
 
@@ -56,7 +56,7 @@ Cloudflare API Token 创建：Dashboard → **My Profile → API Tokens → Crea
 ## 2. 在 Cloudflare 建 Pages 项目
 
 1. 打开 Cloudflare Dashboard → **Workers & Pages → Create → Pages → Connect to Git**。
-2. 选择仓库 `Jorgut/pareno`，项目名建议 `parenowriter`（若被占用可用 `pareno-site`）。
+2. 选择仓库 `Jorgut/pareno`，项目名建议 `pareno`（若被占用可用 `pareno-site`）。
 3. 构建设置：
    - **Root directory**：`website`
    - **Build command**：`npm run build`
@@ -65,7 +65,7 @@ Cloudflare API Token 创建：Dashboard → **My Profile → API Tokens → Crea
 4. **Environment variables**（Production，必要时也配 Preview）：
    - `FEEDBACK_GITHUB_TOKEN`：上一步的 token（设为 Secret）
    - `FEEDBACK_REPO`：`Jorgut/pareno-feedback`
-5. Save and Deploy。当前生产项目为 `parenowriter`，地址是 `https://parenowriter.pages.dev`。
+5. Save and Deploy。当前生产项目为 `pareno`，地址是 `https://parenowriter.pages.dev`。
 
 > `functions/` 目录必须在 Pages 项目的根目录（即 `website/functions`）。当前配置已满足；不要把它移到 `dist/`。
 
