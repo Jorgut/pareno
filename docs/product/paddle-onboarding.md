@@ -6,8 +6,9 @@
 
 - 卖家身份：个人 / 个体 / 公司
 - 收款方式：Payoneer / 银行电汇 / 其他
-- 网站：https://parenowriter.pages.dev
+- 网站：https://parenowriter.pages.dev（live 建议 pareno.altn.vision）
 - 产品：Pareno Desktop，macOS 软件，一次性 License
+- 支持邮箱：support@altn.vision（转发到 archintera@outlook.com）
 
 Paddle 的不支持国家名单里没有哈萨克斯坦；但个人卖家的提现路径仍需在注册时确认。
 
