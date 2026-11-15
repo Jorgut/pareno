@@ -33,17 +33,40 @@ Pareno 已经是一个**能用、有明确差异点**的 macOS 写作工具，�
 
 > **中/英/俄双语写作者 + 需要解释而不只是改写 + 希望本地/自带模型 + Obsidian 用户。**
 
-## 2. “Beespear” 案例
+## 2. BizPeel 上的商业案例
 
-按 **Beespear** 检索不到与写作工具/商业案例相关的平台或产品；搜索结果主要是拼写相近的 **BeeSpeaker**（AI 语言学习，€2M seed、6 万付费用户、2025 年预计 €5M 收入）。BeeSpeaker 属于语言学习，不是写作助手，不能直接作为同类商业案例。
+BizPeel 是一个“有真实收入 + 增长/获客拆解”的产品数据库，不是应用商店；下面是同品类或相邻品类的报告案例（收入为报告口径，非审计数据）：
 
-如果你说的是另一个 **Beespear** 平台，请给链接或截图；目前我不能编造它的案例。
+| 产品 | 定位 | 收费 | 报告收入 |
+| --- | --- | --- | --- |
+| **Alchie** | 用访谈把个人经历写成 LinkedIn 帖子，保持本人语气 | €19 / €49 / €89 每月 | **$11.4K MRR** |
+| **Solo Content Studio** | 教练/顾问把一个主题拆成多平台内容 | 月/年订阅，免费试用 | **$3.7K MRR** |
+| **RedactAI** | LinkedIn 帖子生成、排期、复用 | $19.90–$109.90/月 | 累计 $339K，但收入大幅下滑 |
+| **Revise AI** | 保留作者语气的小说/长文稿 AI 编辑器 | Freemium 订阅 | **$1.6K MRR** |
+| **WriteHybrid** | 把 AI 文本改写得更像人写、绕过检测 | 订阅 + 字数额度 | **$5.1K MRR** |
+| **Lunchbreak** | 学生 AI 文本改写/检测 | $19.99/月或 $120/年 | 累计 **$1.46M** |
+| **Babelbot** | Discord 实时翻译 | Freemium 订阅 | **$943 MRR** |
+| **Glossa.live** | 教会/活动实时语音翻译 | 按小时 usage | **$14.4K MRR** |
+| **Deeptrue** | 会议实时翻译/提词 | 订阅 + 分钟超量 | **$2.6K MRR** |
+| **Sublo** | 视频双语字幕 | Freemium 订阅 | **$1.5K MRR** |
 
-可参考的相近商业信号：
+来源：[Alchie](https://bizpeel.com/project/alchie) · [Solo Content Studio](https://bizpeel.com/project/solo-content-studio) · [RedactAI](https://bizpeel.com/project/redactai) · [Revise AI](https://bizpeel.com/project/revise) · [WriteHybrid](https://bizpeel.com/project/writehybrid) · [Lunchbreak](https://bizpeel.com/project/lunchbreak) · [Babelbot](https://bizpeel.com/project/babelbot) · [Glossa.live](https://bizpeel.com/project/glossa-live) · [Deeptrue](https://bizpeel.com/project/deeptrue) · [Sublo](https://bizpeel.com/project/sublo)
 
-- WunderType：macOS 菜单栏写作工具，**$8.99 一次性**，说明“小工具买断”有人愿意付费。
-- Poli：同类能力但**免费开源**，说明纯本地通用功能很难收费。
-- Grammarly / LanguageTool：订阅制成立，但靠规模、语料、品牌和团队。
+### 这些案例说明了什么
+
+1. **垂直场景比通用工具更赚钱**：LinkedIn 帖子、教练内容、小说编辑、学生改写，都是“某个具体工作流”，不是“语法检查”。
+2. **订阅/按量是主流**：上面几乎都是订阅或 usage，不是一次性买断。
+3. **免费额度/试用是入口**：Freemium + 字数/分钟额度是最常见的转化结构。
+4. **“保持我的语气”是卖点**：Alchie、Revise AI 都在卖“像你写的”，不是“正确”。
+5. **翻译需求真实存在**：Glossa、Babelbot、Deeptrue、Sublo 都靠特定场景的翻译/字幕收费。
+6. **平台依赖有风险**：RedactAI 收入大幅下滑，说明只靠某个平台流量或“绕过检测”不可持续。
+
+### 对 Pareno 的含义
+
+- 只卖“语法检查/改写”很难收费，Apple 和 Grammarly 已经覆盖。
+- 能收费的是 **具体人群 + 具体工作流**：中英俄双语写作者、Obsidian 写作者、需要“解释为什么”的语言学习者。
+- 本地模型让边际成本接近零，适合 **买断**；云端/Agent/历史/术语表才有持续价值，适合 **订阅**。
+- 先用“免费本地版 + 买断 Pro”验证付费意愿，再考虑订阅。
 
 ## 3. 要不要商业化
 
@@ -53,10 +76,10 @@ Pareno 已经是一个**能用、有明确差异点**的 macOS 写作工具，�
 - 公证、签名、更新、服务器都要成本；
 - 通用能力有 Apple/Poli 免费替代，免费也未必换来增长。
 
-### 也不建议直接做订阅
+### 也不建议现在就直接做订阅
 
-- 你目前没有云端推理资产，订阅需要持续成本/服务；
-- 用户对“写作小工具”的订阅疲劳明显；
+- BizPeel 案例证明订阅可行，但那些产品都有持续服务（云端生成、额度、团队、内容 pipeline）；
+- Pareno 目前是本地工具，没有持续成本，也没有持续价值载体；
 - 直接对标 Grammarly $12/月没有胜算。
 
 ### 推荐：Freemium + 买断 Pro
