@@ -2,11 +2,13 @@
 const year = new Date().getFullYear();
 const path = Astro.url.pathname.replace(/\/$/, '') || '/';
 const isDesktop = ['/desktop', '/terms', '/refund', '/support'].includes(path);
+const isHome = path === '/';
 ---
 <footer class="site-footer">
   <div class="wrap">
     <div>
-      <p>© {year} ArchIntera · {isDesktop ? 'Pareno Desktop' : 'PARENO 并言'} · {isDesktop ? 'Proprietary' : 'MIT License'}</p>
+      <p>© {year} ArchIntera · {isDesktop ? 'Pareno Desktop' : 'PARENO 并言'}</p>
+      {isDesktop ? <p class="small muted">Pareno Desktop · Proprietary</p> : isHome ? <p class="small muted">Obsidian 插件 MIT · Pareno Desktop proprietary</p> : null}
       <p>本站不收集分析数据，不使用第三方追踪脚本。</p>
       {isDesktop && <p class="small muted">Paddle.com is the Merchant of Record for Pareno Desktop orders.</p>}
     </div>
