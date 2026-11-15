@@ -26,6 +26,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var lastTextActivity = Date.distantPast
     private var lastClickPoint: NSPoint?
     private var lastClickTime = Date.distantPast
+    private var lastKeyPoint: NSPoint?
+    private var lastKeyTime = Date.distantPast
+    private var lastCaretRect: NSRect?
     private var activityMonitors: [Any] = []
     private var lastHUDOrigin: NSPoint?
     private var fixedOrigin: NSPoint? {
@@ -291,7 +294,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func installActivityMonitors() {
         let mark = { [weak self] in self?.lastTextActivity = Date() }
-        if let monitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown, handler: { _ in mark() }) {
+        if let monitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown, handler: { [weak self] _ in
+            self?.lastKeyPoint = NSEvent.mouseLocation
+            self?.lastKeyTime = Date()
+            mark()
+        }) {
             activityMonitors.append(monitor)
         }
         if let monitor = NSEvent.addGlobalMonitorForEvents(matching: .leftMouseDown, handler: { [weak self] _ in
@@ -323,21 +330,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
         if panel.panel.isVisible {
-            hud.keepVisible()
+            hud.hide()
             return
         }
         let defaults = UserDefaults.standard
         let showTyping = defaults.object(forKey: Prefs.showTyping) as? Bool ?? true
         let showSelection = defaults.object(forKey: Prefs.showSelection) as? Bool ?? true
         let autoHide = defaults.object(forKey: Prefs.autoHide) as? Double ?? 3
+        let caret = SelectionService.caretRect()
+        let field = SelectionService.textInputFrame()
+        if let caret {
+            if lastCaretRect != caret { lastTextActivity = Date() }
+            lastCaretRect = caret
+        } else {
+            lastCaretRect = nil
+        }
         let selection = SelectionService.selectedText()?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let recentlyActive = Date().timeIntervalSince(lastTextActivity) < autoHide
-        guard (showTyping && recentlyActive) || (showSelection && !selection.isEmpty) else {
+        let hasTextInput = field != nil || caret != nil
+        guard (showTyping && (recentlyActive || hasTextInput)) || (showSelection && !selection.isEmpty) else {
             hud.hide()
             return
         }
-        let caret = SelectionService.caretRect()
-        let field = SelectionService.textInputFrame()
         if let caret, let field {
             let inside = field.insetBy(dx: -10, dy: -16).contains(NSPoint(x: caret.minX, y: caret.minY))
             if inside {
@@ -348,7 +362,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 lastHUDOrigin = hud.origin
                 return
             }
-            hud.update(caret: NSRect(x: field.minX, y: field.maxY, width: 2, height: 2))
+            hud.update(caret: NSRect(x: field.minX + 8, y: field.maxY - 4, width: 2, height: 2))
             lastHUDOrigin = hud.origin
             return
         }
@@ -359,6 +373,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         if let field {
             hud.update(caret: NSRect(x: field.minX, y: field.maxY, width: 2, height: 2))
+            lastHUDOrigin = hud.origin
+            return
+        }
+        if let key = lastKeyPoint, Date().timeIntervalSince(lastKeyTime) < 60 {
+            hud.update(caret: NSRect(x: key.x, y: key.y + 18, width: 2, height: 2))
             lastHUDOrigin = hud.origin
             return
         }

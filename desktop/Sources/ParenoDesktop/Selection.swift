@@ -39,8 +39,24 @@ enum SelectionService {
         var rangeRef: CFTypeRef?
         guard AXUIElementCopyAttributeValue(element, kAXSelectedTextRangeAttribute as CFString, &rangeRef) == .success,
               let rangeRef else { return nil }
+        var selectedRange = CFRange(location: 0, length: 0)
+        AXValueGetValue(rangeRef as! AXValue, .cfRange, &selectedRange)
+        var queryRange = selectedRange
+        if queryRange.length == 0 {
+            var valueRef: CFTypeRef?
+            let length = (AXUIElementCopyAttributeValue(element, kAXValueAttribute as CFString, &valueRef) == .success)
+                ? ((valueRef as? String)?.utf16.count ?? 0) : 0
+            if queryRange.location < length {
+                queryRange.length = 1
+            } else if queryRange.location > 0 {
+                queryRange.location -= 1
+                queryRange.length = 1
+            }
+        }
+        var range = queryRange
+        guard let expandedRef = AXValueCreate(.cfRange, &range) else { return nil }
         var boundsRef: CFTypeRef?
-        guard AXUIElementCopyParameterizedAttributeValue(element, kAXBoundsForRangeParameterizedAttribute as CFString, rangeRef, &boundsRef) == .success,
+        guard AXUIElementCopyParameterizedAttributeValue(element, kAXBoundsForRangeParameterizedAttribute as CFString, expandedRef, &boundsRef) == .success,
               let boundsRef else { return nil }
         var rect = CGRect.zero
         guard AXValueGetValue(boundsRef as! AXValue, .cgRect, &rect), rect.width >= 0, rect.height > 0 else { return nil }
