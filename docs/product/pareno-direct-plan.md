@@ -138,6 +138,16 @@
 
 D0 完成，DMG 已可双击安装。
 
+## D1 状态（2026-11-15）
+
+- Sparkle 2.10.1 已接入
+- EdDSA 公钥写入 Info.plist
+- `Updater.swift` + 菜单「检查更新…」
+- 0.9.1（build 2）已签名、公证、staple
+- `dist/appcast.xml` 已生成并带 `sparkle:edSignature`
+- 更新托管地址暂定 `https://pareno.app/releases/`
+- 自动检查暂关（`SUEnableAutomaticChecks=false`），先保留手动检查，等 feed 上线再开
+
 ## 9. 现在要做的事
 
 1. 选支付平台：Paddle 还是 Lemon Squeezy

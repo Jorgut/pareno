@@ -133,6 +133,7 @@ enum L10n {
 
             "menu.check": "检查选区  ⌥⌘G",
             "menu.settings": "设置…",
+            "menu.checkUpdates": "检查更新…",
             "menu.translate": "翻译当前段落",
             "menu.explain": "解释当前段落",
             "menu.hideHUD": "隐藏 Pareno HUD",
@@ -236,6 +237,7 @@ enum L10n {
 
             "menu.check": "Check selection  ⌥⌘G",
             "menu.settings": "Settings…",
+            "menu.checkUpdates": "Check for Updates…",
             "menu.translate": "Translate current paragraph",
             "menu.explain": "Explain current paragraph",
             "menu.hideHUD": "Hide Pareno HUD",
@@ -339,6 +341,7 @@ enum L10n {
 
             "menu.check": "Проверить выделенное  ⌥⌘G",
             "menu.settings": "Настройки…",
+            "menu.checkUpdates": "Проверить обновления…",
             "menu.translate": "Перевести абзац",
             "menu.explain": "Объяснить абзац",
             "menu.hideHUD": "Скрыть Pareno HUD",

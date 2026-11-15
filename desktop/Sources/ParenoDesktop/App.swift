@@ -33,6 +33,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var currentLanguage = L10n.current
     private var agentStatuses: [AgentStatus] = []
     private var cloudModels: [String] = []
+    private var updater: Updater?
     private var activityMonitors: [Any] = []
     private var lastHUDOrigin: NSPoint?
     private var fixedOrigin: NSPoint? {
@@ -83,6 +84,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.rebuildMenu()
             self?.updateHUD()
         }
+        updater = Updater()
         hud = CursorHUD()
         hud.onCheck = { [weak self] in self?.toggleTask(.check) }
         hud.onTranslate = { [weak self] in self?.toggleTask(.translate) }
@@ -145,6 +147,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let check = NSMenuItem(title: L10n.t("menu.check"), action: #selector(checkSelection), keyEquivalent: "")
         check.target = self
         menu.addItem(check)
+        let updatesItem = NSMenuItem(title: L10n.t("menu.checkUpdates"), action: #selector(checkForUpdates), keyEquivalent: "")
+        updatesItem.target = self
+        menu.addItem(updatesItem)
+        menu.addItem(.separator())
+
         let settingsItem = NSMenuItem(title: L10n.t("menu.settings"), action: #selector(openSettings), keyEquivalent: ",")
         settingsItem.target = self
         menu.addItem(settingsItem)
@@ -291,6 +298,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         UserDefaults.standard.set(false, forKey: Prefs.visible)
         hud.hide()
         rebuildMenu()
+    }
+
+    @objc private func checkForUpdates() {
+        updater?.checkForUpdates()
     }
 
     @objc private func openSettings() {
