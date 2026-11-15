@@ -1,16 +1,56 @@
 # PARENO · 并言
 
-**在正文里写，在侧栏里判断。** PARENO 是 Archintera 的 Obsidian 双语写作助手。它把原 Archintera Writing Companion 的正文批注与全文审校，和 PARENO 的翻译、表达解释、作者风格、学习记录整合到一个插件中。
+**Obsidian 插件 + macOS 桌面写作检查器。**
 
-编辑建议始终由作者决定：看到原句、修改理由和可编辑的建议稿之后，才确认替换。写作过程不需要离开 Obsidian。
+PARENO 把检查、翻译、解释放进你正在写的地方：Obsidian 里是侧栏，macOS 上是贴着光标的一条 HUD。每条建议先给出原句、理由和可编辑的修改稿，是否采纳始终由你决定。
 
-> 当前为 GitHub 源码版 `0.8.0`，尚未上架 Obsidian Community Plugins。界面仍在迭代。
+- **官网**：https://pareno.altn.vision
+- **Pareno Desktop**：https://pareno.altn.vision/desktop/
+- **Obsidian 安装**：https://pareno.altn.vision/install/
+- **反馈**：https://github.com/Jorgut/pareno/issues
 
-## 界面方向
+<p align="center">
+  <a href="https://pareno.altn.vision/desktop/"><img src="assets/pareno-desktop-0.9.3.webp" width="58%" alt="Pareno Desktop：光标旁的检查 HUD"></a>
+  <a href="https://pareno.altn.vision/install/"><img src="assets/pareno-obsidian-panel.webp" width="31%" alt="Pareno for Obsidian：侧栏检查与修改"></a>
+</p>
 
-![PARENO 合并交互原型：正文标注、可编辑建议卡与统一侧栏](assets/pareno-interaction-prototype-2026-11-02.png)
+## 两个版本
 
-*这是 2026-11-02 的交互原型截图，用于展示目标布局与操作方式；它不是插件实机截图。截图中的宠物属于桌面环境，不是 PARENO 功能。实际插件界面以安装后的版本为准。*
+| | Pareno Desktop | Pareno for Obsidian |
+| --- | --- | --- |
+| 位置 | 任意 App 的光标旁 | Obsidian 正文与侧栏 |
+| 入口 | 菜单栏 HUD、⌥⌘G | 侧栏、命令面板 |
+| 适合 | 邮件、文档、聊天、网页输入 | 长文、双语笔记、全文审校 |
+| 版本 | 0.9.3 | 0.8.0 |
+| 系统 | macOS 13+，Universal | Obsidian 桌面版 1.5.0+ |
+| 获取 | [下载 DMG](https://github.com/Jorgut/pareno/releases/download/desktop-0.9.3/ParenoDesktop-0.9.3.dmg) | [安装说明](https://pareno.altn.vision/install/) |
+
+### Pareno Desktop
+
+- 在 TextEdit、Chrome、Slack、邮件等任意可输入文字的地方出现
+- 检查 / 翻译 / 解释，结果卡贴着 HUD 展开
+- 中文 / English / Русский
+- 默认连接本机 Ollama，可离线；也支持云端模型
+- 已 Developer ID 签名、Apple 公证
+
+首次打开需要在 **系统设置 → 隐私与安全性 → 辅助功能** 手动点 `+` 添加 Pareno Desktop，并用 Touch ID 确认。还没有上架 Mac App Store，直接下载 DMG 安装。
+
+### Pareno for Obsidian
+
+- 正文批注、全文审校、翻译、中英核对、作者风格、写作对话
+- 每条建议都可编辑；替换可以用 Obsidian 撤销恢复
+- 本地 Ollama、云端 Ollama、本机 Agent CLI（Codex / Claude Code / Cursor Agent / OpenCode）、兼容 API
+- 通过 BRAT 或手动复制插件文件安装
+
+## 仓库结构
+
+```text
+src/                 Obsidian 插件（TypeScript）
+desktop/             Pareno Desktop（Swift / SwiftUI + AppKit）
+website/             官网（Astro + Cloudflare Pages）
+skills/              写作 skill
+main.js / manifest.json / styles.css   Obsidian 发布文件
+```
 
 ## 写作 skill 与插件
 
@@ -94,7 +134,7 @@ Pangram AI 文本检测仍保留为**手动、可选的独立工具**。只有�
 
 ## 官网
 
-官网：https://parenowriter.pages.dev
+官网：https://pareno.altn.vision
 
 源码在 `website/`（Astro 静态站 + Cloudflare Pages Function 反馈接口），与插件共用反馈收件库。本地构建与部署步骤见 [docs/DEPLOY-CLOUDFLARE.md](docs/DEPLOY-CLOUDFLARE.md)。
 
@@ -111,6 +151,21 @@ npm run build
 
 构建产物是仓库根目录的 `main.js`。如要进行界面测试，请在演示库/演示笔记上先验证，不要直接把未审查的建议用于已发表文章。
 
+## Desktop 开发
+
+```bash
+cd desktop
+swift build
+swift run ParenoDesktop --selftest
+
+# 打包、签名、公证产物见 docs/product/pareno-direct-plan.md
+./scripts/build-app.sh
+./scripts/build-dmg.sh
+```
+
+Desktop 的签名、公证、DMG、Sparkle 更新和 Paddle 接入计划见 [docs/product/pareno-direct-plan.md](docs/product/pareno-direct-plan.md)；当前发布记录见 [Releases](https://github.com/Jorgut/pareno/releases)。
+
 ## License
 
-MIT，见 [LICENSE](LICENSE)。
+- **Obsidian 插件、website、写作 skill**：MIT，见 [LICENSE](LICENSE)。
+- **Pareno Desktop**：专有软件，源码仅用于开发、审计与构建官方版本；未经许可不得再分发或用于商业产品。见 [desktop/LICENSE](desktop/LICENSE)。
