@@ -24,6 +24,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }()
     private var cachedContext: (text: String, element: AXUIElement, caret: NSRect, time: Date)?
     private var lastTextActivity = Date.distantPast
+    private var lastClickPoint: NSPoint?
+    private var lastClickTime = Date.distantPast
     private var activityMonitors: [Any] = []
     private var lastHUDOrigin: NSPoint?
     private var fixedOrigin: NSPoint? {
@@ -292,6 +294,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if let monitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown, handler: { _ in mark() }) {
             activityMonitors.append(monitor)
         }
+        if let monitor = NSEvent.addGlobalMonitorForEvents(matching: .leftMouseDown, handler: { [weak self] _ in
+            self?.lastClickPoint = NSEvent.mouseLocation
+            self?.lastClickTime = Date()
+            mark()
+        }) {
+            activityMonitors.append(monitor)
+        }
     }
 
     private func startHUDTimer() {
@@ -350,6 +359,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         if let field {
             hud.update(caret: NSRect(x: field.minX, y: field.maxY, width: 2, height: 2))
+            lastHUDOrigin = hud.origin
+            return
+        }
+        if let click = lastClickPoint, Date().timeIntervalSince(lastClickTime) < 300 {
+            hud.update(caret: NSRect(x: click.x, y: click.y + 18, width: 2, height: 2))
             lastHUDOrigin = hud.origin
             return
         }

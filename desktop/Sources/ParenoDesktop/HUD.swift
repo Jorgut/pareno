@@ -89,6 +89,15 @@ final class CursorHUD: NSObject {
         addIconButton(symbol: "xmark", tooltip: "隐藏 HUD", action: #selector(closeTapped))
 
         NotificationCenter.default.addObserver(self, selector: #selector(windowMoved), name: NSWindow.didMoveNotification, object: panel)
+        resizeToFit()
+    }
+
+    private func resizeToFit() {
+        panel.layoutIfNeeded()
+        stack.layoutSubtreeIfNeeded()
+        let width = max(260, stack.fittingSize.width + 24)
+        panel.setContentSize(NSSize(width: width, height: 38))
+        effect.frame = NSRect(x: 0, y: 0, width: width, height: 38)
     }
 
     private func addButton(title: String, symbol: String, action: Selector) {
