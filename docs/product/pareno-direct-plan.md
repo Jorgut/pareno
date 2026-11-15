@@ -158,3 +158,14 @@ D0 完成，DMG 已可双击安装。
 4. 设计 License 激活/试用流程
 5. 做首次启动引导
 6. 准备官网和 5 人内测
+
+
+## D1 完成（2026-11-15 最终）
+
+- 版本 0.9.3（build 4），Universal
+- 公证：Accepted，Staple 通过
+- DMG：GitHub Release `desktop-0.9.3`
+- Appcast：`https://parenowriter.pages.dev/appcast.xml`（200）
+- 下载前缀：`https://github.com/Jorgut/pareno/releases/download/desktop-0.9.3/`
+- 官网继续使用 `https://parenowriter.pages.dev`
+- 自动检查仍关闭，手动「检查更新…」已可读取线上 feed

@@ -4,8 +4,8 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 swift build -c release --arch arm64 --arch x86_64
 APP="$ROOT/Pareno Desktop.app"
-VERSION="${PARENO_VERSION:-0.9.2}"
-BUILD="${PARENO_BUILD:-3}"
+VERSION="${PARENO_VERSION:-0.9.3}"
+BUILD="${PARENO_BUILD:-4}"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$ROOT/.build/release/ParenoDesktop" "$APP/Contents/MacOS/ParenoDesktop"
@@ -31,7 +31,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>LSUIElement</key><true/>
   <key>NSHighResolutionCapable</key><true/>
   <key>NSHumanReadableCopyright</key><string>Pareno Desktop · local-first writing checker</string>
-  <key>SUFeedURL</key><string>https://pareno.app/appcast.xml</string>
+  <key>SUFeedURL</key><string>https://parenowriter.pages.dev/appcast.xml</string>
   <key>SUPublicEDKey</key><string>YjJO3zj/0rCiNM8Ot6BxUlhpjdumsyjTZ3S9NMZ1GXI=</string>
   <key>SUEnableAutomaticChecks</key><false/>
   <key>SUScheduledCheckInterval</key><integer>86400</integer>
