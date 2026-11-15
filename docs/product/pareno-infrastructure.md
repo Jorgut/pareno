@@ -9,12 +9,19 @@
 | DNS / NS | WordPress.com | 域名 nameserver 仍在 WordPress.com |
 | 根域 `altn.vision` | WordPress.com 站点 | 个人/品牌主站 |
 | `www.altn.vision` | Vercel | 之前的个人网站部署 |
-| `pareno.altn.vision` | Cloudflare Pages | Pareno 产品页（已生效） |
-| `parenowriter.pages.dev` | Cloudflare Pages | 当前产品页与 appcast |
+| `pareno.altn.vision` | Cloudflare Pages 项目 `pareno` | 自定义域名（已生效） |
+| `parenowriter.pages.dev` | Cloudflare Pages 项目 `pareno` | 主站与 appcast |
 | 邮箱 MX | `smtp-fwd.wordpress.com` | 转发到 `archintera@outlook.com` |
 | SPF | `include:spf.titan.email` | Titan 发信授权 |
 | 支付 | Paddle（待接） | Merchant of Record |
 | 桌面更新 | GitHub Releases + Pages appcast | Sparkle |
+
+## Pages 项目合并状态
+
+- 主项目：`pareno`，拥有 `parenowriter.pages.dev` 和 `pareno.altn.vision`
+- 已部署最新代码：`/` Obsidian、`/desktop` Desktop、appcast
+- 待删除：旧项目 `parenowriter`（默认域 `parenowriter-ajc.pages.dev`）
+- 删除前必须确认 `pareno` 的首页、Desktop、appcast 都正常
 
 ## 原则
 
