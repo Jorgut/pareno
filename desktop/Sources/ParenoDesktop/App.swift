@@ -31,6 +31,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var lastCaretRect: NSRect?
     private var lastDebugLog = Date.distantPast
     private var currentLanguage = L10n.current
+    private var agentStatuses: [AgentStatus] = []
     private var activityMonitors: [Any] = []
     private var lastHUDOrigin: NSPoint?
     private var fixedOrigin: NSPoint? {
@@ -103,6 +104,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         rebuildMenu()
         installHotkey()
+        Task.detached {
+            let statuses = AgentDetector.scan()
+            await MainActor.run {
+                self.agentStatuses = statuses
+                self.rebuildMenu()
+            }
+        }
         log("launched trusted=\(SelectionService.isTrusted)")
         if !SelectionService.isTrusted && !demoMode {
             SelectionService.requestTrust()
@@ -164,6 +172,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let resetHUD = NSMenuItem(title: L10n.t("menu.reset"), action: #selector(resetHUD), keyEquivalent: "")
         resetHUD.target = self
         menu.addItem(resetHUD)
+
+        let aiItem = NSMenuItem(title: L10n.t("menu.ai"), action: nil, keyEquivalent: "")
+        let aiSubmenu = NSMenu()
+        let selectedProvider = AIProvider(rawValue: UserDefaults.standard.string(forKey: Prefs.provider) ?? "auto") ?? .auto
+        for provider in [AIProvider.auto, .claude, .codex, .cursor, .opencode, .ollama] {
+            var title = provider.label
+            var enabled = true
+            if let kind = provider.agent {
+                let status = agentStatuses.first { $0.kind == kind }
+                if let status {
+                    title += status.ready ? " · \(status.version.isEmpty ? "✓" : status.version)" : " · \(L10n.t("agents.missing"))"
+                    enabled = status.ready
+                } else {
+                    title += " · \(L10n.t("agents.missing"))"
+                    enabled = false
+                }
+            }
+            let item = NSMenuItem(title: title, action: #selector(selectProvider(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = provider.rawValue
+            item.state = selectedProvider == provider ? .on : .off
+            item.isEnabled = enabled
+            aiSubmenu.addItem(item)
+        }
+        aiItem.submenu = aiSubmenu
+        menu.addItem(aiItem)
 
         let modelItem = NSMenuItem(title: L10n.t("menu.model"), action: nil, keyEquivalent: "")
         let submenu = NSMenu()
@@ -460,6 +494,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         hud.setActiveMode(nil)
         panel.showMessage(L10n.t("error.noText"))
+    }
+
+    @objc private func selectProvider(_ sender: NSMenuItem) {
+        guard let raw = sender.representedObject as? String else { return }
+        UserDefaults.standard.set(raw, forKey: Prefs.provider)
+        rebuildMenu()
     }
 
     @objc private func selectModel(_ sender: NSMenuItem) {

@@ -9,6 +9,10 @@ enum PanelState {
     case error
 }
 
+enum TailEdge {
+    case none, top, bottom, left, right
+}
+
 enum CheckMode: String, CaseIterable {
     case check
     case translate
@@ -27,6 +31,7 @@ final class PanelModel: ObservableObject {
     @Published var modelName = ""
     @Published var mode: CheckMode = .check
     @Published var variant: Variant = .natural
+    @Published var tailEdge: TailEdge = .none
 
     enum Variant: String, CaseIterable {
         case natural
@@ -89,27 +94,51 @@ final class PanelModel: ObservableObject {
         let requestedMode = mode
         Task {
             do {
-                let client = OllamaClient()
-                let models = try await client.models()
-                let selected = models.contains(self.modelName) ? self.modelName : (models.first ?? "")
-                guard !selected.isEmpty else { throw CheckError.noModel }
-                self.modelName = selected
-                let checked: CheckResult
-                switch requestedMode {
-                case .translate:
-                    checked = try await Checker.translate(text: self.sourceText, model: selected, client: client)
-                case .explain:
-                    checked = try await Checker.explain(text: self.sourceText, model: selected, client: client)
-                case .check:
-                    checked = try await Checker.check(text: self.sourceText, model: selected, client: client)
-                }
-                self.result = checked
+                let provider = AIProvider(rawValue: UserDefaults.standard.string(forKey: Prefs.provider) ?? "auto") ?? .auto
+                let outcome = try await AIService.run(
+                    mode: requestedMode,
+                    text: self.sourceText,
+                    provider: provider,
+                    model: self.modelName
+                )
+                self.result = outcome.result
+                self.modelName = outcome.source
                 self.state = .result
             } catch {
                 self.error = error.localizedDescription
                 self.state = .error
             }
         }
+    }
+}
+
+struct TailShape: Shape {
+    let edge: TailEdge
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        switch edge {
+        case .bottom:
+            path.move(to: CGPoint(x: rect.minX, y: rect.minY))
+            path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
+            path.addLine(to: CGPoint(x: rect.midX, y: rect.maxY))
+        case .top:
+            path.move(to: CGPoint(x: rect.minX, y: rect.maxY))
+            path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
+            path.addLine(to: CGPoint(x: rect.midX, y: rect.minY))
+        case .left:
+            path.move(to: CGPoint(x: rect.maxX, y: rect.minY))
+            path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
+            path.addLine(to: CGPoint(x: rect.minX, y: rect.midY))
+        case .right:
+            path.move(to: CGPoint(x: rect.minX, y: rect.minY))
+            path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
+            path.addLine(to: CGPoint(x: rect.maxX, y: rect.midY))
+        case .none:
+            break
+        }
+        path.closeSubpath()
+        return path
     }
 }
 
@@ -131,6 +160,17 @@ struct ResultView: View {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .strokeBorder(Color.white.opacity(0.10), lineWidth: 1)
         )
+        .overlay(alignment: tailAlignment) {
+            if model.tailEdge != .none {
+                TailShape(edge: model.tailEdge)
+                    .fill(.regularMaterial)
+                    .frame(width: 14, height: 7)
+                    .overlay(
+                        TailShape(edge: model.tailEdge)
+                            .stroke(Color.white.opacity(0.10), lineWidth: 1)
+                    )
+            }
+        }
     }
 
     private var header: some View {
@@ -166,6 +206,16 @@ struct ResultView: View {
             }
             .buttonStyle(.plain)
             .foregroundStyle(.secondary)
+        }
+    }
+
+    private var tailAlignment: Alignment {
+        switch model.tailEdge {
+        case .top: return .top
+        case .bottom: return .bottom
+        case .left: return .leading
+        case .right: return .trailing
+        case .none: return .center
         }
     }
 
@@ -464,6 +514,7 @@ final class ResultPanelController: NSObject, NSWindowDelegate {
         model.result = nil
         model.error = ""
         model.state = .loading
+        model.tailEdge = .none
         place(caret: caret)
         if attachedToHUD, let hudFrame { placeAboveHUD(hudFrame) }
         panel.orderFrontRegardless()
@@ -508,17 +559,21 @@ final class ResultPanelController: NSObject, NSWindowDelegate {
         if availableAbove >= 220 {
             height = min(height, availableAbove)
             y = hudFrame.maxY + 8
+            model.tailEdge = .bottom
         } else {
             let availableBelow = (hudFrame.minY - 8) - (visible.minY + 8)
             if availableBelow >= 220 {
                 height = min(height, availableBelow)
                 y = hudFrame.minY - height - 8
+                model.tailEdge = .top
             } else {
                 y = visible.midY - height / 2
                 if hudFrame.maxX + 8 + width <= visible.maxX {
                     x = hudFrame.maxX + 8
+                    model.tailEdge = .left
                 } else {
                     x = hudFrame.minX - width - 8
+                    model.tailEdge = .right
                 }
             }
         }

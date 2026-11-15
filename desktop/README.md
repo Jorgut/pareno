@@ -76,6 +76,15 @@ Useful for testing the engine without the UI:
 ./.build/debug/ParenoDesktop --check "I have a big wrong for expression in English."
 ```
 
+## AI sources
+
+Pareno Desktop can use a local agent CLI you already signed in to, or Ollama.
+
+- **Auto** tries Codex CLI, Claude Code, Cursor Agent and OpenCode in order, then falls back to Ollama.
+- Pick a specific source in **Settings… → AI source** or the menu bar → **AI source**.
+- Agent CLIs must be installed and logged in; if a call fails, the card shows the provider error.
+- Offline, use Ollama. Smaller local models such as `qwen2.5:7b` are much faster than `gpt-oss:20b`.
+
 ## Model choice
 
 `gpt-oss:20b` can take 60–100 seconds per check on a laptop. `qwen2.5:7b`, `gemma3:4b` or similar smaller models are much faster and usually enough for grammar and expression checks. Pick the model in the menu bar → 模型.

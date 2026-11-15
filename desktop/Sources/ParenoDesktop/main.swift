@@ -70,6 +70,12 @@ func runSelfTest() {
 
 let arguments = Array(CommandLine.arguments.dropFirst())
 if arguments.contains("--selftest") { runSelfTest() }
+if arguments.contains("--agents") {
+    for status in AgentDetector.scan() {
+        print("\(status.kind.label)\t\(status.ready ? "ready" : "missing")\t\(status.version)\t\(status.path)")
+    }
+    exit(0)
+}
 if let index = arguments.firstIndex(of: "--check") {
     let text = arguments.dropFirst(index + 1).joined(separator: " ")
     CLIRunner.check(text: text, model: nil)

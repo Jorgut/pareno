@@ -14,6 +14,7 @@ enum Prefs {
     static let language = "ParenoLanguage"
     static let cardWidth = "ParenoCardWidth"
     static let cardHeight = "ParenoCardHeight"
+    static let provider = "ParenoProvider"
     static let origin = "ParenoDesktopHUDOrigin"
     static let legacyVisible = "ParenoDesktopFollowCaret"
 }
@@ -32,6 +33,7 @@ struct SettingsView: View {
     @AppStorage(Prefs.model) private var model = ""
     @AppStorage(Prefs.appearance) private var appearance = "system"
     @AppStorage(Prefs.cardAttached) private var cardAttached = true
+    @AppStorage(Prefs.provider) private var provider = "auto"
     @AppStorage(Prefs.language) private var language = "en"
 
     var body: some View {
@@ -88,6 +90,17 @@ struct SettingsView: View {
                 }
             }
 
+            Section(L10n.t("settings.ai.section")) {
+                Picker(L10n.t("settings.ai.source"), selection: $provider) {
+                    ForEach(AIProvider.allCases, id: \.rawValue) { item in
+                        Text(item.label).tag(item.rawValue)
+                    }
+                }
+                Text(L10n.t("settings.ai.hint"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             Section(L10n.t("settings.model.section")) {
                 LabeledContent(L10n.t("settings.model.current")) {
                     Text(model.isEmpty ? L10n.t("settings.model.none") : model)
@@ -110,6 +123,7 @@ struct SettingsView: View {
         .onChange(of: appearance) { _ in notifyChange() }
         .onChange(of: cardAttached) { _ in notifyChange() }
         .onChange(of: language) { _ in notifyChange() }
+        .onChange(of: provider) { _ in notifyChange() }
         .onDisappear { notifyChange() }
     }
 }
