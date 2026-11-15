@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Pareno HUD · 吸附位置方案</title>
+<style>
+  :root{
+    --bg:#10100f; --bg2:#161513; --scene:#1b1a17;
+    --panel:#23211d; --panel2:#2a2823;
+    --text:#f3efe5; --muted:#a6a096; --faint:#756f65;
+    --gold:#d8bc78; --gold-2:#efd9a6; --gold-ink:#2a2317;
+    --sage:#a3bcae; --rose:#dca7a2;
+    --line:rgba(255,255,255,.085); --line-2:rgba(255,255,255,.14);
+    --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","Helvetica Neue",sans-serif;
+    --serif:Georgia,"Songti SC","Times New Roman",serif;
+    --mono:ui-monospace,"SF Mono",Menlo,monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);-webkit-font-smoothing:antialiased;}
+  .board{width:1720px;margin:0 auto;padding:54px 60px 80px;}
+  .kicker{font:11px/1 var(--mono);letter-spacing:.18em;color:var(--faint);text-transform:uppercase;}
+  h1{font:500 40px/1.15 var(--serif);margin:12px 0 10px;letter-spacing:.01em;}
+  .lede{font-size:14px;line-height:1.8;color:var(--muted);max-width:1080px;margin:0;}
+  .meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;}
+  .pill{font-size:11px;padding:6px 11px;border:1px solid var(--line-2);border-radius:999px;color:var(--muted);background:rgba(255,255,255,.03);}
+  .pill.gold{color:var(--gold-2);border-color:rgba(216,188,120,.5);background:rgba(216,188,120,.08);}
+  .section{margin-top:52px;}
+  .sec-head{display:flex;align-items:baseline;gap:12px;border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:22px;}
+  .sec-head h2{font:500 20px/1.3 var(--serif);margin:0;}
+  .sec-head span{font-size:12px;color:var(--faint);}
+
+  .problem{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:26px;}
+  .pbox{border:1px solid var(--line);border-radius:14px;padding:18px 20px;background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.015));}
+  .pbox h3{margin:0 0 8px;font:500 15px/1.4 var(--serif);}
+  .pbox p{margin:0;color:var(--muted);font-size:12.5px;line-height:1.75;}
+  .pbox.bad{border-color:rgba(220,167,162,.3);}
+  .pbox.good{border-color:rgba(163,188,174,.3);}
+
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
+  .opt{border:1px solid var(--line);border-radius:16px;background:linear-gradient(180deg,#1a1916,#151412);overflow:hidden;}
+  .opt.bad{border-color:rgba(220,167,162,.28);}
+  .opt.good{border-color:rgba(216,188,120,.35);}
+  .opt-head{display:flex;align-items:center;gap:10px;padding:14px 16px 10px;}
+  .letter{width:24px;height:24px;border-radius:7px;display:grid;place-items:center;font:600 12px/1 var(--mono);background:rgba(255,255,255,.06);color:var(--muted);border:1px solid var(--line-2);}
+  .opt.good .letter{background:rgba(216,188,120,.14);color:var(--gold-2);border-color:rgba(216,188,120,.4);}
+  .opt-head h3{margin:0;font:500 14.5px/1.3 var(--serif);flex:1;}
+  .tag{font:10px/1 var(--mono);padding:4px 7px;border-radius:999px;color:var(--faint);border:1px solid var(--line-2);}
+  .tag.bad{color:var(--rose);border-color:rgba(220,167,162,.35);}
+  .tag.good{color:var(--gold-2);border-color:rgba(216,188,120,.4);}
+  .mini{position:relative;height:300px;margin:0 14px;border-radius:11px;overflow:hidden;background:#0f0f0e;border:1px solid var(--line);}
+  .app{position:absolute;left:12px;top:12px;width:426px;height:276px;border-radius:9px;overflow:hidden;background:#1d1c19;border:1px solid rgba(255,255,255,.10);}
+  .app.light{background:#fbf8f1;color:#2c2922;border-color:rgba(0,0,0,.12);}
+  .tb{height:26px;display:flex;align-items:center;gap:5px;padding:0 9px;border-bottom:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.02);}
+  .app.light .tb{border-color:rgba(0,0,0,.07);background:rgba(0,0,0,.02);}
+  .dot{width:6px;height:6px;border-radius:50%;}
+  .dot.r{background:#e5897f}.dot.y{background:#dfc07a}.dot.g{background:#93b98c}
+  .tb span{font-size:8px;color:#8b857a;margin-left:4px;}
+  .ribbon{height:18px;border-bottom:1px solid rgba(255,255,255,.05);background:rgba(255,255,255,.015);}
+  .app.light .ribbon{border-color:rgba(0,0,0,.06);background:rgba(0,0,0,.015);}
+  .line{position:absolute;left:24px;top:58px;font-size:10.5px;color:#cfc8bb;white-space:nowrap;}
+  .app.light .line{color:#3b372f;}
+  .caret{display:inline-block;width:1.5px;height:13px;background:var(--gold);vertical-align:-2px;margin-left:1px;}
+  .ime{position:absolute;left:150px;top:78px;width:150px;height:26px;border-radius:6px;background:#f7f5ef;color:#2a2720;font-size:9px;display:flex;align-items:center;gap:8px;padding:0 8px;box-shadow:0 6px 18px rgba(0,0,0,.35);}
+  .ime b{font-weight:500;color:#7a746a;font-size:8px;}
+  .ime .sel{background:#3b6fe0;color:#fff;border-radius:4px;padding:2px 5px;}
+  .hud{position:absolute;height:28px;padding:0 4px;display:flex;align-items:center;gap:2px;border-radius:14px;background:linear-gradient(180deg,rgba(48,45,40,.96),rgba(32,30,27,.97));border:1px solid rgba(255,255,255,.16);box-shadow:0 10px 24px rgba(0,0,0,.5);font-size:8.5px;color:#d8d1c4;}
+  .hud .g{width:8px;color:#7c766c;font-size:7px;text-align:center;}
+  .hud .b{padding:3px 7px;border-radius:9px;white-space:nowrap;}
+  .hud .b.on{background:rgba(216,188,120,.22);color:var(--gold-2);}
+  .hud .s{width:1px;height:11px;background:rgba(255,255,255,.13);}
+  .hud .i{padding:0 4px;color:#b9b2a6;}
+  .card{position:absolute;width:186px;border-radius:9px;padding:8px 9px;background:linear-gradient(180deg,rgba(46,43,38,.99),rgba(32,30,27,.99));border:1px solid rgba(255,255,255,.13);box-shadow:0 16px 34px rgba(0,0,0,.55);font-size:8px;color:#cfc8bb;}
+  .card .ch{display:flex;align-items:center;gap:4px;margin-bottom:5px;}
+  .card .pm{width:12px;height:12px;border-radius:4px;background:linear-gradient(145deg,#e9d195,#c6a35e);color:#2b2416;display:grid;place-items:center;font:600 7px/1 var(--serif);}
+  .card .ct{font-size:8px;color:#efe9dd;}
+  .card .cb{height:22px;border-radius:4px;background:rgba(255,255,255,.05);margin:4px 0 5px;}
+  .card .cf{display:flex;gap:4px;}
+  .card .cf span{height:11px;border-radius:3px;background:rgba(216,188,120,.22);flex:1;}
+  .card .cf span.sec{background:rgba(255,255,255,.08);flex:.6;}
+  .hit{position:absolute;border:1.5px dashed rgba(220,167,162,.85);border-radius:6px;pointer-events:none;}
+  .hit::after{content:attr(data-label);position:absolute;left:0;top:-15px;font:8px/1 var(--mono);color:#e6aaa4;white-space:nowrap;}
+  .ok{position:absolute;border:1px dashed rgba(163,188,174,.65);border-radius:6px;pointer-events:none;}
+  .ok::after{content:attr(data-label);position:absolute;left:0;top:-15px;font:8px/1 var(--mono);color:#a9c5b6;white-space:nowrap;}
+  .docked{position:absolute;left:0;right:0;bottom:0;height:30px;border-top:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.02);}
+  .foot{padding:10px 16px 15px;color:var(--muted);font-size:11.5px;line-height:1.6;min-height:58px;}
+  .foot b{color:#ded7c9;font-weight:500;}
+
+  table{width:100%;border-collapse:collapse;font-size:12.5px;}
+  th,td{text-align:left;padding:11px 10px;border-bottom:1px solid var(--line);vertical-align:top;}
+  th{font:10px/1 var(--mono);letter-spacing:.12em;color:var(--faint);text-transform:uppercase;}
+  td{color:var(--muted);}
+  td:first-child{color:var(--text);}
+  .yes{color:#a9c5b6}.no{color:#e0a49e}.mid{color:#d8bc78}
+  .rec{margin-top:22px;border:1px solid rgba(216,188,120,.35);border-radius:16px;padding:22px 24px;background:linear-gradient(180deg,rgba(216,188,120,.07),rgba(216,188,120,.02));}
+  .rec h3{margin:0 0 10px;font:500 19px/1.3 var(--serif);color:var(--gold-2);}
+  .rec p{margin:0 0 10px;color:#d6cfc1;font-size:13px;line-height:1.8;}
+  .rec ol{margin:0;padding-left:20px;color:#d6cfc1;font-size:13px;line-height:1.9;}
+  .rec code{font:11px var(--mono);background:rgba(255,255,255,.06);padding:2px 5px;border-radius:4px;color:#efe9dd;}
+  .legend{display:flex;gap:18px;margin-top:14px;font-size:11px;color:var(--faint);}
+  .legend i{display:inline-block;width:18px;border-top:1.5px dashed currentColor;vertical-align:3px;margin-right:6px;}
+</style>
+</head>
+<body>
+<div class="board">
+  <div class="kicker">Pareno Desktop · HUD placement study · 2026-11-15</div>
+  <h1>HUD 吸附位置：六种方案</h1>
+  <p class="lede">问题：HUD 固定在光标上方。当文档从窗口顶部开始时，上方被标题栏/工具栏挤压；如果翻到下方，又会撞上输入法候选窗。下面基于已定稿的三键 HUD，比较六种吸附策略，先确定默认行为再改代码。</p>
+  <div class="meta">
+    <span class="pill gold">默认推荐：C 智能避让</span>
+    <span class="pill">备选：D 输入框吸附</span>
+    <span class="pill">保留：F 固定位置</span>
+    <span class="pill">不采用：B 简单下方翻转</span>
+  </div>
+
+  <div class="problem">
+    <div class="pbox bad">
+      <h3>为什么现在会被挡</h3>
+      <p>新文档、Word 页面上沿、浏览器地址栏下方：光标离屏幕顶部只有几十像素，HUD 高 38px，加上间距放不下；强行放下会压住窗口工具栏或屏幕菜单栏。翻到光标下方，又会和输入法候选窗重叠。</p>
+    </div>
+    <div class="pbox good">
+      <h3>设计目标</h3>
+      <p>优先级：不遮输入法 &gt; 靠近光标 &gt; 不超出屏幕 &gt; 不遮工具栏。顶部不够时不再硬翻转，而是换到光标侧边；网页输入框读不到光标时吸附输入框；所有位置都可被用户固定。</p>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="sec-head"><h2>六种吸附策略</h2><span>灰色=App 窗口；白色=输入法候选；金色=HUD；深色卡=结果卡</span></div>
+    <div class="grid">
+
+      <article class="opt bad">
+        <div class="opt-head"><span class="letter">A</span><h3>光标上方（现状）</h3><span class="tag bad">会被挤压</span></div>
+        <div class="mini">
+          <div class="app light">
+            <div class="tb"><i class="dot r"></i><i class="dot y"></i><i class="dot g"></i><span>提案.docx</span></div>
+            <div class="ribbon"></div>
+            <div class="line">The facade is <span class="caret"></span>very beautiful.</div>
+            <div class="ime"><span class="sel">1 beautiful</span><b>2 beautifully</b><b>3 beauty</b></div>
+            <div class="hud" style="left:150px;top:40px;"><span class="g">⠿</span><span class="b on">检查</span><span class="s"></span><span class="b">翻译</span><span class="s"></span><span class="b">解释</span><span class="s"></span><span class="i">⚙</span><span class="i">×</span></div>
+            <div class="hit" data-label="压住工具栏 / 顶部空间不足" style="left:146px;top:36px;width:214px;height:36px;"></div>
+          </div>
+        </div>
+        <div class="foot"><b>优点</b>：最贴近光标、符合直觉。<br><b>缺点</b>：文档顶部无解；HUD 会盖住标题栏或菜单栏。</div>
+      </article>
+
+      <article class="opt bad">
+        <div class="opt-head"><span class="letter">B</span><h3>上方不够 → 翻到下方</h3><span class="tag bad">撞输入法</span></div>
+        <div class="mini">
+          <div class="app light">
+            <div class="tb"><i class="dot r"></i><i class="dot y"></i><i class="dot g"></i><span>提案.docx</span></div>
+            <div class="ribbon"></div>
+            <div class="line">The facade is <span class="caret"></span>very beautiful.</div>
+            <div class="ime"><span class="sel">1 beautiful</span><b>2 beautifully</b><b>3 beauty</b></div>
+            <div class="hud" style="left:150px;top:106px;"><span class="g">⠿</span><span class="b on">检查</span><span class="s"></span><span class="b">翻译</span><span class="s"></span><span class="b">解释</span><span class="s"></span><span class="i">⚙</span><span class="i">×</span></div>
+            <div class="hit" data-label="与候选窗重叠" style="left:146px;top:76px;width:216px;height:62px;"></div>
+          </div>
+        </div>
+        <div class="foot"><b>优点</b>：顶部空间不足时有地方放。<br><b>缺点</b>：输入法候选窗也在下方，必然冲突；候选窗更高时更严重。</div>
+      </article>
+
+      <article class="opt good">
+        <div class="opt-head"><span class="letter">C</span><h3>智能避让：上方 → 侧边</h3><span class="tag good">推荐默认</span></div>
+        <div class="mini">
+          <div class="app light">
+            <div class="tb"><i class="dot r"></i><i class="dot y"></i><i class="dot g"></i><span>提案.docx</span></div>
+            <div class="ribbon"></div>
+            <div class="line">The facade is <span class="caret"></span>very beautiful.</div>
+            <div class="ime"><span class="sel">1 beautiful</span><b>2 beautifully</b><b>3 beauty</b></div>
+            <div class="hud" style="left:236px;top:58px;"><span class="g">⠿</span><span class="b on">检查</span><span class="s"></span><span class="b">翻译</span><span class="s"></span><span class="b">解释</span><span class="s"></span><span class="i">⚙</span><span class="i">×</span></div>
+            <div class="card" style="left:236px;top:92px;">
+              <div class="ch"><span class="pm">P</span><span class="ct">Pareno Desktop</span></div>
+              <div class="cb"></div>
+              <div class="cf"><span></span><span class="sec"></span></div>
+            </div>
+            <div class="ok" data-label="侧边，避开候选窗" style="left:232px;top:54px;width:196px;height:100px;"></div>
+          </div>
+        </div>
+        <div class="foot"><b>规则</b>：上方放得下就上方；放不下放光标右侧；右侧不够换左侧；两侧都不够再吸附输入框。<br><b>优点</b>：不撞输入法，靠近光标，所有窗口顶部场景都成立。</div>
+      </article>
+
+      <article class="opt good">
+        <div class="opt-head"><span class="letter">D</span><h3>吸附输入框 / 编辑区上沿</h3><span class="tag">网页输入框</span></div>
+        <div class="mini">
+          <div class="app light">
+            <div class="tb"><i class="dot r"></i><i class="dot y"></i><i class="dot g"></i><span>浏览器 · 在线编辑器</span></div>
+            <div class="ribbon"></div>
+            <div class="line" style="top:88px;">The facade is very beautiful.<span class="caret"></span></div>
+            <div class="ime" style="top:108px;"><span class="sel">1 beautiful</span><b>2 beautifully</b><b>3 beauty</b></div>
+            <div class="hud" style="left:20px;top:52px;"><span class="g">⠿</span><span class="b on">检查</span><span class="s"></span><span class="b">翻译</span><span class="s"></span><span class="b">解释</span><span class="s"></span><span class="i">⚙</span><span class="i">×</span></div>
+            <div class="card" style="left:20px;top:88px;">
+              <div class="ch"><span class="pm">P</span><span class="ct">Pareno Desktop</span></div>
+              <div class="cb"></div>
+              <div class="cf"><span></span><span class="sec"></span></div>
+            </div>
+            <div class="ok" data-label="贴住编辑区上沿" style="left:16px;top:48px;width:196px;height:134px;"></div>
+          </div>
+        </div>
+        <div class="foot"><b>规则</b>：读不到光标时，用 AXFrame 找编辑区/输入框，HUD 贴在它的上沿或左沿。<br><b>优点</b>：网页、Electron、DSH 这类输入框都适用；稳定可预期。</div>
+      </article>
+
+      <article class="opt">
+        <div class="opt-head"><span class="letter">E</span><h3>屏幕边缘停靠</h3><span class="tag">小屏 / 演示</span></div>
+        <div class="mini">
+          <div class="app light">
+            <div class="tb"><i class="dot r"></i><i class="dot y"></i><i class="dot g"></i><span>提案.docx</span></div>
+            <div class="ribbon"></div>
+            <div class="line" style="top:58px;">The facade is <span class="caret"></span>very beautiful.</div>
+            <div class="ime"><span class="sel">1 beautiful</span><b>2 beautifully</b><b>3 beauty</b></div>
+            <div class="docked"></div>
+            <div class="hud" style="left:118px;top:236px;"><span class="g">⠿</span><span class="b on">检查</span><span class="s"></span><span class="b">翻译</span><span class="s"></span><span class="b">解释</span><span class="s"></span><span class="i">⚙</span><span class="i">×</span></div>
+            <div class="card" style="left:118px;top:146px;">
+              <div class="ch"><span class="pm">P</span><span class="ct">Pareno Desktop</span></div>
+              <div class="cb"></div>
+              <div class="cf"><span></span><span class="sec"></span></div>
+            </div>
+            <div class="ok" data-label="底部停靠，远离输入区" style="left:114px;top:142px;width:196px;height:132px;"></div>
+          </div>
+        </div>
+        <div class="foot"><b>规则</b>：HUD 固定在屏幕顶部或底部居中，卡片从 HUD 展开。<br><b>优点</b>：永不遮挡输入区和候选窗；适合小屏。<br><b>缺点</b>：离光标远，鼠标移动距离长。</div>
+      </article>
+
+      <article class="opt">
+        <div class="opt-head"><span class="letter">F</span><h3>固定位置 / 自由拖动</h3><span class="tag">高级</span></div>
+        <div class="mini">
+          <div class="app light">
+            <div class="tb"><i class="dot r"></i><i class="dot y"></i><i class="dot g"></i><span>提案.docx</span></div>
+            <div class="ribbon"></div>
+            <div class="line" style="top:58px;">The facade is <span class="caret"></span>very beautiful.</div>
+            <div class="ime"><span class="sel">1 beautiful</span><b>2 beautifully</b><b>3 beauty</b></div>
+            <div class="hud" style="left:232px;top:168px;"><span class="g">⠿</span><span class="b on">检查</span><span class="s"></span><span class="b">翻译</span><span class="s"></span><span class="b">解释</span><span class="s"></span><span class="i">⚙</span><span class="i">×</span></div>
+            <div class="card" style="left:232px;top:78px;">
+              <div class="ch"><span class="pm">P</span><span class="ct">Pareno Desktop</span></div>
+              <div class="cb"></div>
+              <div class="cf"><span></span><span class="sec"></span></div>
+            </div>
+            <div class="ok" data-label="用户拖到任意位置并记住" style="left:228px;top:74px;width:196px;height:168px;"></div>
+          </div>
+        </div>
+        <div class="foot"><b>规则</b>：用户拖动后记住坐标；卡片可吸附 HUD 或独立拖动。<br><b>优点</b>：完全可控，适合多屏/特殊布局。<br><b>缺点</b>：需要用户先配置。</div>
+      </article>
+
+    </div>
+    <div class="legend"><span><i style="color:#e0a49e"></i>冲突/被遮挡</span><span><i style="color:#a9c5b6"></i>可用位置</span></div>
+  </div>
+
+  <div class="section">
+    <div class="sec-head"><h2>对比</h2><span>按“顶部空间不足”和“输入法候选窗”两个真实场景打分</span></div>
+    <table>
+      <thead><tr><th>方案</th><th>顶部空间不足</th><th>避让输入法</th><th>网页输入框</th><th>可预期性</th><th>建议</th></tr></thead>
+      <tbody>
+        <tr><td>A 光标上方</td><td class="no">差，会被挤压</td><td class="yes">无冲突</td><td class="mid">一般</td><td class="yes">高</td><td>保留为“始终上方”选项</td></tr>
+        <tr><td>B 翻到下方</td><td class="yes">好</td><td class="no">高冲突</td><td class="mid">一般</td><td class="yes">高</td><td class="no">不单独使用</td></tr>
+        <tr><td>C 上方 → 侧边</td><td class="yes">好</td><td class="yes">无冲突</td><td class="mid">一般</td><td class="mid">中</td><td class="yes">默认“智能避让”</td></tr>
+        <tr><td>D 吸附输入框</td><td class="yes">好</td><td class="yes">无冲突</td><td class="yes">好</td><td class="yes">高</td><td class="yes">网页/读不到光标时自动用</td></tr>
+        <tr><td>E 屏幕边缘</td><td class="yes">好</td><td class="yes">无冲突</td><td class="yes">好</td><td class="yes">高</td><td>作为可选停靠</td></tr>
+        <tr><td>F 固定位置</td><td class="yes">好</td><td class="yes">无冲突</td><td class="yes">好</td><td class="yes">高</td><td>保留，高级用户</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="rec">
+    <h3>建议：默认做 C，D 作为自动兜底</h3>
+    <p>不是简单“上/下翻转”，而是按空间和碰撞依次尝试，任何一步都不进入输入法候选区（光标下方约 48px、宽 260px 的区域）。</p>
+    <ol>
+      <li><b>上方</b>：光标上方 ≥ 38px + 12px 间距 → 放上方。</li>
+      <li><b>右侧</b>：上方不够 → 放光标右侧，垂直居中对齐；右侧超出屏幕 → 换左侧。</li>
+      <li><b>输入框上沿</b>：两侧都不够 → 用 AXFrame 把 HUD 贴在编辑区上沿。</li>
+      <li><b>固定停靠</b>：仍无位置 → 底部/顶部停靠，并记住上次位置。</li>
+      <li><b>结果卡</b>：始终吸附 HUD；HUD 在侧边时，卡片向另一侧或上方展开，绝不覆盖候选窗。</li>
+    </ol>
+    <p style="margin-top:12px;">设置里保留四个选项：<code>智能避让（默认）</code>、<code>始终上方</code>、<code>吸附输入框</code>、<code>固定位置</code>。不做“始终下方”，因为它和中文输入法候选窗冲突。</p>
+  </div>
+</div>
+</body>
+</html>
