@@ -94,7 +94,7 @@ final class PanelModel: ObservableObject {
         let requestedMode = mode
         Task {
             do {
-                let provider = AIProvider(rawValue: UserDefaults.standard.string(forKey: Prefs.provider) ?? "auto") ?? .auto
+                let provider = AIProvider(rawValue: UserDefaults.standard.string(forKey: Prefs.provider) ?? "ollama") ?? .auto
                 let outcome = try await AIService.run(
                     mode: requestedMode,
                     text: self.sourceText,
@@ -601,25 +601,23 @@ final class ResultPanelController: NSObject, NSWindowDelegate {
             height = min(height, availableAbove)
             y = hudFrame.maxY + 8
             model.tailEdge = .bottom
+        } else if hudFrame.maxX + 8 + width <= visible.maxX {
+            // Never drop below the HUD: that is where the IME candidate window lives.
+            y = hudFrame.midY - height / 2
+            x = hudFrame.maxX + 8
+            model.tailEdge = .left
+        } else if hudFrame.minX - 8 - width >= visible.minX {
+            y = hudFrame.midY - height / 2
+            x = hudFrame.minX - width - 8
+            model.tailEdge = .right
         } else {
-            let availableBelow = (hudFrame.minY - 8) - (visible.minY + 8)
-            if availableBelow >= 220 {
-                height = min(height, availableBelow)
-                y = hudFrame.minY - height - 8
-                model.tailEdge = .top
-            } else {
-                y = visible.midY - height / 2
-                if hudFrame.maxX + 8 + width <= visible.maxX {
-                    x = hudFrame.maxX + 8
-                    model.tailEdge = .left
-                } else {
-                    x = hudFrame.minX - width - 8
-                    model.tailEdge = .right
-                }
-            }
+            // No side room: keep it above the HUD and shrink to the available strip.
+            height = max(120, availableAbove)
+            y = hudFrame.maxY + 8
+            model.tailEdge = .bottom
         }
 
-        height = max(220, height)
+        height = min(max(120, height), visible.height - 16)
         x = min(max(x, visible.minX + 8), visible.maxX - width - 8)
         y = min(max(y, visible.minY + 8), visible.maxY - height - 8)
         panel.setFrame(NSRect(x: x, y: y, width: width, height: height), display: true)

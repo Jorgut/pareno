@@ -80,6 +80,8 @@ Useful for testing the engine without the UI:
 
 Pareno Desktop can use a local agent CLI you already signed in to, or Ollama.
 
+The default source is **local Ollama**; cloud and agents are optional.
+
 - **Auto** tries Codex CLI, Claude Code, Cursor Agent and OpenCode in order, then falls back to Ollama.
 - Pick a specific source in **Settings… → AI source** or the menu bar → **AI source**.
 - Agent CLIs must be installed and logged in; if a call fails, the card shows the provider error.

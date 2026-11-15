@@ -55,6 +55,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.accessory)
         panel = ResultPanelController()
         let defaults = UserDefaults.standard
+        if defaults.object(forKey: Prefs.provider) == nil {
+            defaults.set(AIProvider.ollama.rawValue, forKey: Prefs.provider)
+        }
         if defaults.object(forKey: Prefs.language) == nil {
             defaults.set(L10n.systemDefault.rawValue, forKey: Prefs.language)
         }
@@ -176,7 +179,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let aiItem = NSMenuItem(title: L10n.t("menu.ai"), action: nil, keyEquivalent: "")
         let aiSubmenu = NSMenu()
-        let selectedProvider = AIProvider(rawValue: UserDefaults.standard.string(forKey: Prefs.provider) ?? "auto") ?? .auto
+        let selectedProvider = AIProvider(rawValue: UserDefaults.standard.string(forKey: Prefs.provider) ?? "ollama") ?? .ollama
         for provider in [AIProvider.auto, .claude, .codex, .cursor, .opencode, .ollama, .ollamaCloud] {
             var title = provider.label
             var enabled = true

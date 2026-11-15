@@ -34,7 +34,7 @@ struct SettingsView: View {
     @AppStorage(Prefs.model) private var model = ""
     @AppStorage(Prefs.appearance) private var appearance = "system"
     @AppStorage(Prefs.cardAttached) private var cardAttached = true
-    @AppStorage(Prefs.provider) private var provider = "auto"
+    @AppStorage(Prefs.provider) private var provider = "ollama"
     @State private var cloudKey = ""
     @AppStorage(Prefs.language) private var language = "en"
 
