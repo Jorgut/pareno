@@ -30,6 +30,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var lastKeyTime = Date.distantPast
     private var lastCaretRect: NSRect?
     private var lastDebugLog = Date.distantPast
+    private var currentLanguage = L10n.current
     private var activityMonitors: [Any] = []
     private var lastHUDOrigin: NSPoint?
     private var fixedOrigin: NSPoint? {
@@ -52,6 +53,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.accessory)
         panel = ResultPanelController()
         let defaults = UserDefaults.standard
+        if defaults.object(forKey: Prefs.language) == nil {
+            defaults.set(L10n.systemDefault.rawValue, forKey: Prefs.language)
+        }
         if defaults.object(forKey: Prefs.visible) == nil,
            let legacy = defaults.object(forKey: Prefs.legacyVisible) as? Bool {
             defaults.set(legacy, forKey: Prefs.visible)
@@ -70,6 +74,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.applyDockPolicy()
             self?.applyAppearance()
             self?.reloadPreferences()
+            self?.applyLanguageIfNeeded()
             self?.rebuildMenu()
             self?.updateHUD()
         }
@@ -89,7 +94,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if let button = statusItem.button {
             button.image = NSImage(systemSymbolName: "text.badge.checkmark", accessibilityDescription: "Pareno Desktop")
             button.image?.isTemplate = true
-            button.toolTip = "Pareno Desktop · 选中文字后 ⌥⌘G"
+            button.toolTip = L10n.t("tooltip.hud")
         }
         rebuildMenu()
         installHotkey()
@@ -102,7 +107,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         startHUDTimer()
         if demoMode {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
-                self?.panel.showMessage("面板测试：在任意 App 选中文字后按 ⌥⌘G。若没有反应，请在系统设置里给 Pareno Desktop 辅助功能权限。")
+                self?.panel.showMessage(L10n.t("panel.testMessage"))
             }
         }
         if CommandLine.arguments.contains("--settings") {
@@ -120,45 +125,45 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func rebuildMenu() {
         let menu = NSMenu()
-        let check = NSMenuItem(title: "检查选区  ⌥⌘G", action: #selector(checkSelection), keyEquivalent: "")
+        let check = NSMenuItem(title: L10n.t("menu.check"), action: #selector(checkSelection), keyEquivalent: "")
         check.target = self
         menu.addItem(check)
-        let settingsItem = NSMenuItem(title: "设置…", action: #selector(openSettings), keyEquivalent: ",")
+        let settingsItem = NSMenuItem(title: L10n.t("menu.settings"), action: #selector(openSettings), keyEquivalent: ",")
         settingsItem.target = self
         menu.addItem(settingsItem)
         menu.addItem(.separator())
 
-        let translateItem = NSMenuItem(title: "翻译当前段落", action: #selector(translateSelection), keyEquivalent: "")
+        let translateItem = NSMenuItem(title: L10n.t("menu.translate"), action: #selector(translateSelection), keyEquivalent: "")
         translateItem.target = self
         menu.addItem(translateItem)
-        let explainItem = NSMenuItem(title: "解释当前段落", action: #selector(explainSelection), keyEquivalent: "")
+        let explainItem = NSMenuItem(title: L10n.t("menu.explain"), action: #selector(explainSelection), keyEquivalent: "")
         explainItem.target = self
         menu.addItem(explainItem)
 
-        let show = NSMenuItem(title: hudEnabled ? "隐藏 Pareno HUD" : "显示 Pareno HUD", action: #selector(toggleFollowCaret), keyEquivalent: "h")
+        let show = NSMenuItem(title: hudEnabled ? L10n.t("menu.hideHUD") : L10n.t("menu.showHUD"), action: #selector(toggleFollowCaret), keyEquivalent: "h")
         show.keyEquivalentModifierMask = [.command, .option]
         show.target = self
         show.state = hudEnabled ? .on : .off
         menu.addItem(show)
 
-        let followMode = NSMenuItem(title: "吸附光标", action: #selector(useFollowMode), keyEquivalent: "")
+        let followMode = NSMenuItem(title: L10n.t("menu.follow"), action: #selector(useFollowMode), keyEquivalent: "")
         followMode.target = self
         followMode.state = hudMode == .follow ? .on : .off
         menu.addItem(followMode)
 
-        let fixedMode = NSMenuItem(title: "固定位置（可拖动）", action: #selector(useFixedMode), keyEquivalent: "")
+        let fixedMode = NSMenuItem(title: L10n.t("menu.fixed"), action: #selector(useFixedMode), keyEquivalent: "")
         fixedMode.target = self
         fixedMode.state = hudMode == .fixed ? .on : .off
         menu.addItem(fixedMode)
 
-        let resetHUD = NSMenuItem(title: "重置小工具位置", action: #selector(resetHUD), keyEquivalent: "")
+        let resetHUD = NSMenuItem(title: L10n.t("menu.reset"), action: #selector(resetHUD), keyEquivalent: "")
         resetHUD.target = self
         menu.addItem(resetHUD)
 
-        let modelItem = NSMenuItem(title: "模型", action: nil, keyEquivalent: "")
+        let modelItem = NSMenuItem(title: L10n.t("menu.model"), action: nil, keyEquivalent: "")
         let submenu = NSMenu()
         if models.isEmpty {
-            submenu.addItem(NSMenuItem(title: lastError.isEmpty ? "读取中…" : lastError, action: nil, keyEquivalent: ""))
+            submenu.addItem(NSMenuItem(title: lastError.isEmpty ? L10n.t("menu.loading") : lastError, action: nil, keyEquivalent: ""))
         } else {
             for model in models {
                 let item = NSMenuItem(title: model, action: #selector(selectModel(_:)), keyEquivalent: "")
@@ -169,7 +174,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
         submenu.addItem(.separator())
-        let refresh = NSMenuItem(title: "刷新模型", action: #selector(refreshModelsAction), keyEquivalent: "")
+        let refresh = NSMenuItem(title: L10n.t("menu.refresh"), action: #selector(refreshModelsAction), keyEquivalent: "")
         refresh.target = self
         submenu.addItem(refresh)
         modelItem.submenu = submenu
@@ -177,7 +182,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         menu.addItem(.separator())
         let trust = NSMenuItem(
-            title: SelectionService.isTrusted ? "辅助功能：已授权" : "辅助功能：未授权（点击设置）",
+            title: SelectionService.isTrusted ? L10n.t("menu.trusted") : L10n.t("menu.untrusted"),
             action: #selector(openAccessibility),
             keyEquivalent: ""
         )
@@ -185,7 +190,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(trust)
 
         menu.addItem(.separator())
-        let quit = NSMenuItem(title: "退出 Pareno Desktop", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        let quit = NSMenuItem(title: L10n.t("menu.quit"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         menu.addItem(quit)
         statusItem.menu = menu
     }
@@ -245,6 +250,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard show != lastDockPolicy else { return }
         lastDockPolicy = show
         NSApp.setActivationPolicy(show ? .regular : .accessory)
+    }
+
+    private func applyLanguageIfNeeded() {
+        let language = L10n.current
+        guard language != currentLanguage else { return }
+        currentLanguage = language
+        hud.applyLanguage()
+        panel.refreshLanguage()
+        refreshModels()
     }
 
     private func reloadPreferences() {
@@ -409,7 +423,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func runTask(_ mode: CheckMode) {
         guard SelectionService.isTrusted else {
             SelectionService.requestTrust()
-            panel.showMessage("需要辅助功能权限：打开 系统设置 → 隐私与安全性 → 辅助功能，勾选 Pareno Desktop，然后再试一次。")
+            panel.showMessage(L10n.t("error.permission"), needsPermission: true)
             return
         }
         let sourceApp = NSWorkspace.shared.frontmostApplication
@@ -426,7 +440,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             panel.show(text: fallback, mode: mode, modelName: currentModel, element: element, app: sourceApp, caret: SelectionService.caretRect(), hudFrame: hud.frame)
             return
         }
-        panel.showMessage("没有找到可检查的文字。请把光标放进一段文字，或先选中一段。")
+        panel.showMessage(L10n.t("error.noText"))
     }
 
     @objc private func selectModel(_ sender: NSMenuItem) {
@@ -445,13 +459,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             do {
                 let list = try await OllamaClient().models()
                 self.models = list
-                self.lastError = list.isEmpty ? "未找到模型" : ""
+                self.lastError = list.isEmpty ? L10n.t("error.modelsEmpty") : ""
                 if self.currentModel.isEmpty || !list.contains(self.currentModel) {
                     self.currentModel = list.first ?? ""
                     UserDefaults.standard.set(self.currentModel, forKey: "ParenoDesktopModel")
                 }
             } catch {
-                self.lastError = "Ollama 不可用"
+                self.lastError = L10n.t("error.ollamaUnavailable")
             }
             self.rebuildMenu()
         }

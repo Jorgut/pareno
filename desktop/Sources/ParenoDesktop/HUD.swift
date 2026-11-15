@@ -21,6 +21,13 @@ final class CursorHUD: NSObject {
     var onExplain: (() -> Void)?
     var onSettings: (() -> Void)?
     var onClose: (() -> Void)?
+
+    private var grip: HUDDragHandle?
+    private var checkButton: NSButton?
+    private var translateButton: NSButton?
+    private var explainButton: NSButton?
+    private var settingsButton: NSButton?
+    private var closeButton: NSButton?
     var onMove: ((NSPoint) -> Void)?
     private(set) var mode: HUDMode = .follow
 
@@ -64,31 +71,42 @@ final class CursorHUD: NSObject {
         grip.translatesAutoresizingMaskIntoConstraints = false
         grip.widthAnchor.constraint(equalToConstant: 12).isActive = true
         grip.heightAnchor.constraint(equalToConstant: 20).isActive = true
-        grip.toolTip = "拖动小工具"
         stack.addArrangedSubview(grip)
+        self.grip = grip
 
-        addButton(title: "检查", symbol: "checkmark.circle", action: #selector(checkTapped))
+        checkButton = addButton(title: L10n.t("mode.check"), symbol: "checkmark.circle", action: #selector(checkTapped))
         let divider = NSBox()
         divider.boxType = .separator
         divider.translatesAutoresizingMaskIntoConstraints = false
         divider.heightAnchor.constraint(equalToConstant: 14).isActive = true
         stack.addArrangedSubview(divider)
-        addButton(title: "翻译", symbol: "character.book.closed", action: #selector(translateTapped))
+        translateButton = addButton(title: L10n.t("mode.translate"), symbol: "character.book.closed", action: #selector(translateTapped))
         let divider2 = NSBox()
         divider2.boxType = .separator
         divider2.translatesAutoresizingMaskIntoConstraints = false
         divider2.heightAnchor.constraint(equalToConstant: 14).isActive = true
         stack.addArrangedSubview(divider2)
-        addButton(title: "解释", symbol: "questionmark.circle", action: #selector(explainTapped))
+        explainButton = addButton(title: L10n.t("mode.explain"), symbol: "questionmark.circle", action: #selector(explainTapped))
         let divider3 = NSBox()
         divider3.boxType = .separator
         divider3.translatesAutoresizingMaskIntoConstraints = false
         divider3.heightAnchor.constraint(equalToConstant: 14).isActive = true
         stack.addArrangedSubview(divider3)
-        addIconButton(symbol: "gearshape", tooltip: "设置", action: #selector(settingsTapped))
-        addIconButton(symbol: "xmark", tooltip: "隐藏 HUD", action: #selector(closeTapped))
+        settingsButton = addIconButton(symbol: "gearshape", tooltip: L10n.t("hud.settings"), action: #selector(settingsTapped))
+        closeButton = addIconButton(symbol: "xmark", tooltip: L10n.t("hud.hide"), action: #selector(closeTapped))
 
         NotificationCenter.default.addObserver(self, selector: #selector(windowMoved), name: NSWindow.didMoveNotification, object: panel)
+        applyLanguage()
+        resizeToFit()
+    }
+
+    func applyLanguage() {
+        checkButton?.title = L10n.t("mode.check")
+        translateButton?.title = L10n.t("mode.translate")
+        explainButton?.title = L10n.t("mode.explain")
+        settingsButton?.toolTip = L10n.t("hud.settings")
+        closeButton?.toolTip = L10n.t("hud.hide")
+        grip?.toolTip = L10n.t("hud.drag")
         resizeToFit()
     }
 
@@ -100,7 +118,8 @@ final class CursorHUD: NSObject {
         effect.frame = NSRect(x: 0, y: 0, width: width, height: 38)
     }
 
-    private func addButton(title: String, symbol: String, action: Selector) {
+    @discardableResult
+    private func addButton(title: String, symbol: String, action: Selector) -> NSButton {
         let button = NSButton(title: title, target: self, action: action)
         button.image = NSImage(systemSymbolName: symbol, accessibilityDescription: title)
         button.imagePosition = .imageLeading
@@ -110,9 +129,11 @@ final class CursorHUD: NSObject {
         button.contentTintColor = .labelColor
         button.setContentHuggingPriority(.required, for: .horizontal)
         stack.addArrangedSubview(button)
+        return button
     }
 
-    private func addIconButton(symbol: String, tooltip: String, action: Selector) {
+    @discardableResult
+    private func addIconButton(symbol: String, tooltip: String, action: Selector) -> NSButton {
         let button = NSButton(image: NSImage(systemSymbolName: symbol, accessibilityDescription: tooltip) ?? NSImage(), target: self, action: action)
         button.isBordered = false
         button.imagePosition = .imageOnly
@@ -121,6 +142,7 @@ final class CursorHUD: NSObject {
         button.translatesAutoresizingMaskIntoConstraints = false
         button.widthAnchor.constraint(equalToConstant: 24).isActive = true
         stack.addArrangedSubview(button)
+        return button
     }
 
     @objc private func checkTapped() { onCheck?() }

@@ -1,0 +1,325 @@
+import Foundation
+
+enum AppLanguage: String, CaseIterable {
+    case zh
+    case en
+    case ru
+
+    var label: String {
+        switch self {
+        case .zh: return "中文"
+        case .en: return "English"
+        case .ru: return "Русский"
+        }
+    }
+}
+
+enum L10n {
+    static var current: AppLanguage {
+        if let raw = UserDefaults.standard.string(forKey: Prefs.language),
+           let language = AppLanguage(rawValue: raw) {
+            return language
+        }
+        return systemDefault
+    }
+
+    static var systemDefault: AppLanguage {
+        let code = Locale.preferredLanguages.first?.prefix(2).lowercased() ?? "en"
+        switch code {
+        case "zh": return .zh
+        case "ru": return .ru
+        default: return .en
+        }
+    }
+
+    static var outputLanguageName: String {
+        switch current {
+        case .zh: return "Simplified Chinese"
+        case .en: return "English"
+        case .ru: return "Russian"
+        }
+    }
+
+    static var translationTargetName: String {
+        switch current {
+        case .zh: return "Simplified Chinese"
+        case .en: return "English"
+        case .ru: return "Russian"
+        }
+    }
+
+    static func t(_ key: String, _ args: CVarArg...) -> String {
+        let value = tables[current]?[key] ?? tables[.en]?[key] ?? key
+        return args.isEmpty ? value : String(format: value, arguments: args)
+    }
+
+    private static let tables: [AppLanguage: [String: String]] = [
+        .zh: [
+            "language.section": "语言",
+            "mode.check": "检查",
+            "mode.translate": "翻译",
+            "mode.explain": "解释",
+            "variant.natural": "自然",
+            "variant.minimal": "最小修改",
+            "variant.naturalTranslation": "自然译文",
+            "variant.faithfulTranslation": "忠实译文",
+            "issue.grammar": "语法",
+            "issue.vocabulary": "用词",
+            "issue.expression": "表达",
+
+            "settings.title": "Pareno Desktop 设置",
+            "settings.hud.show": "显示 Pareno HUD",
+            "settings.hud.typing": "输入时出现",
+            "settings.hud.selection": "选中文字时出现",
+            "settings.hud.position": "位置",
+            "settings.hud.follow": "吸附光标",
+            "settings.hud.fixed": "固定位置（可拖动）",
+            "settings.hud.hideAfter": "停止输入后隐藏",
+            "settings.seconds": "%ld 秒",
+            "settings.card.section": "结果卡",
+            "settings.card.attach": "吸附在 HUD 上方",
+            "settings.card.hint": "关闭后，结果卡可以拖到任意位置。",
+            "settings.appearance.section": "外观",
+            "settings.appearance.theme": "主题",
+            "settings.appearance.system": "跟随系统",
+            "settings.appearance.dark": "深色",
+            "settings.appearance.light": "浅色",
+            "settings.startup.section": "启动与权限",
+            "settings.startup.dock": "在 Dock 显示图标",
+            "settings.startup.dockHint": "关闭 Dock 图标后，Pareno Desktop 仍在菜单栏运行；完全退出后可从 Applications 或 Finder 重新打开。",
+            "settings.startup.accessibility": "打开辅助功能设置",
+            "settings.model.section": "模型",
+            "settings.model.current": "当前模型",
+            "settings.model.none": "未选择",
+            "settings.model.hint": "在菜单栏图标 → 模型 中切换。",
+
+            "panel.source": "原文",
+            "panel.noSelection": "（未读取到选区）",
+            "panel.checking": "正在检查语法、用词与表达…",
+            "panel.translating": "正在翻译…",
+            "panel.explaining": "正在解释这句话…",
+            "panel.noIssues": "没有发现明确错误。",
+            "panel.why": "为什么",
+            "panel.better": "更自然",
+            "panel.example": "例句",
+            "panel.copyExplanation": "复制解释",
+            "panel.replace": "替换选区",
+            "panel.replaceTranslation": "替换为译文",
+            "panel.copy": "复制",
+            "panel.noContent": "（暂无内容）",
+            "panel.openAccessibility": "打开辅助功能设置",
+            "panel.testMessage": "面板测试：在任意 App 选中文字后按 ⌥⌘G。若没有反应，请在系统设置里给 Pareno Desktop 辅助功能权限。",
+
+            "menu.check": "检查选区  ⌥⌘G",
+            "menu.settings": "设置…",
+            "menu.translate": "翻译当前段落",
+            "menu.explain": "解释当前段落",
+            "menu.hideHUD": "隐藏 Pareno HUD",
+            "menu.showHUD": "显示 Pareno HUD",
+            "menu.follow": "吸附光标",
+            "menu.fixed": "固定位置（可拖动）",
+            "menu.reset": "重置小工具位置",
+            "menu.model": "模型",
+            "menu.loading": "读取中…",
+            "menu.refresh": "刷新模型",
+            "menu.trusted": "辅助功能：已授权",
+            "menu.untrusted": "辅助功能：未授权（点击设置）",
+            "menu.quit": "退出 Pareno Desktop",
+
+            "tooltip.hud": "Pareno Desktop · 选中文字后 ⌥⌘G",
+            "hud.drag": "拖动小工具",
+            "hud.settings": "设置",
+            "hud.hide": "隐藏 HUD",
+
+            "error.noText": "没有找到可检查的文字。请把光标放进一段文字，或先选中一段。",
+            "error.permission": "需要辅助功能权限：打开 系统设置 → 隐私与安全性 → 辅助功能，勾选 Pareno Desktop，然后再试一次。",
+            "error.noModel": "本机 Ollama 还没有安装模型，请先运行 ollama pull qwen2.5:7b。",
+            "error.decoding": "无法解析模型返回：%@",
+            "error.ollamaNoResponse": "Ollama 没有响应。",
+            "error.ollamaStatus": "Ollama 返回 %ld。请确认 Ollama 已启动。",
+            "error.ollamaConnect": "连接本机 Ollama 失败：%@",
+            "error.ollamaModel": "Ollama 返回 %ld。模型 %@ 可能不可用。",
+            "error.ollamaCall": "调用 Ollama 失败：%@",
+            "error.ollamaUnavailable": "Ollama 不可用",
+            "error.modelsEmpty": "未找到模型",
+        ],
+        .en: [
+            "language.section": "Language",
+            "mode.check": "Check",
+            "mode.translate": "Translate",
+            "mode.explain": "Explain",
+            "variant.natural": "Natural",
+            "variant.minimal": "Minimal edit",
+            "variant.naturalTranslation": "Natural translation",
+            "variant.faithfulTranslation": "Faithful translation",
+            "issue.grammar": "Grammar",
+            "issue.vocabulary": "Word choice",
+            "issue.expression": "Expression",
+
+            "settings.title": "Pareno Desktop Settings",
+            "settings.hud.show": "Show Pareno HUD",
+            "settings.hud.typing": "Show while typing",
+            "settings.hud.selection": "Show on text selection",
+            "settings.hud.position": "Position",
+            "settings.hud.follow": "Follow the caret",
+            "settings.hud.fixed": "Fixed position (draggable)",
+            "settings.hud.hideAfter": "Hide after typing",
+            "settings.seconds": "%ld s",
+            "settings.card.section": "Result card",
+            "settings.card.attach": "Attach above the HUD",
+            "settings.card.hint": "When off, drag the result card anywhere.",
+            "settings.appearance.section": "Appearance",
+            "settings.appearance.theme": "Theme",
+            "settings.appearance.system": "Follow system",
+            "settings.appearance.dark": "Dark",
+            "settings.appearance.light": "Light",
+            "settings.startup.section": "Launch & permissions",
+            "settings.startup.dock": "Show Dock icon",
+            "settings.startup.dockHint": "Without a Dock icon Pareno Desktop keeps running in the menu bar. After quitting, reopen it from Applications or Finder.",
+            "settings.startup.accessibility": "Open Accessibility settings",
+            "settings.model.section": "Model",
+            "settings.model.current": "Current model",
+            "settings.model.none": "None",
+            "settings.model.hint": "Switch models from the menu bar icon → Model.",
+
+            "panel.source": "Source",
+            "panel.noSelection": "(No text selected)",
+            "panel.checking": "Checking grammar, word choice and expression…",
+            "panel.translating": "Translating…",
+            "panel.explaining": "Explaining this sentence…",
+            "panel.noIssues": "No clear issues found.",
+            "panel.why": "Why",
+            "panel.better": "More natural",
+            "panel.example": "Example",
+            "panel.copyExplanation": "Copy explanation",
+            "panel.replace": "Replace selection",
+            "panel.replaceTranslation": "Replace with translation",
+            "panel.copy": "Copy",
+            "panel.noContent": "(Empty)",
+            "panel.openAccessibility": "Open Accessibility settings",
+            "panel.testMessage": "Panel test: select text in any app and press ⌥⌘G. If nothing happens, enable Accessibility for Pareno Desktop.",
+
+            "menu.check": "Check selection  ⌥⌘G",
+            "menu.settings": "Settings…",
+            "menu.translate": "Translate current paragraph",
+            "menu.explain": "Explain current paragraph",
+            "menu.hideHUD": "Hide Pareno HUD",
+            "menu.showHUD": "Show Pareno HUD",
+            "menu.follow": "Follow the caret",
+            "menu.fixed": "Fixed position (draggable)",
+            "menu.reset": "Reset HUD position",
+            "menu.model": "Model",
+            "menu.loading": "Loading…",
+            "menu.refresh": "Refresh models",
+            "menu.trusted": "Accessibility: granted",
+            "menu.untrusted": "Accessibility: not granted (open settings)",
+            "menu.quit": "Quit Pareno Desktop",
+
+            "tooltip.hud": "Pareno Desktop · select text, then ⌥⌘G",
+            "hud.drag": "Drag the HUD",
+            "hud.settings": "Settings",
+            "hud.hide": "Hide HUD",
+
+            "error.noText": "No text to check. Put the cursor inside a paragraph or select some text.",
+            "error.permission": "Accessibility permission is required: open System Settings → Privacy & Security → Accessibility, enable Pareno Desktop, then try again.",
+            "error.noModel": "Ollama has no model installed. Run ollama pull qwen2.5:7b first.",
+            "error.decoding": "Could not parse the model output: %@",
+            "error.ollamaNoResponse": "Ollama did not respond.",
+            "error.ollamaStatus": "Ollama returned %ld. Make sure Ollama is running.",
+            "error.ollamaConnect": "Could not connect to local Ollama: %@",
+            "error.ollamaModel": "Ollama returned %ld. Model %@ may be unavailable.",
+            "error.ollamaCall": "Ollama call failed: %@",
+            "error.ollamaUnavailable": "Ollama unavailable",
+            "error.modelsEmpty": "No models found",
+        ],
+        .ru: [
+            "language.section": "Язык",
+            "mode.check": "Проверить",
+            "mode.translate": "Перевод",
+            "mode.explain": "Объяснить",
+            "variant.natural": "Естественный",
+            "variant.minimal": "Минимальные правки",
+            "variant.naturalTranslation": "Естественный перевод",
+            "variant.faithfulTranslation": "Точный перевод",
+            "issue.grammar": "Грамматика",
+            "issue.vocabulary": "Лексика",
+            "issue.expression": "Выражение",
+
+            "settings.title": "Настройки Pareno Desktop",
+            "settings.hud.show": "Показывать Pareno HUD",
+            "settings.hud.typing": "Показывать при вводе",
+            "settings.hud.selection": "Показывать при выделении",
+            "settings.hud.position": "Положение",
+            "settings.hud.follow": "Следовать за курсором",
+            "settings.hud.fixed": "Фиксированное (перетаскивание)",
+            "settings.hud.hideAfter": "Скрывать после ввода",
+            "settings.seconds": "%ld с",
+            "settings.card.section": "Карточка результата",
+            "settings.card.attach": "Прикрепить над HUD",
+            "settings.card.hint": "Если выключено, карточку можно перетащить в любое место.",
+            "settings.appearance.section": "Внешний вид",
+            "settings.appearance.theme": "Тема",
+            "settings.appearance.system": "Как в системе",
+            "settings.appearance.dark": "Тёмная",
+            "settings.appearance.light": "Светлая",
+            "settings.startup.section": "Запуск и доступ",
+            "settings.startup.dock": "Показывать значок в Dock",
+            "settings.startup.dockHint": "Без значка в Dock приложение остаётся в строке меню. После выхода откройте его из Applications или Finder.",
+            "settings.startup.accessibility": "Открыть Универсальный доступ",
+            "settings.model.section": "Модель",
+            "settings.model.current": "Текущая модель",
+            "settings.model.none": "Не выбрана",
+            "settings.model.hint": "Переключение: значок в строке меню → Модель.",
+
+            "panel.source": "Исходный текст",
+            "panel.noSelection": "(Выделенный текст не прочитан)",
+            "panel.checking": "Проверяю грамматику, лексику и стиль…",
+            "panel.translating": "Перевожу…",
+            "panel.explaining": "Объясняю…",
+            "panel.noIssues": "Явных ошибок не найдено.",
+            "panel.why": "Почему",
+            "panel.better": "Естественнее",
+            "panel.example": "Пример",
+            "panel.copyExplanation": "Копировать объяснение",
+            "panel.replace": "Заменить выделение",
+            "panel.replaceTranslation": "Заменить переводом",
+            "panel.copy": "Копировать",
+            "panel.noContent": "(Пусто)",
+            "panel.openAccessibility": "Открыть Универсальный доступ",
+            "panel.testMessage": "Тест панели: выделите текст в любом приложении и нажмите ⌥⌘G. Если нет реакции, включите Универсальный доступ для Pareno Desktop.",
+
+            "menu.check": "Проверить выделенное  ⌥⌘G",
+            "menu.settings": "Настройки…",
+            "menu.translate": "Перевести абзац",
+            "menu.explain": "Объяснить абзац",
+            "menu.hideHUD": "Скрыть Pareno HUD",
+            "menu.showHUD": "Показать Pareno HUD",
+            "menu.follow": "Следовать за курсором",
+            "menu.fixed": "Фиксированное положение (перетаскивание)",
+            "menu.reset": "Сбросить позицию HUD",
+            "menu.model": "Модель",
+            "menu.loading": "Загрузка…",
+            "menu.refresh": "Обновить модели",
+            "menu.trusted": "Универсальный доступ: разрешён",
+            "menu.untrusted": "Универсальный доступ: не разрешён (нажмите)",
+            "menu.quit": "Выйти из Pareno Desktop",
+
+            "tooltip.hud": "Pareno Desktop · выделите текст и нажмите ⌥⌘G",
+            "hud.drag": "Перетащить HUD",
+            "hud.settings": "Настройки",
+            "hud.hide": "Скрыть HUD",
+
+            "error.noText": "Не найдено текста для проверки. Поставьте курсор в текст или выделите фрагмент.",
+            "error.permission": "Нужен Универсальный доступ: откройте Системные настройки → Конфиденциальность → Универсальный доступ, включите Pareno Desktop и повторите.",
+            "error.noModel": "В Ollama не установлены модели. Сначала выполните: ollama pull qwen2.5:7b.",
+            "error.decoding": "Не удалось разобрать ответ модели: %@",
+            "error.ollamaNoResponse": "Ollama не отвечает.",
+            "error.ollamaStatus": "Ollama вернул %ld. Убедитесь, что Ollama запущен.",
+            "error.ollamaConnect": "Не удалось подключиться к Ollama: %@",
+            "error.ollamaModel": "Ollama вернул %ld. Модель %@ может быть недоступна.",
+            "error.ollamaCall": "Ошибка вызова Ollama: %@",
+            "error.ollamaUnavailable": "Ollama недоступен",
+            "error.modelsEmpty": "Модели не найдены",
+        ],
+    ]
+}

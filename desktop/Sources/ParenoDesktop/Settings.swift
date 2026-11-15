@@ -11,6 +11,7 @@ enum Prefs {
     static let model = "ParenoDesktopModel"
     static let appearance = "ParenoDesktopAppearance"
     static let cardAttached = "ParenoCardAttached"
+    static let language = "ParenoLanguage"
     static let origin = "ParenoDesktopHUDOrigin"
     static let legacyVisible = "ParenoDesktopFollowCaret"
 }
@@ -29,60 +30,75 @@ struct SettingsView: View {
     @AppStorage(Prefs.model) private var model = ""
     @AppStorage(Prefs.appearance) private var appearance = "system"
     @AppStorage(Prefs.cardAttached) private var cardAttached = true
+    @AppStorage(Prefs.language) private var language = "en"
 
     var body: some View {
         Form {
+            Section(L10n.t("language.section")) {
+                Picker("", selection: $language) {
+                    ForEach(AppLanguage.allCases, id: \.self) { item in
+                        Text(item.label).tag(item.rawValue)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+            }
+
             Section("Pareno HUD") {
-                Toggle("显示 Pareno HUD", isOn: $visible)
-                Toggle("输入时出现", isOn: $showTyping)
-                Toggle("选中文字时出现", isOn: $showSelection)
-                Picker("位置", selection: $mode) {
-                    Text("吸附光标").tag(HUDMode.follow.rawValue)
-                    Text("固定位置（可拖动）").tag(HUDMode.fixed.rawValue)
+                Toggle(L10n.t("settings.hud.show"), isOn: $visible)
+                Toggle(L10n.t("settings.hud.typing"), isOn: $showTyping)
+                Toggle(L10n.t("settings.hud.selection"), isOn: $showSelection)
+                Picker(L10n.t("settings.hud.position"), selection: $mode) {
+                    Text(L10n.t("settings.hud.follow")).tag(HUDMode.follow.rawValue)
+                    Text(L10n.t("settings.hud.fixed")).tag(HUDMode.fixed.rawValue)
                 }
                 HStack {
-                    Text("停止输入后隐藏")
+                    Text(L10n.t("settings.hud.hideAfter"))
                     Slider(value: $autoHide, in: 1...8, step: 1)
-                    Text("\(Int(autoHide)) 秒").monospacedDigit().foregroundStyle(.secondary)
+                    Text(L10n.t("settings.seconds", Int(autoHide)))
+                        .monospacedDigit()
+                        .foregroundStyle(.secondary)
                 }
             }
 
-            Section("结果卡") {
-                Toggle("吸附在 HUD 上方", isOn: $cardAttached)
-                Text("关闭后，结果卡可以拖到任意位置；拖动卡片也会自动切换为自由位置。")
+            Section(L10n.t("settings.card.section")) {
+                Toggle(L10n.t("settings.card.attach"), isOn: $cardAttached)
+                Text(L10n.t("settings.card.hint"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
 
-            Section("外观") {
-                Picker("主题", selection: $appearance) {
-                    Text("跟随系统").tag("system")
-                    Text("深色").tag("dark")
-                    Text("浅色").tag("light")
+            Section(L10n.t("settings.appearance.section")) {
+                Picker(L10n.t("settings.appearance.theme"), selection: $appearance) {
+                    Text(L10n.t("settings.appearance.system")).tag("system")
+                    Text(L10n.t("settings.appearance.dark")).tag("dark")
+                    Text(L10n.t("settings.appearance.light")).tag("light")
                 }
             }
 
-            Section("启动与权限") {
-                Toggle("在 Dock 显示图标", isOn: $showInDock)
-                Text("关闭 Dock 图标后，Pareno Desktop 仍在菜单栏运行；完全退出后可从 Applications 或 Finder 重新打开。")
+            Section(L10n.t("settings.startup.section")) {
+                Toggle(L10n.t("settings.startup.dock"), isOn: $showInDock)
+                Text(L10n.t("settings.startup.dockHint"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                Button("打开辅助功能设置") {
+                Button(L10n.t("settings.startup.accessibility")) {
                     SelectionService.openAccessibilitySettings()
                 }
             }
 
-            Section("模型") {
-                LabeledContent("当前模型") {
-                    Text(model.isEmpty ? "未选择" : model).foregroundStyle(.secondary)
+            Section(L10n.t("settings.model.section")) {
+                LabeledContent(L10n.t("settings.model.current")) {
+                    Text(model.isEmpty ? L10n.t("settings.model.none") : model)
+                        .foregroundStyle(.secondary)
                 }
-                Text("在菜单栏图标 → 模型 中切换。")
+                Text(L10n.t("settings.model.hint"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
         }
+        .id(language)
         .formStyle(.grouped)
-        .frame(width: 460, height: 560)
+        .frame(width: 460, height: 720)
         .onChange(of: visible) { _ in notifyChange() }
         .onChange(of: showTyping) { _ in notifyChange() }
         .onChange(of: showSelection) { _ in notifyChange() }
@@ -91,6 +107,7 @@ struct SettingsView: View {
         .onChange(of: mode) { _ in notifyChange() }
         .onChange(of: appearance) { _ in notifyChange() }
         .onChange(of: cardAttached) { _ in notifyChange() }
+        .onChange(of: language) { _ in notifyChange() }
         .onDisappear { notifyChange() }
     }
 }
@@ -107,12 +124,13 @@ final class SettingsWindowController {
         if window == nil {
             let controller = NSHostingController(rootView: SettingsView())
             let panel = NSWindow(contentViewController: controller)
-            panel.title = "Pareno Desktop 设置"
+            panel.title = L10n.t("settings.title")
             panel.styleMask = [.titled, .closable]
             panel.isReleasedWhenClosed = false
             panel.center()
             window = panel
         }
+        window?.title = L10n.t("settings.title")
         window?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
     }

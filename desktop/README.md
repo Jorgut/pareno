@@ -26,6 +26,10 @@ The app lives in the menu bar (a `text.badge.checkmark` icon). It has no Dock ic
 1. On first launch, allow Pareno Desktop in **System Settings → Privacy & Security → Accessibility**.
 2. Keep the app at a stable path; rebuilding from source can reset the permission because the ad-hoc signature changes.
 
+## Languages
+
+Pareno Desktop ships in **中文, English and Русский**. Pick one in **Settings… → Language**; the default follows the macOS system language, falling back to English.
+
 ## Use
 
 While you type in any text field, a small pill follows the caret with three actions:

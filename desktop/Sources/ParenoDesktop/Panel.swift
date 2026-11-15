@@ -10,9 +10,11 @@ enum PanelState {
 }
 
 enum CheckMode: String, CaseIterable {
-    case check = "检查"
-    case translate = "翻译"
-    case explain = "解释"
+    case check
+    case translate
+    case explain
+
+    var title: String { L10n.t("mode.\(rawValue)") }
 }
 
 @MainActor
@@ -21,11 +23,17 @@ final class PanelModel: ObservableObject {
     @Published var state: PanelState = .idle
     @Published var result: CheckResult?
     @Published var error = ""
+    @Published var needsPermission = false
     @Published var modelName = ""
     @Published var mode: CheckMode = .check
     @Published var variant: Variant = .natural
 
-    enum Variant: String, CaseIterable { case natural = "自然", minimal = "最小修改" }
+    enum Variant: String, CaseIterable {
+        case natural
+        case minimal
+
+        var title: String { L10n.t("variant.\(rawValue)") }
+    }
 
     var onReplace: ((String) -> Void)?
     var onCopy: ((String) -> Void)?
@@ -69,12 +77,14 @@ final class PanelModel: ObservableObject {
 
     func run() {
         guard !sourceText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            error = "没有找到可检查的文字。请把光标放进一段文字，或先选中一段。"
+            error = L10n.t("error.noText")
+            needsPermission = false
             state = .error
             return
         }
         state = .loading
         result = nil
+        needsPermission = false
         error = ""
         let requestedMode = mode
         Task {
@@ -152,7 +162,7 @@ struct ResultView: View {
                 set: { model.setMode($0) }
             )) {
                 ForEach(CheckMode.allCases, id: \.self) { mode in
-                    Text(mode.rawValue).tag(mode)
+                    Text(mode.title).tag(mode)
                 }
             }
             .pickerStyle(.segmented)
@@ -170,10 +180,10 @@ struct ResultView: View {
 
     private var sourceBox: some View {
         VStack(alignment: .leading, spacing: 3) {
-            Text(model.mode == .translate ? "原文" : "原文")
+            Text(L10n.t("panel.source"))
                 .font(.system(size: 10))
                 .foregroundStyle(.secondary)
-            Text(model.sourceText.isEmpty ? "（未读取到选区）" : model.sourceText)
+            Text(model.sourceText.isEmpty ? L10n.t("panel.noSelection") : model.sourceText)
                 .font(.system(size: 12))
                 .lineLimit(3)
                 .textSelection(.enabled)
@@ -191,7 +201,7 @@ struct ResultView: View {
         case .loading:
             HStack(spacing: 8) {
                 ProgressView().controlSize(.small)
-                Text(model.mode == .translate ? "正在翻译…" : model.mode == .explain ? "正在解释这句话…" : "正在检查语法、用词与表达…")
+                Text(model.mode == .translate ? L10n.t("panel.translating") : model.mode == .explain ? L10n.t("panel.explaining") : L10n.t("panel.checking"))
                     .font(.system(size: 12))
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -201,8 +211,8 @@ struct ResultView: View {
                     .font(.system(size: 12))
                     .foregroundStyle(.red)
                     .textSelection(.enabled)
-                if model.error.contains("权限") {
-                    Button("打开辅助功能设置") { model.onOpenSettings?() }
+                if model.needsPermission {
+                    Button(L10n.t("panel.openAccessibility")) { model.onOpenSettings?() }
                         .buttonStyle(.bordered)
                         .controlSize(.small)
                 }
@@ -211,7 +221,7 @@ struct ResultView: View {
             if let result = model.result {
                 if model.mode == .check {
                     if result.issues.isEmpty {
-                        Text("没有发现明确错误。").font(.system(size: 12)).foregroundStyle(.secondary)
+                        Text(L10n.t("panel.noIssues")).font(.system(size: 12)).foregroundStyle(.secondary)
                     } else {
                         ScrollView {
                             VStack(alignment: .leading, spacing: 7) {
@@ -242,9 +252,9 @@ struct ResultView: View {
                 if model.mode == .explain {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 9) {
-                            if !result.why.isEmpty { explainBlock("为什么", result.why, highlight: false) }
-                            if !result.better.isEmpty { explainBlock("更自然", result.better, highlight: true) }
-                            if !result.example.isEmpty { explainBlock("例句", result.example, highlight: false) }
+                            if !result.why.isEmpty { explainBlock(L10n.t("panel.why"), result.why, highlight: false) }
+                            if !result.better.isEmpty { explainBlock(L10n.t("panel.better"), result.better, highlight: true) }
+                            if !result.example.isEmpty { explainBlock(L10n.t("panel.example"), result.example, highlight: false) }
                         }
                     }
                     .frame(maxHeight: 220)
@@ -252,7 +262,7 @@ struct ResultView: View {
                     HStack(spacing: 8) {
                         Picker("", selection: $model.variant) {
                             ForEach(PanelModel.Variant.allCases, id: \.self) { variant in
-                                Text(model.mode == .translate ? (variant == .natural ? "自然译文" : "忠实译文") : variant.rawValue)
+                                Text(model.mode == .translate ? L10n.t(variant == .natural ? "variant.naturalTranslation" : "variant.faithfulTranslation") : variant.title)
                                     .tag(variant)
                             }
                         }
@@ -264,7 +274,7 @@ struct ResultView: View {
                         }
                     }
                     ScrollView {
-                        Text(model.improvedText.isEmpty ? "（暂无内容）" : model.improvedText)
+                        Text(model.improvedText.isEmpty ? L10n.t("panel.noContent") : model.improvedText)
                             .font(.system(size: 12))
                             .textSelection(.enabled)
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -306,18 +316,18 @@ struct ResultView: View {
     private var footer: some View {
         HStack(spacing: 8) {
             if model.mode == .explain {
-                Button("复制解释") { model.copy() }
+                Button(L10n.t("panel.copyExplanation")) { model.copy() }
                     .buttonStyle(.borderedProminent)
                     .tint(Color(red: 0.85, green: 0.74, blue: 0.47))
                     .controlSize(.small)
                     .disabled(model.state != .result)
             } else {
-                Button(model.mode == .translate ? "替换为译文" : "替换选区") { model.replace() }
+                Button(model.mode == .translate ? L10n.t("panel.replaceTranslation") : L10n.t("panel.replace")) { model.replace() }
                     .buttonStyle(.borderedProminent)
                     .tint(Color(red: 0.85, green: 0.74, blue: 0.47))
                     .controlSize(.small)
                     .disabled(model.state != .result)
-                Button("复制") { model.copy() }
+                Button(L10n.t("panel.copy")) { model.copy() }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
                     .disabled(model.state != .result)
@@ -411,15 +421,20 @@ final class ResultPanelController: NSObject, NSWindowDelegate {
         model.run()
     }
 
-    func showMessage(_ message: String) {
+    func showMessage(_ message: String, needsPermission: Bool = false) {
         sourceElement = nil
         sourceApp = nil
         model.sourceText = ""
         model.result = nil
+        model.needsPermission = needsPermission
         model.error = message
         model.state = .error
         place(caret: SelectionService.caretRect())
         panel.orderFrontRegardless()
+    }
+
+    func refreshLanguage() {
+        hosting.rootView = ResultView(model: model)
     }
 
     func followHUD(_ hudFrame: NSRect) {

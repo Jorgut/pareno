@@ -46,6 +46,7 @@ enum CLIRunner {
 }
 
 func runSelfTest() {
+    UserDefaults.standard.set("zh", forKey: Prefs.language)
     var failures = 0
     func expect(_ condition: Bool, _ name: String) {
         print((condition ? "PASS " : "FAIL ") + name)

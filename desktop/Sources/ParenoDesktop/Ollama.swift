@@ -8,8 +8,8 @@ enum CheckError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .ollama(let message): return message
-        case .decoding(let message): return "无法解析模型返回：\(message)"
-        case .noModel: return "本机 Ollama 还没有安装模型，请先运行 ollama pull qwen2.5:7b。"
+        case .decoding(let message): return L10n.t("error.decoding", message)
+        case .noModel: return L10n.t("error.noModel")
         }
     }
 }
@@ -37,9 +37,9 @@ struct OllamaClient {
         request.timeoutInterval = 5
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
-            guard let http = response as? HTTPURLResponse else { throw CheckError.ollama("Ollama 没有响应。") }
+            guard let http = response as? HTTPURLResponse else { throw CheckError.ollama(L10n.t("error.ollamaNoResponse")) }
             guard (200..<300).contains(http.statusCode) else {
-                throw CheckError.ollama("Ollama 返回 \(http.statusCode)。请确认 Ollama 已启动。")
+                throw CheckError.ollama(L10n.t("error.ollamaStatus", http.statusCode))
             }
             struct Tags: Decodable {
                 struct Model: Decodable { let name: String }
@@ -49,7 +49,7 @@ struct OllamaClient {
         } catch let error as CheckError {
             throw error
         } catch {
-            throw CheckError.ollama("连接本机 Ollama 失败：\(error.localizedDescription)")
+            throw CheckError.ollama(L10n.t("error.ollamaConnect", error.localizedDescription))
         }
     }
 
@@ -71,7 +71,7 @@ struct OllamaClient {
         request.httpBody = try JSONEncoder().encode(body)
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
-            guard let http = response as? HTTPURLResponse else { throw CheckError.ollama("Ollama 没有响应。") }
+            guard let http = response as? HTTPURLResponse else { throw CheckError.ollama(L10n.t("error.ollamaNoResponse")) }
             struct Response: Decodable {
                 struct Message: Decodable { let content: String }
                 let message: Message?
@@ -80,13 +80,13 @@ struct OllamaClient {
             let decoded = try JSONDecoder().decode(Response.self, from: data)
             if let error = decoded.error { throw CheckError.ollama(error) }
             guard (200..<300).contains(http.statusCode), let message = decoded.message else {
-                throw CheckError.ollama("Ollama 返回 \(http.statusCode)。模型 \(model) 可能不可用。")
+                throw CheckError.ollama(L10n.t("error.ollamaModel", http.statusCode, model))
             }
             return message.content
         } catch let error as CheckError {
             throw error
         } catch {
-            throw CheckError.ollama("调用 Ollama 失败：\(error.localizedDescription)")
+            throw CheckError.ollama(L10n.t("error.ollamaCall", error.localizedDescription))
         }
     }
 }

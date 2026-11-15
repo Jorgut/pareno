@@ -9,9 +9,9 @@ struct CheckIssue: Identifiable, Codable {
 
     var label: String {
         switch type {
-        case "grammar": return "语法"
-        case "vocabulary": return "用词"
-        default: return "表达"
+        case "grammar": return L10n.t("issue.grammar")
+        case "vocabulary": return L10n.t("issue.vocabulary")
+        default: return L10n.t("issue.expression")
         }
     }
 }
@@ -28,21 +28,23 @@ struct CheckResult: Codable {
 }
 
 enum Checker {
-    static let systemPrompt = """
-    You are Pareno Desktop, a bilingual writing checker for Chinese and English. The user text may be English, Chinese, or mixed.
+    static var systemPrompt: String {
+        """
+    You are Pareno Desktop, a multilingual writing checker for Chinese, English and Russian. The user text may be in any of these languages, or mixed.
     Identify only:
     - grammar and spelling errors, type "grammar"
     - wrong or weak word choice, bad collocations, vocabulary improvements, type "vocabulary"
     - awkward, unclear or unnatural expression, tone, flow, type "expression"
     Rules:
     - Every issue.source MUST be an exact substring of the user text. Never invent a source span.
-    - reason is Simplified Chinese, concise, and explains why it is wrong or better.
+    - reason is written in \(L10n.outputLanguageName), concise, and explains why it is wrong or better.
     - minimal corrects only clear errors and preserves everything else.
     - natural is a natural, precise, professional rewrite. Preserve meaning, facts, names, numbers, citations and the author's voice. Do not add new content.
     - If the text is already correct, return an empty issues array and minimal equal to the text.
     Return ONLY a JSON object:
-    {"language":"en|zh|mixed","issues":[{"type":"grammar","source":"...","replacement":"...","reason":"..."}],"minimal":"...","natural":"...","explanation":"中文一句话总结"}
+    {"language":"en|zh|ru|mixed","issues":[{"type":"grammar","source":"...","replacement":"...","reason":"..."}],"minimal":"...","natural":"...","explanation":"one sentence in \(L10n.outputLanguageName)"}
     """
+    }
 
     static func messages(for text: String) -> [ChatMessage] {
         let payload = ["text": text]
@@ -59,26 +61,29 @@ enum Checker {
         return try decode(raw, original: text)
     }
 
-    static let translatePrompt = """
-    You are Pareno Desktop Translate. Translate the user text between Chinese and English.
-    - Chinese input: translate into natural, professional English.
-    - English input: translate into natural, professional Simplified Chinese.
-    - Mixed input: translate into English.
+    static var translatePrompt: String {
+        """
+    You are Pareno Desktop Translate. Translate the user text into \(L10n.translationTargetName).
+    - If the text is already in \(L10n.translationTargetName), translate it into English instead.
+    - Mixed input: translate all of it into \(L10n.translationTargetName).
     Preserve meaning, names, numbers, citations and the author's voice. Do not add or remove content.
     Return ONLY a JSON object:
-    {"language":"en|zh|mixed","issues":[],"minimal":"faithful translation","natural":"more natural, fluent translation","explanation":"中文一句话说明翻译取舍"}
+    {"language":"en|zh|ru|mixed","issues":[],"minimal":"faithful translation","natural":"more natural, fluent translation","explanation":"one sentence in \(L10n.outputLanguageName)"}
     """
+    }
 
-    static let explainPrompt = """
-    You are Pareno Desktop Explain. Explain the grammar, vocabulary or expression problem in the user text, in Simplified Chinese.
+    static var explainPrompt: String {
+        """
+    You are Pareno Desktop Explain. Explain the grammar, vocabulary or expression problem in the user text, in \(L10n.outputLanguageName).
     Do not rewrite the whole paragraph. Give:
-    - why: what is wrong and why, in 1-2 Chinese sentences.
-    - better: one natural corrected sentence.
-    - example: one short English example that shows the same pattern.
+    - why: what is wrong and why, in 1-2 sentences in \(L10n.outputLanguageName).
+    - better: one natural corrected sentence, in the language of the user text.
+    - example: one short example in the language of the user text that shows the same pattern.
     Preserve the author's meaning. Never invent facts.
     Return ONLY a JSON object:
-    {"language":"en|zh|mixed","issues":[],"why":"中文解释","better":"a natural corrected sentence","example":"one short example","explanation":"一句话总结"}
+    {"language":"en|zh|ru|mixed","issues":[],"why":"explanation in \(L10n.outputLanguageName)","better":"a natural corrected sentence","example":"one short example","explanation":"one sentence in \(L10n.outputLanguageName)"}
     """
+    }
 
     static func explain(text: String, model: String, client: OllamaClient = OllamaClient()) async throws -> CheckResult {
         let payload = (try? JSONSerialization.data(withJSONObject: ["text": text])) ?? Data("{}".utf8)
