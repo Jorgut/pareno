@@ -154,9 +154,21 @@ struct ResultView: View {
     @ObservedObject var model: PanelModel
 
     var body: some View {
-        cardBody
-            .padding(16)
-            .frame(minWidth: 340, maxWidth: .infinity, minHeight: 200, maxHeight: .infinity, alignment: .topLeading)
+        ZStack(alignment: tailAlignment) {
+            cardBody
+            if model.tailEdge != .none {
+                let side = model.tailEdge == .left || model.tailEdge == .right
+                let size = side ? CGSize(width: 15, height: 35) : CGSize(width: 35, height: 15)
+                TailShape(edge: model.tailEdge)
+                    .fill(.regularMaterial)
+                    .frame(width: size.width, height: size.height)
+                    .offset(tailOffset)
+            }
+        }
+        .compositingGroup()
+        .shadow(color: .black.opacity(0.55), radius: 26, x: 0, y: 14)
+        .padding(16)
+        .frame(minWidth: 340, maxWidth: .infinity, minHeight: 200, maxHeight: .infinity, alignment: .topLeading)
     }
 
     private var cardBody: some View {
@@ -174,24 +186,15 @@ struct ResultView: View {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .strokeBorder(Color.white.opacity(0.10), lineWidth: 1)
         )
-        .overlay(alignment: tailAlignment) {
-            if model.tailEdge != .none {
-                let side = model.tailEdge == .left || model.tailEdge == .right
-                let size = side ? CGSize(width: 15, height: 35) : CGSize(width: 35, height: 15)
-                TailShape(edge: model.tailEdge)
-                    .fill(Color(nsColor: .windowBackgroundColor))
-                    .frame(width: size.width, height: size.height)
-                    .offset(tailOffset)
-            }
-        }
+
     }
 
     private var tailOffset: CGSize {
         switch model.tailEdge {
-        case .bottom: return CGSize(width: 0, height: 15)
-        case .top: return CGSize(width: 0, height: -15)
-        case .left: return CGSize(width: -15, height: 0)
-        case .right: return CGSize(width: 15, height: 0)
+        case .bottom: return CGSize(width: 0, height: 14)
+        case .top: return CGSize(width: 0, height: -14)
+        case .left: return CGSize(width: -14, height: 0)
+        case .right: return CGSize(width: 14, height: 0)
         case .none: return .zero
         }
     }
@@ -492,14 +495,20 @@ final class ResultPanelController: NSObject, NSWindowDelegate {
         }
         panel.isOpaque = false
         panel.backgroundColor = .clear
-        panel.hasShadow = true
+        panel.hasShadow = false
 
         hosting = NSHostingView(rootView: ResultView(model: model))
         panel.contentView = hosting
-        let grip = ResizeGripView(frame: NSRect(x: hosting.bounds.width - 18, y: 0, width: 18, height: 18))
+        let grip = ResizeGripView()
         grip.panel = panel
-        grip.autoresizingMask = [.minXMargin, .maxYMargin]
+        grip.translatesAutoresizingMaskIntoConstraints = false
         hosting.addSubview(grip)
+        NSLayoutConstraint.activate([
+            grip.trailingAnchor.constraint(equalTo: hosting.trailingAnchor, constant: -6),
+            grip.bottomAnchor.constraint(equalTo: hosting.bottomAnchor, constant: -6),
+            grip.widthAnchor.constraint(equalToConstant: 18),
+            grip.heightAnchor.constraint(equalToConstant: 18)
+        ])
         NotificationCenter.default.addObserver(
             forName: Notification.Name("NSWindowDidEndLiveResizeNotification"), object: panel, queue: .main
         ) { [weak self] _ in
