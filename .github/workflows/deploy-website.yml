@@ -38,6 +38,9 @@ jobs:
       - run: npm run build
         env:
           ASTRO_TELEMETRY_DISABLED: '1'
+      - name: Verify canonical URL
+        run: grep -o 'rel="canonical" href="[^"]*"' dist/desktop/index.html
+
       - name: Ensure Pages project exists
         run: npx --yes wrangler@4.160.1 pages project create "$CLOUDFLARE_PAGES_PROJECT" --production-branch main || true
 
