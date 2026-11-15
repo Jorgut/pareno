@@ -9,10 +9,6 @@ enum PanelState {
     case error
 }
 
-enum TailEdge {
-    case none, top, bottom, left, right
-}
-
 enum CheckMode: String, CaseIterable {
     case check
     case translate
@@ -31,7 +27,6 @@ final class PanelModel: ObservableObject {
     @Published var modelName = ""
     @Published var mode: CheckMode = .check
     @Published var variant: Variant = .natural
-    @Published var tailEdge: TailEdge = .none
 
     enum Variant: String, CaseIterable {
         case natural
@@ -112,44 +107,6 @@ final class PanelModel: ObservableObject {
     }
 }
 
-struct TailShape: Shape {
-    let edge: TailEdge
-
-    func path(in rect: CGRect) -> Path {
-        let w = rect.width
-        let h = rect.height
-        let r = min(4, min(w, h) * 0.28)
-        var path = Path()
-
-        switch edge {
-        case .bottom, .top:
-            let flip = edge == .top
-            func y(_ value: CGFloat) -> CGFloat { flip ? h - value : value }
-            path.move(to: CGPoint(x: 0, y: y(0)))
-            path.addLine(to: CGPoint(x: w, y: y(0)))
-            path.addQuadCurve(to: CGPoint(x: w * 0.58, y: y(h - r)), control: CGPoint(x: w * 0.78, y: y(h * 0.55)))
-            path.addQuadCurve(to: CGPoint(x: w * 0.42, y: y(h - r)), control: CGPoint(x: w * 0.50, y: y(h * 1.04)))
-            path.addQuadCurve(to: CGPoint(x: 0, y: y(0)), control: CGPoint(x: w * 0.22, y: y(h * 0.55)))
-        case .right:
-            path.move(to: CGPoint(x: 0, y: 0))
-            path.addLine(to: CGPoint(x: 0, y: h))
-            path.addQuadCurve(to: CGPoint(x: w - r, y: h * 0.58), control: CGPoint(x: w * 0.55, y: h * 0.82))
-            path.addQuadCurve(to: CGPoint(x: w - r, y: h * 0.42), control: CGPoint(x: w * 1.04, y: h * 0.50))
-            path.addQuadCurve(to: CGPoint(x: 0, y: 0), control: CGPoint(x: w * 0.55, y: h * 0.18))
-        case .left:
-            path.move(to: CGPoint(x: w, y: 0))
-            path.addLine(to: CGPoint(x: w, y: h))
-            path.addQuadCurve(to: CGPoint(x: r, y: h * 0.58), control: CGPoint(x: w * 0.45, y: h * 0.82))
-            path.addQuadCurve(to: CGPoint(x: r, y: h * 0.42), control: CGPoint(x: -w * 0.04, y: h * 0.50))
-            path.addQuadCurve(to: CGPoint(x: w, y: 0), control: CGPoint(x: w * 0.45, y: h * 0.18))
-        case .none:
-            break
-        }
-        path.closeSubpath()
-        return path
-    }
-}
-
 struct ResultView: View {
     @ObservedObject var model: PanelModel
 
@@ -203,16 +160,6 @@ struct ResultView: View {
             }
             .buttonStyle(.plain)
             .foregroundStyle(.secondary)
-        }
-    }
-
-    private var tailAlignment: Alignment {
-        switch model.tailEdge {
-        case .top: return .top
-        case .bottom: return .bottom
-        case .left: return .leading
-        case .right: return .trailing
-        case .none: return .center
         }
     }
 
@@ -431,71 +378,9 @@ final class ResizeGripView: NSView {
 }
 
 @MainActor
-final class TailWindowController {
-    private let panel: NSPanel
-
-    init() {
-        panel = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 35, height: 15),
-            styleMask: [.borderless, .nonactivatingPanel],
-            backing: .buffered,
-            defer: false
-        )
-        panel.isFloatingPanel = true
-        panel.level = NSWindow.Level(rawValue: NSWindow.Level.floating.rawValue + 2)
-        panel.hidesOnDeactivate = false
-        panel.isReleasedWhenClosed = false
-        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .ignoresCycle]
-        panel.isOpaque = false
-        panel.backgroundColor = .clear
-        panel.hasShadow = false
-        panel.ignoresMouseEvents = true
-        panel.contentView = NSHostingView(rootView: TailView(edge: .none))
-    }
-
-    func update(edge: TailEdge, cardFrame: NSRect) {
-        guard edge != .none else { hide(); return }
-        let side = edge == .left || edge == .right
-        let size = side ? NSSize(width: 15, height: 35) : NSSize(width: 35, height: 15)
-        var origin: NSPoint
-        switch edge {
-        case .bottom: origin = NSPoint(x: cardFrame.midX - 17.5, y: cardFrame.minY - size.height)
-        case .top: origin = NSPoint(x: cardFrame.midX - 17.5, y: cardFrame.maxY)
-        case .left: origin = NSPoint(x: cardFrame.minX - size.width, y: cardFrame.midY - 17.5)
-        case .right: origin = NSPoint(x: cardFrame.maxX, y: cardFrame.midY - 17.5)
-        case .none: return
-        }
-        panel.setFrame(NSRect(origin: origin, size: size), display: true)
-        if !(panel.contentView is NSHostingView<TailView>) {
-            panel.contentView = NSHostingView(rootView: TailView(edge: edge))
-        } else {
-            (panel.contentView as? NSHostingView<TailView>)?.rootView = TailView(edge: edge)
-        }
-        panel.orderFrontRegardless()
-    }
-
-    func hide() {
-        if panel.isVisible { panel.orderOut(nil) }
-    }
-}
-
-struct TailView: View {
-    let edge: TailEdge
-    @Environment(\.colorScheme) private var scheme
-
-    var body: some View {
-        TailShape(edge: edge)
-            .fill(scheme == .dark
-                  ? Color(red: 0.169, green: 0.157, blue: 0.137)
-                  : Color(red: 0.97, green: 0.96, blue: 0.94))
-    }
-}
-
-@MainActor
 final class ResultPanelController: NSObject, NSWindowDelegate {
     let panel: NSPanel
     let model = PanelModel()
-    private let tailWindow = TailWindowController()
     var sourceElement: AXUIElement?
     var sourceApp: NSRunningApplication?
     private var hosting: NSHostingView<ResultView>!
@@ -552,7 +437,6 @@ final class ResultPanelController: NSObject, NSWindowDelegate {
             guard let self else { return }
             if let element = self.sourceElement, SelectionService.setSelectedText(text, on: element) {
                 self.panel.orderOut(nil)
-                self.tailWindow.hide()
                 return
             }
             self.panel.orderOut(nil)
@@ -568,7 +452,6 @@ final class ResultPanelController: NSObject, NSWindowDelegate {
         }
         model.onClose = { [weak self] in
             self?.panel.orderOut(nil)
-            self?.tailWindow.hide()
         }
         model.onOpenSettings = { SelectionService.openAccessibilitySettings() }
 
@@ -583,11 +466,9 @@ final class ResultPanelController: NSObject, NSWindowDelegate {
         model.result = nil
         model.error = ""
         model.state = .loading
-        model.tailEdge = .none
         place(caret: caret)
         if attachedToHUD, let hudFrame { placeAboveHUD(hudFrame) }
         panel.orderFrontRegardless()
-        syncTail()
         model.run()
     }
 
@@ -599,8 +480,6 @@ final class ResultPanelController: NSObject, NSWindowDelegate {
         model.needsPermission = needsPermission
         model.error = message
         model.state = .error
-        model.tailEdge = .none
-        tailWindow.hide()
         place(caret: SelectionService.caretRect())
         panel.orderFrontRegardless()
     }
@@ -617,12 +496,6 @@ final class ResultPanelController: NSObject, NSWindowDelegate {
     func followHUD(_ hudFrame: NSRect) {
         guard attachedToHUD, panel.isVisible else { return }
         placeAboveHUD(hudFrame)
-        syncTail()
-    }
-
-    private func syncTail() {
-        guard panel.isVisible else { tailWindow.hide(); return }
-        tailWindow.update(edge: model.tailEdge, cardFrame: panel.frame)
     }
 
     func placeAboveHUD(_ hudFrame: NSRect) {
@@ -631,34 +504,29 @@ final class ResultPanelController: NSObject, NSWindowDelegate {
         var width = min(size.width, visible.width - 16)
         var height = min(size.height, visible.height - 16)
         var x = hudFrame.midX - width / 2
-        var y = hudFrame.maxY + 18
+        var y = hudFrame.maxY + 8
 
-        let availableAbove = (visible.maxY - 8) - (hudFrame.maxY + 18)
+        let availableAbove = (visible.maxY - 8) - (hudFrame.maxY + 8)
         if availableAbove >= 220 {
             height = min(height, availableAbove)
-            y = hudFrame.maxY + 18
-            model.tailEdge = .bottom
-        } else if hudFrame.maxX + 18 + width <= visible.maxX {
+            y = hudFrame.maxY + 8
+        } else if hudFrame.maxX + 8 + width <= visible.maxX {
             // Never drop below the HUD: that is where the IME candidate window lives.
             y = hudFrame.midY - height / 2
-            x = hudFrame.maxX + 18
-            model.tailEdge = .left
-        } else if hudFrame.minX - 18 - width >= visible.minX {
+            x = hudFrame.maxX + 8
+        } else if hudFrame.minX - 8 - width >= visible.minX {
             y = hudFrame.midY - height / 2
-            x = hudFrame.minX - width - 18
-            model.tailEdge = .right
+            x = hudFrame.minX - width - 8
         } else {
             // No side room: keep it above the HUD and shrink to the available strip.
             height = max(120, availableAbove)
-            y = hudFrame.maxY + 18
-            model.tailEdge = .bottom
+            y = hudFrame.maxY + 8
         }
 
         height = min(max(120, height), visible.height - 16)
         x = min(max(x, visible.minX + 8), visible.maxX - width - 8)
         y = min(max(y, visible.minY + 8), visible.maxY - height - 8)
         panel.setFrame(NSRect(x: x, y: y, width: width, height: height), display: true)
-        syncTail()
     }
 
     private func place(caret: NSRect?) {
