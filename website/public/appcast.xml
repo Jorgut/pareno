@@ -1,0 +1,14 @@
+<?xml version="1.0" standalone="yes"?>
+<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
+    <channel>
+        <title>Pareno Desktop</title>
+        <item>
+            <title>0.9.3</title>
+            <pubDate>Sun, 15 Nov 2026 16:48:07 +0500</pubDate>
+            <sparkle:version>4</sparkle:version>
+            <sparkle:shortVersionString>0.9.3</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+            <enclosure url="https://github.com/Jorgut/pareno/releases/download/desktop-0.9.3/ParenoDesktop-0.9.3.dmg" length="1996511" type="application/octet-stream" sparkle:edSignature="8LGeC7U7c6un7kjxaS+EwTRnV25ApLdztaBByY9snYugISIrhls+rxoELWz5j87lXylO2LxXu7diaiDd/K3vBA=="/>
+        </item>
+    </channel>
+</rss>
