@@ -127,6 +127,17 @@
 | 模型慢 | 默认 qwen3.5:4b，超时/取消 |
 | App Store 缺失 | 后续做 Lite 版，或只做直发 |
 
+## D0 状态（2026-11-15）
+
+- 版本号：0.9.0
+- DMG：`dist/ParenoDesktop-0.9.0.dmg`
+- 公证：Accepted（submission `3ae6b359-cda8-43c5-b100-42826219c3af`）
+- Staple：通过
+- Gatekeeper：`accepted / Notarized Developer ID`
+- SHA-256：`4bab1a31975e95403b658e1ef62acd79f59cb8535dfa6b0d72968e0d28ea607a`
+
+D0 完成，DMG 已可双击安装。
+
 ## 9. 现在要做的事
 
 1. 选支付平台：Paddle 还是 Lemon Squeezy
