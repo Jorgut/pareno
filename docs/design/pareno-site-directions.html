@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Pareno Desktop · 网站设计方向</title>
+<style>
+  :root{--bg:#0d0c0b;--text:#f3efe5;--muted:#a39c90;--faint:#746d62;--gold:#d8bc78;--gold2:#efd9a6;--line:rgba(255,255,255,.09);--line2:rgba(255,255,255,.16);--serif:Georgia,"Songti SC","Times New Roman",serif;--sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC",sans-serif;--mono:ui-monospace,"SF Mono",Menlo,monospace;}
+  *{box-sizing:border-box} html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+  .board{width:1720px;margin:0 auto;padding:54px 60px 80px}
+  .kicker{font:11px/1 var(--mono);letter-spacing:.18em;color:var(--faint);text-transform:uppercase}
+  h1{font:500 38px/1.15 var(--serif);margin:12px 0 10px}
+  .lede{color:var(--muted);font-size:14px;line-height:1.8;max-width:1050px;margin:0}
+  .critique{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:24px}
+  .crit{border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:rgba(255,255,255,.025)}
+  .crit b{display:block;color:var(--gold2);font:500 12px/1.4 var(--sans);margin-bottom:5px}
+  .crit span{color:var(--muted);font-size:11.5px;line-height:1.6}
+  .concepts{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:28px}
+  .concept{height:1180px;border-radius:18px;overflow:hidden;border:1px solid var(--line);position:relative}
+  .label{position:absolute;left:18px;top:16px;z-index:10;font:10px/1 var(--mono);letter-spacing:.14em;color:var(--faint)}
+  .frame{margin:44px 22px 0;border-radius:10px;overflow:hidden;border:1px solid var(--line2);height:1100px}
+  .a{background:radial-gradient(900px 500px at 20% 0%,#2a2620 0%,transparent 60%),#12110f}
+  .a .frame{background:#141310;color:#f3efe5;border-color:rgba(255,255,255,.12)}
+  .a .nav{display:flex;align-items:center;justify-content:space-between;padding:18px 28px;border-bottom:1px solid rgba(255,255,255,.08);font-size:10px;color:#a39c90}
+  .a .brand{display:flex;align-items:center;gap:9px;color:#f3efe5;font:600 12px/1 var(--serif);letter-spacing:.05em}
+  .a .mark{width:22px;height:22px;border-radius:7px;background:linear-gradient(145deg,#e9d195,#c6a35e);color:#2b2416;display:grid;place-items:center;font:700 11px/1 var(--serif)}
+  .a .nav span{margin-left:18px}
+  .a .hero{display:grid;grid-template-columns:1.05fr .95fr;gap:24px;padding:42px 28px 30px;align-items:center}
+  .a .eyebrow{font:10px/1 var(--mono);letter-spacing:.16em;color:#c6a35e;text-transform:uppercase}
+  .a h2{font:500 40px/1.06 var(--serif);letter-spacing:-.01em;margin:14px 0 16px;color:#f6f0e2}
+  .a p{font-size:12px;line-height:1.8;color:#a39c90;max-width:31em;margin:0 0 18px}
+  .a .cta{display:flex;gap:9px}
+  .a .btn{font-size:10px;padding:9px 14px;border-radius:999px;background:#e9d195;color:#241d11;font-weight:650;text-decoration:none}
+  .a .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,.18);color:#d8d1c4;font-weight:400}
+  .a .shot img{width:100%;display:block;border-radius:10px;border:1px solid rgba(255,255,255,.14);box-shadow:0 26px 60px rgba(0,0,0,.6)}
+  .a .rule{height:1px;background:rgba(255,255,255,.09);margin:0 28px}
+  .a .actions{padding:24px 28px 12px;display:grid;gap:0}
+  .a .row{display:grid;grid-template-columns:34px 110px 1fr;gap:12px;padding:13px 0;border-bottom:1px solid rgba(255,255,255,.07);align-items:baseline}
+  .a .num{font:10px var(--mono);color:#c6a35e}
+  .a .row b{font:500 13px var(--serif);color:#f0e9db}
+  .a .row span{font-size:10.5px;color:#918a7e;line-height:1.6}
+  .a .pricing{margin:12px 28px 0;padding:16px 18px;border:1px solid rgba(216,188,120,.28);border-radius:12px;display:flex;align-items:center;justify-content:space-between;background:rgba(216,188,120,.05)}
+  .a .price{font:500 28px/1 var(--serif);color:#efd9a6}
+  .a .price small{display:block;font:9px var(--sans);color:#8f887b;margin-top:4px}
+  .a .pricing p{font-size:9.5px;color:#8f887b;margin:0;max-width:190px}
+  .b{background:#e8e1d3}
+  .b .frame{background:#f7f2e8;color:#221f1a;border-color:rgba(0,0,0,.10)}
+  .b .nav{display:flex;align-items:center;justify-content:space-between;padding:18px 28px;border-bottom:1px solid rgba(0,0,0,.08);font-size:10px;color:#7c7468}
+  .b .brand{display:flex;align-items:center;gap:9px;color:#221f1a;font:600 12px/1 var(--serif);letter-spacing:.05em}
+  .b .mark{width:22px;height:22px;border-radius:7px;background:#221f1a;color:#f7f2e8;display:grid;place-items:center;font:700 11px/1 var(--serif)}
+  .b .hero{padding:40px 28px 0;text-align:center}
+  .b .eyebrow{font:10px/1 var(--mono);letter-spacing:.16em;color:#9a7e47;text-transform:uppercase}
+  .b h2{font:500 50px/1.08 var(--serif);letter-spacing:-.015em;margin:14px auto;max-width:13em;color:#1f1c17}
+  .b p{font-size:12px;line-height:1.8;color:#6e675c;max-width:30em;margin:0 auto 18px}
+  .b .cta{display:flex;gap:9px;justify-content:center}
+  .b .btn{font-size:10px;padding:9px 15px;border-radius:999px;background:#221f1a;color:#f7f2e8;text-decoration:none;font-weight:650}
+  .b .btn.ghost{background:transparent;border:1px solid rgba(0,0,0,.16);color:#3a352d;font-weight:400}
+  .b .shot{margin:26px 24px 0;border-radius:12px;overflow:hidden;border:1px solid rgba(0,0,0,.12);box-shadow:0 22px 50px rgba(60,45,20,.18)}
+  .b .shot img{width:100%;display:block}
+  .b .strip{display:flex;justify-content:center;gap:26px;padding:18px 20px 8px;font:9px var(--mono);color:#8a8174;letter-spacing:.08em;text-transform:uppercase}
+  .b .feature{padding:16px 28px 0;display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .b .f b{display:block;font:500 12px var(--serif);margin-bottom:4px}
+  .b .f span{font-size:10px;line-height:1.6;color:#746c60}
+  .b .quote{margin:18px 28px 0;border-top:1px solid rgba(0,0,0,.10);border-bottom:1px solid rgba(0,0,0,.10);padding:14px 0;font:italic 12px/1.7 var(--serif);color:#4a443b;text-align:center}
+  .b .price{margin:16px 28px 0;display:flex;justify-content:space-between;align-items:end;font-size:10px;color:#6e675c}
+  .b .price strong{font:500 26px/1 var(--serif);color:#221f1a}
+  .b .footer{padding:20px 28px;font:9px var(--mono);color:#9a9184;text-align:center}
+  .notes{margin-top:28px;display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  .note{border:1px solid var(--line);border-radius:14px;padding:18px 20px;background:rgba(255,255,255,.025)}
+  .note h3{margin:0 0 8px;font:500 16px var(--serif);color:#efe9dd}
+  .note p,.note li{color:var(--muted);font-size:12px;line-height:1.7}
+  .note ul{margin:6px 0 0;padding-left:18px}
+  .stack{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  .chip{font:10px var(--mono);padding:5px 8px;border:1px solid var(--line2);border-radius:999px;color:#cfc8bb}
+</style>
+</head>
+<body>
+<div class="board">
+  <div class="kicker">PARENO DESKTOP · SITE REDESIGN · 2026-11-15</div>
+  <h1>两种网站方向：从“模板感”到“产品感”</h1>
+  <p class="lede">当前 Desktop 页的问题不是信息不够，而是它仍然像 Obsidian 插件站的深绿模板：小截图、通用三卡、平铺分区，和 Pareno 桌面版“暖黑 + 香槟金 + 编辑器”的气质不一致。下面两个方向都只改表达，不改产品事实。</p>
+  <div class="critique">
+    <div class="crit"><b>01 · 品牌断层</b><span>站点是深绿 + 并言，桌面版是暖黑 + 香槟金；用户从下载页进入 App 像换了产品。</span></div>
+    <div class="crit"><b>02 · 产品太小</b><span>HUD 和结果卡是核心，但截图在页面里只占一小块，读者看不到“贴着光标”的差异。</span></div>
+    <div class="crit"><b>03 · 通用三卡</b><span>检查/翻译/解释被做成 SaaS 卡片网格，缺少编辑器的节奏和“写作工具”的安静感。</span></div>
+    <div class="crit"><b>04 · 价格像附件</b><span>$19.99 被放在普通面板里，缺少买断产品的确定感和 Paddle 信任信息。</span></div>
+  </div>
+  <div class="concepts">
+    <div class="concept a">
+      <div class="label">DIRECTION A · WARM EDITORIAL / INSTRUMENT</div>
+      <div class="frame">
+        <div class="nav"><div class="brand"><span class="mark">P</span>PARENO DESKTOP</div><div><span>检查</span><span>翻译</span><span>解释</span><span>下载</span></div></div>
+        <div class="hero">
+          <div><div class="eyebrow">macOS 13+ · 0.9.3 · Local-first</div><h2>写作时，<br>工具应该消失。</h2><p>Pareno 把检查、翻译、解释放进光标旁的一条 HUD。你不离开句子，也不打开另一个聊天窗口。</p><div class="cta"><a class="btn" href="#">下载 macOS 版</a><a class="btn ghost" href="#">$19.99 买断</a></div></div>
+          <div class="shot"><img src="assets/desktop-shot.png" alt="Pareno Desktop"></div>
+        </div>
+        <div class="rule"></div>
+        <div class="actions">
+          <div class="row"><span class="num">01</span><b>检查</b><span>语法、用词、搭配；区分明确错误与可选润色。</span></div>
+          <div class="row"><span class="num">02</span><b>翻译</b><span>中 / 英 / 俄互译，保留名字、数字和语气。</span></div>
+          <div class="row"><span class="num">03</span><b>解释</b><span>为什么错、更自然的说法、一个例句。</span></div>
+        </div>
+        <div class="pricing"><div class="price">$19.99<small>一次买断 · 本地无限使用</small></div><p>Paddle 处理付款与税务。macOS 13+，Universal。</p></div>
+      </div>
+    </div>
+    <div class="concept b">
+      <div class="label">DIRECTION B · QUIET PAPER / STUDIO</div>
+      <div class="frame">
+        <div class="nav"><div class="brand"><span class="mark">P</span>Pareno Desktop</div><div>桌面版 · 定价 · 条款 · 下载</div></div>
+        <div class="hero"><div class="eyebrow">A writing checker for macOS</div><h2>把检查，放回句子里。</h2><p>选中一段话，或把光标放进段落。Pareno 在文字旁边给出检查、翻译和解释，不打断你的写作。</p><div class="cta"><a class="btn" href="#">下载 0.9.3</a><a class="btn ghost" href="#">查看价格</a></div></div>
+        <div class="shot"><img src="assets/desktop-shot.png" alt="Pareno Desktop"></div>
+        <div class="strip"><span>Local Ollama</span><span>中 / EN / RU</span><span>Universal</span><span>No telemetry</span></div>
+        <div class="feature"><div class="f"><b>检查</b><span>语法、拼写、用词和不自然表达。</span></div><div class="f"><b>翻译</b><span>中英俄互译，保留原意与语气。</span></div><div class="f"><b>解释</b><span>把一次修改变成可复用的语言知识。</span></div></div>
+        <div class="quote">“不是替我写，而是让我知道为什么这样写更好。”</div>
+        <div class="price"><div><strong>$19.99</strong><br><span>一次性 · 14 天退款</span></div><span>Paddle · Merchant of Record</span></div>
+        <div class="footer">macOS 13+ · Apple Silicon / Intel · parenowriter.pages.dev</div>
+      </div>
+    </div>
+  </div>
+  <div class="notes">
+    <div class="note"><h3>Folio 能帮什么</h3><p>能。Folio 适合把“产品叙事”做成编辑式版面：先定阅读结构，再选排版、字体、栏宽和图文关系，并做页面级 QA。Desktop 页可以按“开场 → 三个动作 → 本地模型 → 价格”的编辑节奏重组。</p><p>但 Folio 不负责 Paddle Checkout、License、Astro 组件和响应式交互；这些仍由代码实现。</p><div class="stack"><span class="chip">folio: 结构/排版/QA</span><span class="chip">frontend-ui-ux: 视觉系统</span><span class="chip">apple-design: 材质/动效</span><span class="chip">design-roundtrip-qa: 截图对比</span></div></div>
+    <div class="note"><h3>建议</h3><p><b>A</b> 更像 Pareno 桌面版本体：暖黑、香槟金、编辑式大标题、产品占画面更大。适合建立品牌识别。</p><p><b>B</b> 更轻、更容易读，适合 Paddle 审核和第一次访问的用户；但品牌记忆弱一些。</p><p>我建议主线走 <b>A</b>，价格/条款/FAQ 用 <b>B</b> 的清晰度。先确认方向，再改 Astro 实现，不再先改代码。</p></div>
+  </div>
+</div>
+</body>
+</html>
