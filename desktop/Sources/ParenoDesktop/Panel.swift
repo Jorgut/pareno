@@ -178,38 +178,20 @@ struct ResultView: View {
             if model.tailEdge != .none {
                 let side = model.tailEdge == .left || model.tailEdge == .right
                 let size = side ? CGSize(width: 15, height: 35) : CGSize(width: 35, height: 15)
-                ZStack {
-                    TailShape(edge: model.tailEdge)
-                        .fill(.regularMaterial)
-                    TailShape(edge: model.tailEdge)
-                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
-                    Rectangle()
-                        .fill(.regularMaterial)
-                        .frame(width: side ? 4 : 34, height: side ? 34 : 4)
-                        .offset(coverOffset)
-                }
-                .frame(width: size.width, height: size.height)
-                .offset(tailOffset)
+                TailShape(edge: model.tailEdge)
+                    .fill(Color(nsColor: .windowBackgroundColor))
+                    .frame(width: size.width, height: size.height)
+                    .offset(tailOffset)
             }
-        }
-    }
-
-    private var coverOffset: CGSize {
-        switch model.tailEdge {
-        case .bottom: return CGSize(width: 0, height: -1)
-        case .top: return CGSize(width: 0, height: 1)
-        case .left: return CGSize(width: 1, height: 0)
-        case .right: return CGSize(width: -1, height: 0)
-        case .none: return .zero
         }
     }
 
     private var tailOffset: CGSize {
         switch model.tailEdge {
-        case .bottom: return CGSize(width: 0, height: 8)
-        case .top: return CGSize(width: 0, height: -8)
-        case .left: return CGSize(width: -8, height: 0)
-        case .right: return CGSize(width: 8, height: 0)
+        case .bottom: return CGSize(width: 0, height: 15)
+        case .top: return CGSize(width: 0, height: -15)
+        case .left: return CGSize(width: -15, height: 0)
+        case .right: return CGSize(width: 15, height: 0)
         case .none: return .zero
         }
     }
