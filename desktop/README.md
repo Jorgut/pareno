@@ -41,7 +41,7 @@ While you type in any text field, a small pill follows the caret with three acti
 
 Click any action, or select text and press **⌥⌘G**.
 
-The pill sits directly above the text caret, like an input-method candidate bar. If an app does not expose caret bounds, it falls back to the focused text field, then to its last position. It stays visible while the result card is open.
+The card can be resized from its bottom-right corner; the size is remembered. HUD placement avoids the input-method candidate window: above the caret first, then to the side, then the field edge or a bottom dock. If an app does not expose caret bounds, it falls back to the focused text field, then to its last position. It stays visible while the result card is open.
 
 Open **设置…** from the menu bar icon (⌘,) to control:
 

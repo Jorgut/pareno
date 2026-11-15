@@ -384,12 +384,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 if let context = SelectionService.currentParagraph() {
                     cachedContext = (context.text, context.element, caret, Date())
                 }
-                hud.update(caret: caret)
+                hud.update(caret: caret, field: field)
                 lastHUDOrigin = hud.origin
                 if panelOpen { panel.followHUD(hud.frame) }
                 return
             }
-            hud.update(caret: NSRect(x: field.minX + 8, y: field.maxY - 4, width: 2, height: 2))
+            hud.update(caret: NSRect(x: field.minX + 8, y: field.maxY - 4, width: 2, height: 2), field: field)
             lastHUDOrigin = hud.origin
             if panelOpen { panel.followHUD(hud.frame) }
             return
@@ -401,7 +401,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
         if let field {
-            hud.update(caret: NSRect(x: field.minX, y: field.maxY, width: 2, height: 2))
+            hud.update(caret: NSRect(x: field.minX, y: field.maxY, width: 2, height: 2), field: field)
             lastHUDOrigin = hud.origin
             if panelOpen { panel.followHUD(hud.frame) }
             return

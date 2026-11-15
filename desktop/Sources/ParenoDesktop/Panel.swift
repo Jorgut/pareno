@@ -116,15 +116,6 @@ final class PanelModel: ObservableObject {
 struct ResultView: View {
     @ObservedObject var model: PanelModel
 
-    private var height: CGFloat {
-        switch model.state {
-        case .loading: return 190
-        case .error: return 210
-        case .result: return 520
-        case .idle: return 180
-        }
-    }
-
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             header
@@ -134,7 +125,7 @@ struct ResultView: View {
             footer
         }
         .padding(14)
-        .frame(width: 380, height: height, alignment: .topLeading)
+        .frame(minWidth: 340, maxWidth: .infinity, minHeight: 200, maxHeight: .infinity, alignment: .topLeading)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
@@ -257,7 +248,7 @@ struct ResultView: View {
                             if !result.example.isEmpty { explainBlock(L10n.t("panel.example"), result.example, highlight: false) }
                         }
                     }
-                    .frame(maxHeight: 220)
+                    .frame(maxHeight: .infinity)
                 } else {
                     HStack(spacing: 8) {
                         Picker("", selection: $model.variant) {
@@ -280,7 +271,7 @@ struct ResultView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(9)
                     }
-                    .frame(maxHeight: 170)
+                    .frame(maxHeight: .infinity)
                     .background(Color.primary.opacity(0.045), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
                 }
             }
@@ -338,6 +329,60 @@ struct ResultView: View {
     }
 }
 
+final class ResizeGripView: NSView {
+    weak var panel: NSWindow?
+    private var startFrame = NSRect.zero
+    private var startPoint = NSPoint.zero
+
+    override func draw(_ dirtyRect: NSRect) {
+        NSColor.secondaryLabelColor.withAlphaComponent(0.55).setStroke()
+        let path = NSBezierPath()
+        path.lineWidth = 1
+        for index in 0..<3 {
+            let offset = CGFloat(4 + index * 4)
+            path.move(to: NSPoint(x: bounds.maxX - offset, y: 2))
+            path.line(to: NSPoint(x: bounds.maxX - 2, y: offset))
+        }
+        path.stroke()
+    }
+
+    override func resetCursorRects() {
+        addCursorRect(bounds, cursor: .crosshair)
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        guard let panel else { return }
+        startFrame = panel.frame
+        startPoint = NSEvent.mouseLocation
+    }
+
+    override func mouseDragged(with event: NSEvent) {
+        guard let panel else { return }
+        let point = NSEvent.mouseLocation
+        let dx = point.x - startPoint.x
+        let dy = point.y - startPoint.y
+        let minWidth = panel.minSize.width
+        let minHeight = panel.minSize.height
+        let width = max(minWidth, startFrame.width + dx)
+        let height = max(minHeight, startFrame.height + dy)
+        var frame = startFrame
+        frame.size = NSSize(width: width, height: height)
+        frame.origin.y = startFrame.maxY - height
+        panel.setFrame(frame, display: true)
+        saveSize()
+    }
+
+    private func saveSize() {
+        guard let panel else { return }
+        UserDefaults.standard.set(Double(panel.frame.width), forKey: Prefs.cardWidth)
+        UserDefaults.standard.set(Double(panel.frame.height), forKey: Prefs.cardHeight)
+    }
+
+    override func mouseUp(with event: NSEvent) {
+        saveSize()
+    }
+}
+
 @MainActor
 final class ResultPanelController: NSObject, NSWindowDelegate {
     let panel: NSPanel
@@ -353,8 +398,8 @@ final class ResultPanelController: NSObject, NSWindowDelegate {
 
     override init() {
         panel = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 380, height: 520),
-            styleMask: [.borderless, .nonactivatingPanel],
+            contentRect: NSRect(x: 0, y: 0, width: 380, height: 420),
+            styleMask: [.borderless, .nonactivatingPanel, .resizable],
             backing: .buffered,
             defer: false
         )
@@ -365,12 +410,28 @@ final class ResultPanelController: NSObject, NSWindowDelegate {
         panel.isReleasedWhenClosed = false
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .ignoresCycle]
         panel.isMovableByWindowBackground = true
+        panel.contentMinSize = NSSize(width: 320, height: 220)
+        panel.minSize = NSSize(width: 320, height: 220)
+        let savedWidth = UserDefaults.standard.double(forKey: Prefs.cardWidth)
+        let savedHeight = UserDefaults.standard.double(forKey: Prefs.cardHeight)
+        if savedWidth >= 320, savedHeight >= 220 {
+            panel.setContentSize(NSSize(width: savedWidth, height: savedHeight))
+        }
         panel.isOpaque = false
         panel.backgroundColor = .clear
         panel.hasShadow = true
 
         hosting = NSHostingView(rootView: ResultView(model: model))
         panel.contentView = hosting
+        let grip = ResizeGripView(frame: NSRect(x: hosting.bounds.width - 18, y: 0, width: 18, height: 18))
+        grip.panel = panel
+        grip.autoresizingMask = [.minXMargin, .maxYMargin]
+        hosting.addSubview(grip)
+        NotificationCenter.default.addObserver(
+            forName: Notification.Name("NSWindowDidEndLiveResizeNotification"), object: panel, queue: .main
+        ) { [weak self] _ in
+            self?.saveCardSize()
+        }
 
         model.onReplace = { [weak self] text in
             guard let self else { return }
@@ -392,18 +453,6 @@ final class ResultPanelController: NSObject, NSWindowDelegate {
         model.onClose = { [weak self] in self?.panel.orderOut(nil) }
         model.onOpenSettings = { SelectionService.openAccessibilitySettings() }
 
-        model.$state.sink { [weak self] state in
-            guard let self else { return }
-            let height: CGFloat
-            switch state {
-            case .loading: height = 190
-            case .error: height = 210
-            case .result: height = 520
-            case .idle: height = 180
-            }
-            self.panel.setContentSize(NSSize(width: 380, height: height))
-        }
-        .store(in: &cancellables)
     }
 
     func show(text: String, mode: CheckMode, modelName: String, element: AXUIElement?, app: NSRunningApplication?, caret: NSRect?, hudFrame: NSRect? = nil) {
@@ -433,6 +482,11 @@ final class ResultPanelController: NSObject, NSWindowDelegate {
         panel.orderFrontRegardless()
     }
 
+    func saveCardSize() {
+        UserDefaults.standard.set(Double(panel.frame.width), forKey: Prefs.cardWidth)
+        UserDefaults.standard.set(Double(panel.frame.height), forKey: Prefs.cardHeight)
+    }
+
     func refreshLanguage() {
         hosting.rootView = ResultView(model: model)
     }
@@ -445,14 +499,34 @@ final class ResultPanelController: NSObject, NSWindowDelegate {
     func placeAboveHUD(_ hudFrame: NSRect) {
         let size = panel.frame.size
         guard let visible = NSScreen.screens.first(where: { $0.frame.intersects(hudFrame) })?.visibleFrame else { return }
-        var x = hudFrame.midX - size.width / 2
+        var width = min(size.width, visible.width - 16)
+        var height = min(size.height, visible.height - 16)
+        var x = hudFrame.midX - width / 2
         var y = hudFrame.maxY + 8
-        if y + size.height > visible.maxY {
-            y = hudFrame.minY - size.height - 8
+
+        let availableAbove = (visible.maxY - 8) - (hudFrame.maxY + 8)
+        if availableAbove >= 220 {
+            height = min(height, availableAbove)
+            y = hudFrame.maxY + 8
+        } else {
+            let availableBelow = (hudFrame.minY - 8) - (visible.minY + 8)
+            if availableBelow >= 220 {
+                height = min(height, availableBelow)
+                y = hudFrame.minY - height - 8
+            } else {
+                y = visible.midY - height / 2
+                if hudFrame.maxX + 8 + width <= visible.maxX {
+                    x = hudFrame.maxX + 8
+                } else {
+                    x = hudFrame.minX - width - 8
+                }
+            }
         }
-        x = min(max(x, visible.minX + 8), visible.maxX - size.width - 8)
-        y = min(max(y, visible.minY + 8), visible.maxY - size.height - 8)
-        panel.setFrameOrigin(NSPoint(x: x, y: y))
+
+        height = max(220, height)
+        x = min(max(x, visible.minX + 8), visible.maxX - width - 8)
+        y = min(max(y, visible.minY + 8), visible.maxY - height - 8)
+        panel.setFrame(NSRect(x: x, y: y, width: width, height: height), display: true)
     }
 
     private func place(caret: NSRect?) {

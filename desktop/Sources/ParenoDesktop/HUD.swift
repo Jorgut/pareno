@@ -196,21 +196,58 @@ final class CursorHUD: NSObject {
         if !panel.isVisible { panel.orderFrontRegardless() }
     }
 
-    func update(caret: NSRect?) {
+    func update(caret: NSRect?, field: NSRect? = nil) {
         guard let caret else { hide(); return }
         let size = panel.frame.size
-        let screen = NSScreen.screens.first { $0.frame.contains(NSEvent.mouseLocation) } ?? NSScreen.main
+        let caretCenter = NSPoint(x: caret.midX, y: caret.midY)
+        let screen = NSScreen.screens.first { $0.frame.contains(caretCenter) } ?? NSScreen.main
         guard let visible = screen?.visibleFrame else { hide(); return }
-        var x = caret.minX
-        var y = caret.maxY + 6
-        if x + size.width > visible.maxX { x = caret.maxX - size.width }
-        if y + size.height > visible.maxY { y = caret.minY - size.height - 6 }
-        if let field = SelectionService.textInputFrame() {
-            y = min(y, field.maxY + 6)
+        let gap: CGFloat = 8
+        let upperLimit = field.map { min($0.maxY, visible.maxY) } ?? visible.maxY
+        var origin: NSPoint?
+
+        // 1. Above the caret, but stay inside the text area (do not cover the toolbar).
+        let above = NSPoint(x: caret.minX, y: caret.maxY + gap)
+        if above.y + size.height <= upperLimit + 0.5, above.y >= visible.minY + 4 {
+            origin = above
         }
-        x = min(max(x, visible.minX + 4), visible.maxX - size.width - 4)
-        y = min(max(y, visible.minY + 4), visible.maxY - size.height - 4)
-        panel.setFrameOrigin(NSPoint(x: x, y: y))
+
+        // 2. Right of the caret, vertically centered.
+        if origin == nil {
+            let right = NSPoint(x: caret.maxX + gap, y: caret.midY - size.height / 2)
+            if right.x + size.width <= visible.maxX - 4,
+               right.y >= visible.minY + 4,
+               right.y + size.height <= visible.maxY - 4 {
+                origin = right
+            }
+        }
+
+        // 3. Left of the caret.
+        if origin == nil {
+            let left = NSPoint(x: caret.minX - size.width - gap, y: caret.midY - size.height / 2)
+            if left.x >= visible.minX + 4,
+               left.y >= visible.minY + 4,
+               left.y + size.height <= visible.maxY - 4 {
+                origin = left
+            }
+        }
+
+        // 4. Top edge of a small input field. Large editors keep their toolbar there,
+        // so fall through to the bottom dock instead of covering it.
+        if origin == nil, let field, field.height <= 180 {
+            let y = min(field.maxY + gap, visible.maxY - size.height - 4)
+            origin = NSPoint(x: field.minX + 6, y: max(y, visible.minY + 4))
+        }
+
+        // 5. Bottom dock, last resort.
+        if origin == nil {
+            origin = NSPoint(x: visible.midX - size.width / 2, y: visible.minY + 12)
+        }
+
+        var point = origin ?? NSPoint(x: caret.minX, y: caret.maxY + gap)
+        point.x = min(max(point.x, visible.minX + 4), visible.maxX - size.width - 4)
+        point.y = min(max(point.y, visible.minY + 4), visible.maxY - size.height - 4)
+        panel.setFrameOrigin(point)
         if !panel.isVisible { panel.orderFrontRegardless() }
     }
 

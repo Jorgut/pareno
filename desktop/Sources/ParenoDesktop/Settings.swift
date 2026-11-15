@@ -12,6 +12,8 @@ enum Prefs {
     static let appearance = "ParenoDesktopAppearance"
     static let cardAttached = "ParenoCardAttached"
     static let language = "ParenoLanguage"
+    static let cardWidth = "ParenoCardWidth"
+    static let cardHeight = "ParenoCardHeight"
     static let origin = "ParenoDesktopHUDOrigin"
     static let legacyVisible = "ParenoDesktopFollowCaret"
 }
