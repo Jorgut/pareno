@@ -64,7 +64,7 @@ enum Checker {
     static var translatePrompt: String {
         """
     You are Pareno Desktop Translate. Translate the user text into \(L10n.translationTargetName).
-    - If the text is already in \(L10n.translationTargetName), translate it into English instead.
+    - If the text is already in \(L10n.translationTargetName), translate it into \(L10n.translationFallbackName) instead.
     - Mixed input: translate all of it into \(L10n.translationTargetName).
     Preserve meaning, names, numbers, citations and the author's voice. Do not add or remove content.
     Return ONLY a JSON object:

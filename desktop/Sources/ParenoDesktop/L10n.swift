@@ -48,6 +48,14 @@ enum L10n {
         }
     }
 
+    static var translationFallbackName: String {
+        switch current {
+        case .zh: return "English"
+        case .en: return "Simplified Chinese"
+        case .ru: return "English"
+        }
+    }
+
     static func t(_ key: String, _ args: CVarArg...) -> String {
         let value = tables[current]?[key] ?? tables[.en]?[key] ?? key
         return args.isEmpty ? value : String(format: value, arguments: args)
