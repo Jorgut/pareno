@@ -52,3 +52,15 @@ QuietBar 归档同样是 `GB38532D8G`，使用 `Apple Development: hong liang zh
 **结论：已上架产品全部属于 hong liang zhu / GB38532D8G。**
 
 ALTAN JORGUTYN 的 Apple Development 证书（MT6C6A292R / OU M2K27U7XJ4）是另一个 Apple ID 的免费/个人团队证书，没有付费开发者计划，不能用于 App Store 分发。它只是留在 Keychain 里，不影响已上架产品。
+
+
+## 证书清理（2026-11-15）
+
+已删除 ALTAN JORGUTYN 的 Apple Development 证书：
+
+- 原 SHA-1：`92D3C5367A17B055194B57708D655D87178D519A`
+- 公钥备份：`~/Documents/AppleCertBackups/altan-dev-cert.pem`
+- 删除后 Keychain 只剩 5 个 hong liang zhu 的签名身份，全部属于 `GB38532D8G`
+- 现有 provisioning profiles 也全部是 `GB38532D8G`
+
+注意：私钥未备份，无法恢复签名；免费团队证书可按需重新生成。Xcode → Settings → Accounts 中如仍有 ALTAN 的 Apple ID，建议移除，避免自动重新生成。
