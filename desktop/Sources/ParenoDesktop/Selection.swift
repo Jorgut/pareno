@@ -15,6 +15,12 @@ enum SelectionService {
         NSWorkspace.shared.open(url)
     }
 
+    static func role(of element: AXUIElement) -> String {
+        var value: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(element, kAXRoleAttribute as CFString, &value) == .success else { return "?" }
+        return (value as? String) ?? "?"
+    }
+
     static func focusedElement() -> AXUIElement? {
         let system = AXUIElementCreateSystemWide()
         var value: CFTypeRef?

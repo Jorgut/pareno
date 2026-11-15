@@ -26,5 +26,11 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
 </dict>
 </plist>
 PLIST
-codesign --force --deep --sign - "$APP" >/dev/null 2>&1 || true
+SIGN_IDENTITY="${PARENO_SIGN_IDENTITY:-Developer ID Application: hong liang zhu (GB38532D8G)}"
+if security find-identity -v -p codesigning 2>/dev/null | grep -q "$SIGN_IDENTITY"; then
+  codesign --force --deep --options runtime --sign "$SIGN_IDENTITY" "$APP"
+else
+  echo "warning: signing identity not found, falling back to ad-hoc" >&2
+  codesign --force --deep --sign - "$APP" >/dev/null 2>&1 || true
+fi
 echo "Built $APP"

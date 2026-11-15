@@ -29,6 +29,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var lastKeyPoint: NSPoint?
     private var lastKeyTime = Date.distantPast
     private var lastCaretRect: NSRect?
+    private var lastDebugLog = Date.distantPast
     private var activityMonitors: [Any] = []
     private var lastHUDOrigin: NSPoint?
     private var fixedOrigin: NSPoint? {
@@ -347,6 +348,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         let selection = SelectionService.selectedText()?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let recentlyActive = Date().timeIntervalSince(lastTextActivity) < autoHide
+        if UserDefaults.standard.bool(forKey: "ParenoDebugHUD"), Date().timeIntervalSince(lastDebugLog) > 2 {
+            lastDebugLog = Date()
+            let role = SelectionService.focusedElement().map { SelectionService.role(of: $0) } ?? "nil"
+            log("hud role=\(role) caret=\(String(describing: caret)) field=\(String(describing: field)) active=\(recentlyActive) selection=\(selection.count)")
+        }
         let hasTextInput = field != nil || caret != nil
         guard (showTyping && (recentlyActive || hasTextInput)) || (showSelection && !selection.isEmpty) else {
             hud.hide()
