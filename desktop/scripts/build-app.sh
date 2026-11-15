@@ -2,10 +2,10 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
-swift build -c release
+swift build -c release --arch arm64 --arch x86_64
 APP="$ROOT/Pareno Desktop.app"
-VERSION="${PARENO_VERSION:-0.9.1}"
-BUILD="${PARENO_BUILD:-2}"
+VERSION="${PARENO_VERSION:-0.9.2}"
+BUILD="${PARENO_BUILD:-3}"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$ROOT/.build/release/ParenoDesktop" "$APP/Contents/MacOS/ParenoDesktop"

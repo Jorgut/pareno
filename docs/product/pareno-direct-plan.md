@@ -147,6 +147,8 @@ D0 完成，DMG 已可双击安装。
 - `dist/appcast.xml` 已生成并带 `sparkle:edSignature`
 - 更新托管地址暂定 `https://pareno.app/releases/`
 - 自动检查暂关（`SUEnableAutomaticChecks=false`），先保留手动检查，等 feed 上线再开
+- 0.9.2 已改为 **Universal（arm64 + x86_64）**
+- 0.9.2 DMG 已公证/Staple；SHA-256 `144dd5cd0821d60b1c9bfa8ebf513093d1dc2b974bfbdab2f1be37413ce42896`
 
 ## 9. 现在要做的事
 
