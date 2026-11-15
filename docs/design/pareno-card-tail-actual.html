@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Pareno 结果卡箭头 · 基于当前完成版</title>
+<style>
+  :root{
+    --bg:#0f0f0e; --text:#f3efe5; --muted:#a6a096; --faint:#756f65;
+    --gold:#d8bc78; --gold-2:#efd9a6;
+    --line:rgba(255,255,255,.085); --line-2:rgba(255,255,255,.14);
+    --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","Helvetica Neue",sans-serif;
+    --serif:Georgia,"Songti SC","Times New Roman",serif;
+    --mono:ui-monospace,"SF Mono",Menlo,monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);-webkit-font-smoothing:antialiased;}
+  .board{width:1720px;margin:0 auto;padding:54px 60px 80px;}
+  .kicker{font:11px/1 var(--mono);letter-spacing:.18em;color:var(--faint);text-transform:uppercase;}
+  h1{font:500 40px/1.15 var(--serif);margin:12px 0 10px;}
+  .lede{font-size:14px;line-height:1.8;color:var(--muted);max-width:1080px;margin:0;}
+  .meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;}
+  .pill{font-size:11px;padding:6px 11px;border:1px solid var(--line-2);border-radius:999px;color:var(--muted);background:rgba(255,255,255,.03);}
+  .pill.gold{color:var(--gold-2);border-color:rgba(216,188,120,.5);background:rgba(216,188,120,.08);}
+  .section{margin-top:50px;}
+  .sec-head{display:flex;align-items:baseline;gap:12px;border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:22px;}
+  .sec-head h2{font:500 20px/1.3 var(--serif);margin:0;}
+  .sec-head span{font-size:12px;color:var(--faint);}
+  .scene{position:relative;height:700px;border-radius:18px;overflow:hidden;border:1px solid var(--line);background:radial-gradient(900px 500px at 30% 0%, #2a2720 0%, transparent 60%),radial-gradient(700px 500px at 100% 100%, #1d2622 0%, transparent 55%),#121210;}
+  .actual-label{position:absolute;left:24px;top:18px;font:10px var(--mono);color:var(--faint);letter-spacing:.12em;text-transform:uppercase;}
+  .card-wrap{position:absolute;left:330px;top:60px;width:435px;}
+  .card-wrap img{display:block;width:435px;height:459px;border-radius:18px;}
+  .card-wrap .cover{position:absolute;left:50%;transform:translateX(-50%);bottom:0;width:66px;height:16px;background:#2a2722;z-index:2;}
+  .tail-proposed{position:absolute;left:50%;transform:translateX(-50%);bottom:-14px;z-index:3;width:30px;height:15px;filter:drop-shadow(0 8px 10px rgba(0,0,0,.35));}
+  .hud-wrap{position:absolute;left:417px;top:548px;width:260px;}
+  .hud-wrap img{display:block;width:260px;height:38px;}
+  .callout{position:absolute;font:11px var(--mono);color:var(--muted);display:flex;align-items:center;gap:8px;}
+  .callout b{color:var(--gold-2);font-weight:500;}
+  .callout .line{height:1px;background:var(--line-2);width:70px;}
+  .current-mark{position:absolute;left:520px;top:492px;width:56px;height:20px;border:1px dashed rgba(220,167,162,.75);border-radius:50%;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+  .compare{border:1px solid var(--line);border-radius:16px;background:#141311;padding:18px;min-height:560px;}
+  .compare h3{margin:0 0 4px;font:500 15px/1.3 var(--serif);}
+  .compare p{margin:0 0 14px;color:var(--muted);font-size:11.5px;line-height:1.6;}
+  .compare.bad{border-color:rgba(220,167,162,.28);}
+  .compare.good{border-color:rgba(216,188,120,.35);}
+  .mini{position:relative;height:470px;border-radius:10px;background:#10100f;border:1px solid var(--line);overflow:hidden;}
+  .mini .card-wrap{left:50%;top:20px;transform:translateX(-50%);width:360px;}
+  .mini .card-wrap img{width:360px;height:380px;}
+  .mini .hud-wrap{left:50%;top:420px;transform:translateX(-50%);width:220px;}
+  .mini .hud-wrap img{width:220px;height:32px;}
+  .zoom{display:grid;grid-template-columns:1.1fr .9fr;gap:22px;}
+  .zoombox{height:430px;border-radius:16px;border:1px solid var(--line);background:#10100f;overflow:hidden;display:grid;place-items:center;}
+  .zoom-inner{position:relative;width:435px;height:180px;transform:scale(2.0);transform-origin:center center;}
+  .zoom-inner img{position:absolute;left:0;bottom:-279px;width:435px;}
+  .zoom-inner .cover{position:absolute;left:50%;transform:translateX(-50%);bottom:0;width:66px;height:16px;background:#2a2722;z-index:2;}
+  .zoom-inner .tail-proposed{bottom:-14px;}
+  .specs{border:1px solid var(--line);border-radius:16px;padding:22px 24px;background:linear-gradient(180deg,#1a1916,#151412);}
+  .specs h3{margin:0 0 12px;font:500 18px/1.3 var(--serif);}
+  .specs ul{margin:0;padding-left:18px;color:var(--muted);font-size:12.5px;line-height:1.9;}
+  .specs b{color:#e6dfd1;font-weight:500;}
+  .specs code{font:11px var(--mono);background:rgba(255,255,255,.06);padding:2px 5px;border-radius:4px;color:#efe9dd;}
+  .note{margin-top:22px;border:1px solid rgba(216,188,120,.35);border-radius:16px;padding:22px 24px;background:linear-gradient(180deg,rgba(216,188,120,.07),rgba(216,188,120,.02));}
+  .note h3{margin:0 0 10px;font:500 19px/1.3 var(--serif);color:var(--gold-2);}
+  .note p{margin:0 0 8px;color:#d6cfc1;font-size:13px;line-height:1.8;}
+  .caption{margin-top:12px;font:11px var(--mono);color:var(--faint);}
+</style>
+</head>
+<body>
+<div class="board">
+  <div class="kicker">Pareno Desktop · card tail · based on current build · 2026-11-15</div>
+  <h1>在当前完成版上，只改箭头</h1>
+  <p class="lede">卡片和 HUD 是现在 App 里的真实截图，不是重新画的界面。只替换底部箭头为 30×15 圆肩一体式，其他布局、字体、间距、按钮都不动。</p>
+  <div class="meta">
+    <span class="pill gold">真实卡片 435×459</span>
+    <span class="pill">只改箭头</span>
+    <span class="pill">30×15 圆肩</span>
+    <span class="pill">其他保持原样</span>
+  </div>
+
+  <div class="section">
+    <div class="sec-head"><h2>真实卡片 + 建议箭头</h2><span>卡片与 HUD 像素来自当前运行版本</span></div>
+    <div class="scene">
+      <div class="actual-label">CURRENT BUILD · ACTUAL PIXELS</div>
+      <div class="card-wrap">
+        <img src="assets/card-actual.png" alt="当前 Pareno 结果卡">
+        <div class="cover"></div>
+        <div class="tail-proposed">
+          <svg viewBox="0 0 30 15" width="30" height="15"><path d="M1 0 H29 L20 11.2 Q15 15.6 10 11.2 Z" fill="#2a2722" stroke="rgba(255,255,255,.15)" stroke-width="1"/></svg>
+        </div>
+      </div>
+      <div class="hud-wrap"><img src="assets/hud-actual.png" alt="当前 Pareno HUD"></div>
+      <div class="current-mark"></div>
+      <div class="callout" style="left:620px;top:470px;"><span>现在 14×7</span><span class="line"></span></div>
+      <div class="callout" style="left:620px;top:505px;"><b>建议 30×15</b><span class="line"></span><span>圆肩 · 连续描边</span></div>
+    </div>
+    <div class="caption">箭头根部用 66×16 同色遮盖去掉原底边；箭头本身不改变卡片尺寸。</div>
+  </div>
+
+  <div class="section">
+    <div class="sec-head"><h2>同一张卡片的对比</h2><span>左：当前版本原样；右：只替换箭头</span></div>
+    <div class="grid2">
+      <div class="compare bad">
+        <h3>现在</h3>
+        <p>14×7 小三角，直角折边，像贴在卡片外面的标签。</p>
+        <div class="mini">
+          <div class="card-wrap"><img src="assets/card-actual.png" alt=""></div>
+          <div class="hud-wrap"><img src="assets/hud-actual.png" alt=""></div>
+        </div>
+      </div>
+      <div class="compare good">
+        <h3>建议</h3>
+        <p>30×15 圆肩箭头，和卡片共用材质与描边，像从卡片里长出来。</p>
+        <div class="mini">
+          <div class="card-wrap">
+            <img src="assets/card-actual.png" alt="">
+            <div class="cover" style="width:58px;height:14px;"></div>
+            <div class="tail-proposed" style="width:28px;height:14px;bottom:-13px;">
+              <svg viewBox="0 0 30 15" width="28" height="14"><path d="M1 0 H29 L20 11.2 Q15 15.6 10 11.2 Z" fill="#2a2722" stroke="rgba(255,255,255,.15)" stroke-width="1"/></svg>
+            </div>
+          </div>
+          <div class="hud-wrap"><img src="assets/hud-actual.png" alt=""></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="sec-head"><h2>箭头细节</h2><span>圆肩、连续描边、同材质</span></div>
+    <div class="zoom">
+      <div class="zoombox">
+        <div class="zoom-inner">
+          <img src="assets/card-actual.png" alt="">
+          <div class="cover"></div>
+          <div class="tail-proposed">
+            <svg viewBox="0 0 30 15" width="30" height="15"><path d="M1 0 H29 L20 11.2 Q15 15.6 10 11.2 Z" fill="#2a2722" stroke="rgba(255,255,255,.15)" stroke-width="1"/></svg>
+          </div>
+        </div>
+      </div>
+      <div class="specs">
+        <h3>只改这一个部件</h3>
+        <ul>
+          <li>尺寸 <code>30 × 15</code>，尖端圆角 <code>2px</code>，圆肩过渡。</li>
+          <li>填充与卡片底部同色 <code>#2a2722</code>，描边 <code>1px rgba(255,255,255,.15)</code>。</li>
+          <li>根部 66×16 遮盖，去掉原卡片底边，避免横线。</li>
+          <li>阴影跟随箭头，不单独加硬阴影。</li>
+          <li>四个吸附方向只旋转箭头；自由拖动时隐藏。</li>
+          <li>卡片尺寸、圆角、字体、按钮、间距都不改。</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="note">
+    <h3>请确认</h3>
+    <p>1. 这个 30×15 圆肩箭头，是否就是你要的“从卡片长出来”的效果？</p>
+    <p>2. 如果还不够，我可以加到 36×18；如果觉得太大，回到 24×12。</p>
+    <p>3. 确认后我只替换箭头，不动其他 UI。</p>
+  </div>
+</div>
+</body>
+</html>

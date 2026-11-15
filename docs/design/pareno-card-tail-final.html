@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Pareno 结果卡箭头 · 最终布局矢量稿</title>
+<style>
+  :root{--bg:#0f0f0e;--text:#f3efe5;--muted:#a6a096;--faint:#756f65;--gold:#d8bc78;--gold-2:#efd9a6;--line:rgba(255,255,255,.085);--line-2:rgba(255,255,255,.14);--font:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","Helvetica Neue",sans-serif;--serif:Georgia,"Songti SC","Times New Roman",serif;--mono:ui-monospace,"SF Mono",Menlo,monospace;}
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);-webkit-font-smoothing:antialiased}
+  .board{width:1720px;margin:0 auto;padding:54px 60px 80px}
+  .kicker{font:11px/1 var(--mono);letter-spacing:.18em;color:var(--faint);text-transform:uppercase}
+  h1{font:500 40px/1.15 var(--serif);margin:12px 0 10px}
+  .lede{font-size:14px;line-height:1.8;color:var(--muted);max-width:1080px;margin:0}
+  .meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+  .pill{font-size:11px;padding:6px 11px;border:1px solid var(--line-2);border-radius:999px;color:var(--muted);background:rgba(255,255,255,.03)}
+  .pill.gold{color:var(--gold-2);border-color:rgba(216,188,120,.5);background:rgba(216,188,120,.08)}
+  .section{margin-top:50px}
+  .sec-head{display:flex;align-items:baseline;gap:12px;border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:22px}
+  .sec-head h2{font:500 20px/1.3 var(--serif);margin:0}
+  .sec-head span{font-size:12px;color:var(--faint)}
+  .scene{position:relative;height:760px;border-radius:18px;overflow:hidden;border:1px solid var(--line);background:radial-gradient(900px 500px at 30% 0%,#2a2720 0%,transparent 60%),radial-gradient(700px 500px at 100% 100%,#1d2622 0%,transparent 55%),#121210}
+  .caption{margin-top:12px;font:11px var(--mono);color:var(--faint)}
+
+  .card{position:relative;width:435px;border-radius:18px;background:linear-gradient(180deg,#2b2823,#211f1b);border:1px solid rgba(255,255,255,.14);box-shadow:0 34px 80px rgba(0,0,0,.62),0 1px 0 rgba(255,255,255,.10) inset;padding:16px;color:#efe9dd}
+  .card-head{display:flex;align-items:center;gap:9px;margin-bottom:12px}
+  .brand{width:24px;height:24px;border-radius:7px;background:linear-gradient(145deg,#e9d195,#c6a35e);color:#2b2416;display:grid;place-items:center;font:600 12px/1 var(--serif)}
+  .title{font-size:13px;font-weight:600}
+  .tabs{display:flex;gap:2px;margin-left:auto;background:rgba(255,255,255,.04);border-radius:12px;padding:3px}
+  .tab{font-size:11px;color:#b9b2a6;padding:5px 12px;border-radius:9px}
+  .tab.on{background:rgba(216,188,120,.22);color:var(--gold-2);box-shadow:0 0 0 1px rgba(216,188,120,.38) inset}
+  .close{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.06);color:#a6a096;font-size:11px;margin-left:8px}
+  .label{font-size:10px;color:#8f887c;margin-bottom:5px}
+  .source{border-radius:9px;background:rgba(255,255,255,.05);padding:9px 10px;font-size:12px;color:#d9d2c4;margin-bottom:10px;line-height:1.5}
+  .variants{display:inline-flex;background:rgba(255,255,255,.05);border-radius:10px;padding:2px;margin-bottom:9px}
+  .variant{font-size:11px;color:#a9a294;padding:5px 12px;border-radius:8px}
+  .variant.on{background:rgba(255,255,255,.14);color:#f1ebdf;box-shadow:0 1px 0 rgba(255,255,255,.12) inset}
+  .result{border-radius:9px;background:rgba(255,255,255,.045);padding:10px;font-size:13px;line-height:1.7;color:#efe9dd;min-height:210px}
+  .foot{display:flex;align-items:center;gap:8px;margin-top:12px}
+  .btn{font-size:11px;padding:6px 12px;border-radius:9px;background:rgba(216,188,120,.9);color:#2a2317;font-weight:600}
+  .btn.sec{background:rgba(255,255,255,.07);color:#cfc8bb;font-weight:400}
+  .model{margin-left:auto;font-size:9px;color:#7c766c}
+
+  .hero-card{position:absolute;left:640px;top:50px}
+  .hud{position:absolute;left:735px;top:588px;transform:translateX(-50%);display:inline-flex;align-items:center;height:38px;padding:0 6px;border-radius:19px;background:linear-gradient(180deg,rgba(48,45,40,.97),rgba(32,30,27,.98));border:1px solid rgba(255,255,255,.16);box-shadow:0 16px 34px rgba(0,0,0,.55),0 1px 0 rgba(255,255,255,.14) inset;color:#efe9dd;font-size:12px}
+  .hud .grip{width:14px;text-align:center;color:#7c766c;font-size:10px}
+  .hud .b{padding:6px 12px;border-radius:13px;color:#cfc8bb;white-space:nowrap}
+  .hud .b.on{background:rgba(216,188,120,.22);color:var(--gold-2);box-shadow:0 0 0 1px rgba(216,188,120,.4) inset}
+  .hud .sep{width:1px;height:16px;background:rgba(255,255,255,.12);margin:0 2px}
+  .hud .ic{padding:0 7px;color:#b9b2a6}
+
+  .tail{position:absolute;left:50%;transform:translateX(-50%);bottom:-14px;width:30px;height:15px;z-index:2;filter:drop-shadow(0 8px 10px rgba(0,0,0,.35))}
+  .tail svg{display:block;width:30px;height:15px}
+  .tail-mask{position:absolute;left:50%;transform:translateX(-50%);bottom:-1px;width:28px;height:3px;background:#26231f;z-index:3}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  .cmp{border:1px solid var(--line);border-radius:16px;padding:18px;background:#141311;min-height:560px}
+  .cmp h3{margin:0 0 4px;font:500 15px/1.3 var(--serif)}
+  .cmp p{margin:0 0 14px;color:var(--muted);font-size:11.5px;line-height:1.6}
+  .cmp.bad{border-color:rgba(220,167,162,.28)}
+  .cmp.good{border-color:rgba(216,188,120,.35)}
+  .mini{position:relative;height:470px;border-radius:10px;background:#10100f;border:1px solid var(--line);overflow:hidden}
+  .mini .card{position:absolute;left:50%;top:14px;transform:translateX(-50%) scale(.78);transform-origin:top center}
+  .mini .hud{position:absolute;left:50%;top:420px;transform:translateX(-50%) scale(.85);transform-origin:top center}
+  .mini .tail{width:22px;height:11px;bottom:-10px}
+  .mini .tail svg{width:22px;height:11px}
+  .mini .tail-mask{width:20px;height:2px}
+
+  .detail{display:grid;grid-template-columns:1.1fr .9fr;gap:22px}
+  .zoombox{height:520px;border-radius:16px;border:1px solid var(--line);background:#10100f;overflow:hidden;display:grid;place-items:center}
+  .zoombox .card{transform:scale(1.35);transform-origin:center top;margin-top:10px}
+  .specs{border:1px solid var(--line);border-radius:16px;padding:22px 24px;background:linear-gradient(180deg,#1a1916,#151412)}
+  .specs h3{margin:0 0 12px;font:500 18px/1.3 var(--serif)}
+  .specs ul{margin:0;padding-left:18px;color:var(--muted);font-size:12.5px;line-height:1.9}
+  .specs b{color:#e6dfd1;font-weight:500}
+  .specs code{font:11px var(--mono);background:rgba(255,255,255,.06);padding:2px 5px;border-radius:4px;color:#efe9dd}
+  .note{margin-top:22px;border:1px solid rgba(216,188,120,.35);border-radius:16px;padding:22px 24px;background:linear-gradient(180deg,rgba(216,188,120,.07),rgba(216,188,120,.02))}
+  .note h3{margin:0 0 10px;font:500 19px/1.3 var(--serif);color:var(--gold-2)}
+  .note p{margin:0 0 8px;color:#d6cfc1;font-size:13px;line-height:1.8}
+</style>
+</head>
+<body>
+<div class="board">
+  <div class="kicker">Pareno Desktop · card tail · final layout vector · 2026-11-15</div>
+  <h1>最终布局 × 一体式箭头</h1>
+  <p class="lede">这不是另一套界面：卡片结构、三键 HUD、原文/自然译文/忠实译文、替换/复制、来源标签都按当前完成版排。只把底部箭头换成 30×15 圆肩一体式。</p>
+  <div class="meta"><span class="pill gold">保留当前布局</span><span class="pill">只改箭头</span><span class="pill">30×15 圆肩</span><span class="pill">自由拖动隐藏</span></div>
+
+  <div class="section">
+    <div class="sec-head"><h2>主场景</h2><span>卡片在上，箭头指向 HUD；材质、描边、阴影连续</span></div>
+    <div class="scene">
+      <div class="card hero-card">
+        <div class="card-head"><div class="brand">P</div><div class="title">Pareno Desktop</div><div class="tabs"><span class="tab">检查</span><span class="tab on">翻译</span><span class="tab">解释</span></div><div class="close">×</div></div>
+        <div class="label">原文</div><div class="source">The facade is very beautiful, but I very like the interior courtyard.</div>
+        <div class="variants"><span class="variant on">自然译文</span><span class="variant">忠实译文</span></div>
+        <div class="result">The facade is beautiful, but I especially like the interior courtyard.<br><span style="color:#8f887c;font-size:11px;">保留原文语气；especially 替代 very 修饰 like。</span></div>
+        <div class="foot"><span class="btn">替换为译文</span><span class="btn sec">复制</span><span class="model">Claude Code</span></div>
+        <div class="tail"><svg viewBox="0 0 30 15"><path d="M1 0 H29 L20 11.2 Q15 15.6 10 11.2 Z" fill="#26231f" stroke="rgba(255,255,255,.14)" stroke-width="1"/></svg></div>
+        <div class="tail-mask"></div>
+      </div>
+      <div class="hud"><span class="grip">⠿</span><span class="b">检查</span><span class="sep"></span><span class="b on">翻译</span><span class="sep"></span><span class="b">解释</span><span class="sep"></span><span class="ic">⚙</span><span class="ic">×</span></div>
+    </div>
+    <div class="caption">箭头中心对准 HUD 中心；卡片被屏幕边缘挤开时，箭头在卡片内偏移。</div>
+  </div>
+
+  <div class="section">
+    <div class="sec-head"><h2>现在 vs 建议</h2><span>同一张卡片，只换箭头</span></div>
+    <div class="grid2">
+      <div class="cmp bad"><h3>现在</h3><p>14×7 小三角，直角折边，像贴在卡片外的标签。</p>
+        <div class="mini">
+          <div class="card"><div class="card-head"><div class="brand">P</div><div class="title">Pareno Desktop</div><div class="tabs"><span class="tab on">翻译</span></div></div><div class="source">The facade is very beautiful.</div><div class="result" style="min-height:110px;">立面非常漂亮。</div><div class="tail" style="width:14px;height:7px;bottom:-6px;"><svg viewBox="0 0 14 7"><path d="M0 0 H14 L9 5.5 Q7 7.5 5 5.5 Z" fill="#26231f" stroke="rgba(255,255,255,.13)" stroke-width="1"/></svg></div></div>
+          <div class="hud"><span class="b on">翻译</span><span class="sep"></span><span class="b">检查</span><span class="sep"></span><span class="b">解释</span></div>
+        </div>
+      </div>
+      <div class="cmp good"><h3>建议</h3><p>30×15 圆肩箭头，和卡片共用材质与描边，像从卡片里长出来。</p>
+        <div class="mini">
+          <div class="card"><div class="card-head"><div class="brand">P</div><div class="title">Pareno Desktop</div><div class="tabs"><span class="tab on">翻译</span></div></div><div class="source">The facade is very beautiful.</div><div class="result" style="min-height:110px;">立面非常漂亮。</div><div class="tail"><svg viewBox="0 0 30 15"><path d="M1 0 H29 L20 11.2 Q15 15.6 10 11.2 Z" fill="#26231f" stroke="rgba(255,255,255,.14)" stroke-width="1"/></svg></div><div class="tail-mask"></div></div>
+          <div class="hud"><span class="b on">翻译</span><span class="sep"></span><span class="b">检查</span><span class="sep"></span><span class="b">解释</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="sec-head"><h2>箭头细节</h2><span>30×15，尖端 2px 圆角，根部去横线</span></div>
+    <div class="detail">
+      <div class="zoombox">
+        <div class="card"><div class="card-head"><div class="brand">P</div><div class="title">Pareno Desktop</div><div class="tabs"><span class="tab on">检查</span></div></div><div class="source">The facade is very beautiful.</div><div class="result" style="min-height:120px;">立面非常漂亮。</div><div class="tail"><svg viewBox="0 0 30 15"><path d="M1 0 H29 L20 11.2 Q15 15.6 10 11.2 Z" fill="#26231f" stroke="rgba(255,255,255,.16)" stroke-width="1"/></svg></div><div class="tail-mask"></div></div>
+      </div>
+      <div class="specs"><h3>规格</h3><ul>
+        <li>箭头 <code>30 × 15</code>，尖端圆角 <code>2px</code>，圆肩过渡。</li>
+        <li>填充与卡片底部同色，描边 <code>1px rgba(255,255,255,.14)</code> 连续。</li>
+        <li>根部 28×3 遮盖，去掉卡片底边横线。</li>
+        <li>阴影跟随箭头，不单独加硬阴影。</li>
+        <li>四个方向只旋转箭头；自由拖动时隐藏。</li>
+        <li>卡片尺寸、圆角、字体、按钮、间距都不改。</li>
+      </ul></div>
+    </div>
+  </div>
+
+  <div class="note"><h3>请确认</h3><p>1. 这个 30×15 圆肩箭头，是否就是你要的效果？</p><p>2. 想要更饱满可以加到 36×18；觉得大就回到 24×12。</p><p>3. 确认后我只替换箭头，不动其他 UI。</p></div>
+</div>
+</body>
+</html>
