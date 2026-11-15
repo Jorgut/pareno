@@ -83,7 +83,8 @@ Pareno Desktop can use a local agent CLI you already signed in to, or Ollama.
 - **Auto** tries Codex CLI, Claude Code, Cursor Agent and OpenCode in order, then falls back to Ollama.
 - Pick a specific source in **Settings… → AI source** or the menu bar → **AI source**.
 - Agent CLIs must be installed and logged in; if a call fails, the card shows the provider error.
-- Offline, use Ollama. Smaller local models such as `qwen2.5:7b` are much faster than `gpt-oss:20b`.
+- Offline, use Ollama. The model picker prefers `qwen3.5:4b`, then `gemma4:12b`, then `qwen3.8:27b`; `gpt-oss:20b` is a slow fallback.
+- **Ollama Cloud** is supported through `https://ollama.com`. Add an API key in **Settings… → Ollama Cloud**; cloud models appear under the model menu with a ☁ header. The default cloud choice is `deepseek-v4.1-flash`.
 
 ## Model choice
 

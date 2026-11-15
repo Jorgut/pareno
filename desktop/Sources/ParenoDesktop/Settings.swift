@@ -15,6 +15,7 @@ enum Prefs {
     static let cardWidth = "ParenoCardWidth"
     static let cardHeight = "ParenoCardHeight"
     static let provider = "ParenoProvider"
+    static let ollamaKeyAccount = "ollamaApiKey"
     static let origin = "ParenoDesktopHUDOrigin"
     static let legacyVisible = "ParenoDesktopFollowCaret"
 }
@@ -34,6 +35,7 @@ struct SettingsView: View {
     @AppStorage(Prefs.appearance) private var appearance = "system"
     @AppStorage(Prefs.cardAttached) private var cardAttached = true
     @AppStorage(Prefs.provider) private var provider = "auto"
+    @State private var cloudKey = ""
     @AppStorage(Prefs.language) private var language = "en"
 
     var body: some View {
@@ -101,6 +103,13 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
             }
 
+            Section(L10n.t("settings.cloud.section")) {
+                SecureField(L10n.t("settings.cloud.key"), text: $cloudKey)
+                Text(L10n.t("settings.cloud.hint"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             Section(L10n.t("settings.model.section")) {
                 LabeledContent(L10n.t("settings.model.current")) {
                     Text(model.isEmpty ? L10n.t("settings.model.none") : model)
@@ -124,6 +133,11 @@ struct SettingsView: View {
         .onChange(of: cardAttached) { _ in notifyChange() }
         .onChange(of: language) { _ in notifyChange() }
         .onChange(of: provider) { _ in notifyChange() }
+        .onChange(of: cloudKey) { value in
+            KeychainStore.set(value, for: Prefs.ollamaKeyAccount)
+            notifyChange()
+        }
+        .onAppear { cloudKey = KeychainStore.string(for: Prefs.ollamaKeyAccount) }
         .onDisappear { notifyChange() }
     }
 }

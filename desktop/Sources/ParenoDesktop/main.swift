@@ -70,6 +70,22 @@ func runSelfTest() {
 
 let arguments = Array(CommandLine.arguments.dropFirst())
 if arguments.contains("--selftest") { runSelfTest() }
+if arguments.contains("--cloud-models") {
+    let semaphore = DispatchSemaphore(value: 0)
+    Task {
+        do {
+            let list = try await OllamaClient(baseURL: AIService.cloudEndpoint).models()
+            print("count=\(list.count)")
+            print("fastest=\(AIService.fastestCloudModel(in: list, preferred: ""))")
+            for name in list.prefix(12) { print(name) }
+        } catch {
+            print("ERROR \(error.localizedDescription)")
+        }
+        semaphore.signal()
+    }
+    semaphore.wait()
+    exit(0)
+}
 if arguments.contains("--agents") {
     for status in AgentDetector.scan() {
         print("\(status.kind.label)\t\(status.ready ? "ready" : "missing")\t\(status.version)\t\(status.path)")

@@ -21,8 +21,10 @@ struct ChatMessage: Codable {
 
 struct OllamaClient {
     let baseURL: URL
+    let apiKey: String?
 
-    init(baseURL: URL? = nil) {
+    init(baseURL: URL? = nil, apiKey: String? = nil) {
+        self.apiKey = apiKey
         if let baseURL {
             self.baseURL = baseURL
         } else if let override = (ProcessInfo.processInfo.environment["PARENO_DESKTOP_OLLAMA"] ?? ProcessInfo.processInfo.environment["WRITECHECK_OLLAMA"]), let url = URL(string: override) {
@@ -58,6 +60,9 @@ struct OllamaClient {
         request.httpMethod = "POST"
         request.timeoutInterval = 150
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        if let apiKey, !apiKey.isEmpty {
+            request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        }
         struct Options: Encodable { let temperature: Double }
         struct Body: Encodable {
             let model: String

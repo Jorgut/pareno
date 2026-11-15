@@ -32,6 +32,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var lastDebugLog = Date.distantPast
     private var currentLanguage = L10n.current
     private var agentStatuses: [AgentStatus] = []
+    private var cloudModels: [String] = []
     private var activityMonitors: [Any] = []
     private var lastHUDOrigin: NSPoint?
     private var fixedOrigin: NSPoint? {
@@ -176,7 +177,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let aiItem = NSMenuItem(title: L10n.t("menu.ai"), action: nil, keyEquivalent: "")
         let aiSubmenu = NSMenu()
         let selectedProvider = AIProvider(rawValue: UserDefaults.standard.string(forKey: Prefs.provider) ?? "auto") ?? .auto
-        for provider in [AIProvider.auto, .claude, .codex, .cursor, .opencode, .ollama] {
+        for provider in [AIProvider.auto, .claude, .codex, .cursor, .opencode, .ollama, .ollamaCloud] {
             var title = provider.label
             var enabled = true
             if let kind = provider.agent {
@@ -205,6 +206,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             submenu.addItem(NSMenuItem(title: lastError.isEmpty ? L10n.t("menu.loading") : lastError, action: nil, keyEquivalent: ""))
         } else {
             for model in models {
+                let item = NSMenuItem(title: model, action: #selector(selectModel(_:)), keyEquivalent: "")
+                item.target = self
+                item.representedObject = model
+                item.state = model == currentModel ? .on : .off
+                submenu.addItem(item)
+            }
+        }
+        submenu.addItem(.separator())
+        let header = NSMenuItem(title: "☁ \(L10n.t("menu.cloudModels"))", action: nil, keyEquivalent: "")
+        header.isEnabled = false
+        submenu.addItem(header)
+        if cloudModels.isEmpty {
+            let empty = NSMenuItem(title: L10n.t("settings.cloud.section"), action: nil, keyEquivalent: "")
+            empty.isEnabled = false
+            submenu.addItem(empty)
+        } else {
+            for model in cloudModels {
                 let item = NSMenuItem(title: model, action: #selector(selectModel(_:)), keyEquivalent: "")
                 item.target = self
                 item.representedObject = model
@@ -506,6 +524,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard let model = sender.representedObject as? String else { return }
         currentModel = model
         UserDefaults.standard.set(model, forKey: "ParenoDesktopModel")
+        let provider: AIProvider = cloudModels.contains(model) ? .ollamaCloud : .ollama
+        UserDefaults.standard.set(provider.rawValue, forKey: Prefs.provider)
         rebuildMenu()
     }
 
@@ -515,16 +535,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func refreshModels() {
         Task {
-            do {
-                let list = try await OllamaClient().models()
-                self.models = list
-                self.lastError = list.isEmpty ? L10n.t("error.modelsEmpty") : ""
-                if self.currentModel.isEmpty || !list.contains(self.currentModel) {
-                    self.currentModel = list.first ?? ""
-                    UserDefaults.standard.set(self.currentModel, forKey: "ParenoDesktopModel")
-                }
-            } catch {
-                self.lastError = L10n.t("error.ollamaUnavailable")
+            let local = (try? await OllamaClient().models()) ?? []
+            let cloud = (try? await OllamaClient(baseURL: AIService.cloudEndpoint).models()) ?? []
+            self.models = local
+            self.cloudModels = cloud
+            self.lastError = local.isEmpty && cloud.isEmpty ? L10n.t("error.ollamaUnavailable") : ""
+            if self.currentModel.isEmpty || !(local + cloud).contains(self.currentModel) {
+                let preferred = AIService.fastestModel(in: local, preferred: "")
+                self.currentModel = preferred.isEmpty ? AIService.fastestCloudModel(in: cloud, preferred: "") : preferred
+                UserDefaults.standard.set(self.currentModel, forKey: "ParenoDesktopModel")
             }
             self.rebuildMenu()
         }

@@ -103,6 +103,7 @@ enum AIProvider: String, CaseIterable {
     case cursor
     case opencode
     case ollama
+    case ollamaCloud
 
     var label: String {
         switch self {
@@ -112,6 +113,7 @@ enum AIProvider: String, CaseIterable {
         case .cursor: return AgentKind.cursor.label
         case .opencode: return AgentKind.opencode.label
         case .ollama: return "Ollama"
+        case .ollamaCloud: return "Ollama Cloud"
         }
     }
 
