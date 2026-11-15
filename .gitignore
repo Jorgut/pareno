@@ -6,3 +6,5 @@ docs/local/
 .cache/
 
 .build/
+
+dist/
