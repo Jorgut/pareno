@@ -27,6 +27,15 @@ import Base from '../layouts/Base.astro';
           <li>写作对话保存在本库 <code>PARENO/Conversations/</code>，学习卡片保存在 <code>PARENO/Learning Log.md</code>；它们可能随你的 Obsidian 同步方案同步。</li>
         </ul>
 
+        <h2>Pareno Desktop</h2>
+        <ul>
+          <li>Pareno Desktop 默认把文字发送到本机 <code>http://localhost:11434</code> 的 Ollama；不会经过 Pareno 的服务器。</li>
+          <li>只有你主动选择云端模型或 Agent 时，文字才会发送到对应服务。</li>
+          <li>桌面端不收集分析遥测。许可验证只发送许可密钥和随机设备标识，不发送写作文本。</li>
+          <li>付款由 Paddle 处理；Pareno 不接触你的完整银行卡信息。</li>
+          <li>辅助功能权限只用于读取当前光标/选区和放回替换文本。</li>
+        </ul>
+
         <h2>反馈会发送什么</h2>
         <p>反馈通过插件弹窗或本网站的反馈表单提交，经本站 <code>/api/feedback</code> 转发到作者的<strong>私有 GitHub 收件库</strong>。只有你主动提交时才会发送。</p>
         <table>

@@ -1,0 +1,151 @@
+---
+import Base from '../layouts/Base.astro';
+const download = 'https://github.com/Jorgut/pareno/releases/download/desktop-0.9.3/ParenoDesktop-0.9.3.dmg';
+const release = 'https://github.com/Jorgut/pareno/releases/tag/desktop-0.9.3';
+---
+<Base
+  title="Pareno Desktop · 贴着光标的写作检查器"
+  description="Pareno Desktop 是 macOS 上的本地优先写作检查器：在光标旁检查、翻译、解释，支持中文、英文、俄文，模型可完全在本机运行。"
+>
+  <section class="hero desktop-hero">
+    <div class="wrap hero-grid">
+      <div>
+        <span class="eyebrow">macOS desktop · 0.9.3</span>
+        <h1>贴着光标的<br />写作检查器。</h1>
+        <p class="lead">
+          在任意 App 里打字或选中文字，Pareno HUD 就出现在光标旁。
+          检查语法与用词、翻译、解释为什么这样写更好——不离开当前句子。
+        </p>
+        <div class="hero-actions">
+          <a class="button primary" href={download}>下载 macOS 版</a>
+          <a class="button" href="#pricing">查看价格</a>
+        </div>
+        <div class="hero-note">
+          <span>macOS 13+ · Universal</span>
+          <span>本地 Ollama · 可离线</span>
+          <span>中 / 英 / 俄</span>
+        </div>
+      </div>
+      <figure class="hero-media">
+        <img src="/pareno-desktop-shot.png" alt="Pareno Desktop：光标旁的检查 HUD 与结果卡" width="1600" height="1129" />
+        <figcaption>界面预览。实际版本会随迭代调整。</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="section section-soft">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="eyebrow">THREE ACTIONS</span>
+        <h2>检查、翻译、解释，就在光标旁</h2>
+        <p>不是另一个聊天窗口。你不需要复制、切换 App、再粘贴回来。</p>
+      </div>
+      <div class="card-grid">
+        <div class="card"><span class="tag">Check</span><h3>检查</h3><p>语法、拼写、用词、搭配和不自然表达；区分明确错误与可选润色。</p></div>
+        <div class="card"><span class="tag">Translate</span><h3>翻译</h3><p>中、英、俄互译，保留原意、名字、数字和作者语气。</p></div>
+        <div class="card"><span class="tag">Explain</span><h3>解释</h3><p>说明为什么不对、更自然的说法和例句，把一次修改变成长期学习。</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap split">
+      <div>
+        <span class="eyebrow">LOCAL FIRST</span>
+        <h2>模型可以完全在你的 Mac 上</h2>
+        <p class="muted">默认连接本机 Ollama。文字不经过 Pareno 的服务器；离线也能检查、翻译、解释。</p>
+        <ul class="check-list">
+          <li>本机 Ollama：qwen3.5:4b、gemma4:12b 等</li>
+          <li>可选 Ollama Cloud 或你自己的 API</li>
+          <li>不收集写作内容，不做分析追踪</li>
+          <li>不需要注册账号即可使用本地功能</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h3>适合谁</h3>
+        <ul>
+          <li>中 / 英 / 俄双语写作者</li>
+          <li>经常写邮件、文档、Slack 的人</li>
+          <li>不想把正文发给云端的人</li>
+          <li>希望知道“为什么错”，而不只是被改写的人</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section-soft" id="pricing">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="eyebrow">PRICING</span>
+        <h2>一次买断，本地无限使用</h2>
+        <p>没有订阅。Paddle 处理付款、税务和退款。</p>
+      </div>
+      <div class="price-card">
+        <div>
+          <span class="tag">Pareno Desktop Pro</span>
+          <h3>$19.99 <span class="price-note">USD · 一次性</span></h3>
+          <p class="muted">首发价。包含当前全部桌面功能与后续 0.x 更新。</p>
+          <ul class="check-list">
+            <li>检查 / 翻译 / 解释</li>
+            <li>中文 / English / Русский</li>
+            <li>本地 Ollama，无字数限制</li>
+            <li>macOS 13+，Universal（Apple Silicon / Intel）</li>
+          </ul>
+        </div>
+        <div class="price-action">
+          <a class="button primary" href="mailto:juhonl@163.com?subject=Pareno%20Desktop%20Pro%20%E9%A2%84%E8%B4%AD">预购 Pro — $19.99</a>
+          <p class="small muted">Paddle Checkout 正在接入。现在可以先邮件预购，正式购买链接会替换这里。</p>
+          <p class="small muted">购买即表示同意 <a href="/terms">服务条款</a> 与 <a href="/refund">退款政策</a>。</p>
+        </div>
+      </div>
+      <p class="small muted">
+        订单由 Paddle.com 处理。Paddle.com 是所有订单的 Merchant of Record，负责客户服务与退款。
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="eyebrow">DOWNLOAD</span>
+        <h2>下载 0.9.3</h2>
+        <p>已 Developer ID 签名并通过 Apple 公证。首次打开需要手动添加辅助功能权限。</p>
+      </div>
+      <div class="panel">
+        <p><strong>ParenoDesktop-0.9.3.dmg</strong> · Universal · macOS 13+</p>
+        <p class="small muted">SHA-256：<code>4fca2cd2f23d3150360f20305163d9f1c6f5d10f680d86812c9e0c025cda7379</code></p>
+        <p><a class="button" href={release} target="_blank" rel="noopener noreferrer">查看 Release ↗</a></p>
+        <p class="small muted">如果 macOS 提示无法验证开发者，请确认你下载的是 0.9.3 或更新版本。</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap prose">
+      <h2>常见问题</h2>
+      <h3>必须安装 Ollama 吗？</h3>
+      <p>本地功能需要 Ollama。也可以选择 Ollama Cloud 或后续的自带 API；不安装模型时 App 会提示。</p>
+      <h3>需要联网吗？</h3>
+      <p>本机 Ollama 可以完全离线。只有你选择云端模型或 Agent 时才需要联网。</p>
+      <h3>支持哪些语言？</h3>
+      <p>界面支持中文、English、Русский；检查与翻译支持中英俄文本。</p>
+      <h3>为什么需要辅助功能权限？</h3>
+      <p>Pareno 需要读取当前光标/选区，才能把 HUD 放在文字旁边。文字只在你的 Mac 上处理，除非你选择云端模型。</p>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .desktop-hero { padding-top: clamp(48px, 7vw, 88px); }
+  .desktop-hero .hero-media img { border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 24px 60px rgba(20, 18, 15, .12); }
+  .check-list { margin: 18px 0 0; padding-left: 20px; color: var(--muted); line-height: 1.9; }
+  .price-card { display: grid; grid-template-columns: 1.1fr .9fr; gap: 28px; align-items: center; padding: 28px; border: 1px solid var(--line); border-radius: 18px; background: var(--surface); margin-top: 24px; }
+  .price-card h3 { font-size: clamp(2rem, 4vw, 2.8rem); margin: 6px 0 8px; }
+  .price-note { font-family: var(--sans); font-size: .85rem; font-weight: 400; color: var(--muted); }
+  .price-action .button { display: inline-flex; }
+  .price-action p { margin-top: 12px; }
+  .prose h3 { margin-top: 1.4em; font-size: 1.05rem; }
+  @media (max-width: 760px) {
+    .price-card { grid-template-columns: 1fr; padding: 20px; }
+  }
+</style>

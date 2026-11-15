@@ -1,0 +1,28 @@
+---
+import Base from '../layouts/Base.astro';
+---
+<Base title="支持 · Pareno Desktop" description="Pareno Desktop 的支持与联系方式。">
+  <section class="page">
+    <div class="wrap">
+      <div class="page-head">
+        <span class="eyebrow">SUPPORT</span>
+        <h1>支持</h1>
+        <p>安装、权限、模型和购买问题都可以直接联系我们。</p>
+      </div>
+      <div class="prose">
+        <h2>联系</h2>
+        <p>邮箱：<a href="mailto:juhonl@163.com">juhonl@163.com</a><br />通常 2 个工作日内回复。</p>
+
+        <h2>常见问题</h2>
+        <h3>HUD 不出现</h3>
+        <p>到 系统设置 → 隐私与安全性 → 辅助功能，手动点 <code>+</code> 添加 Pareno Desktop，并用 Touch ID 确认。</p>
+        <h3>没有模型</h3>
+        <p>安装 Ollama 后运行 <code>ollama pull qwen3.5:4b</code>，或在 Ollama 界面下载。Pareno 会自动优先使用较快的本机模型。</p>
+        <h3>购买与退款</h3>
+        <p>订单由 Paddle 处理。退款请见 <a href="/refund">退款政策</a>；条款见 <a href="/terms">服务条款</a>。</p>
+        <h3>隐私</h3>
+        <p>本地模型不会把文字发到我们的服务器。详见 <a href="/privacy">隐私说明</a>。</p>
+      </div>
+    </div>
+  </section>
+</Base>
