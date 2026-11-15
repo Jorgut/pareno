@@ -329,7 +329,7 @@ struct ResultView: View {
 }
 
 @MainActor
-final class ResultPanelController {
+final class ResultPanelController: NSObject, NSWindowDelegate {
     let panel: NSPanel
     let model = PanelModel()
     var sourceElement: AXUIElement?
@@ -337,15 +337,20 @@ final class ResultPanelController {
     private var hosting: NSHostingView<ResultView>!
     private var cancellables: Set<AnyCancellable> = []
 
-    init() {
+    var attachedToHUD: Bool {
+        UserDefaults.standard.object(forKey: Prefs.cardAttached) as? Bool ?? true
+    }
+
+    override init() {
         panel = NSPanel(
             contentRect: NSRect(x: 0, y: 0, width: 380, height: 520),
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false
         )
+        super.init()
         panel.isFloatingPanel = true
-        panel.level = .floating
+        panel.level = NSWindow.Level(rawValue: NSWindow.Level.floating.rawValue + 1)
         panel.hidesOnDeactivate = false
         panel.isReleasedWhenClosed = false
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .ignoresCycle]
@@ -391,7 +396,7 @@ final class ResultPanelController {
         .store(in: &cancellables)
     }
 
-    func show(text: String, mode: CheckMode, modelName: String, element: AXUIElement?, app: NSRunningApplication?, caret: NSRect?) {
+    func show(text: String, mode: CheckMode, modelName: String, element: AXUIElement?, app: NSRunningApplication?, caret: NSRect?, hudFrame: NSRect? = nil) {
         sourceElement = element
         sourceApp = app
         model.sourceText = text
@@ -401,6 +406,7 @@ final class ResultPanelController {
         model.error = ""
         model.state = .loading
         place(caret: caret)
+        if attachedToHUD, let hudFrame { placeAboveHUD(hudFrame) }
         panel.orderFrontRegardless()
         model.run()
     }
@@ -414,6 +420,24 @@ final class ResultPanelController {
         model.state = .error
         place(caret: SelectionService.caretRect())
         panel.orderFrontRegardless()
+    }
+
+    func followHUD(_ hudFrame: NSRect) {
+        guard attachedToHUD, panel.isVisible else { return }
+        placeAboveHUD(hudFrame)
+    }
+
+    func placeAboveHUD(_ hudFrame: NSRect) {
+        let size = panel.frame.size
+        guard let visible = NSScreen.screens.first(where: { $0.frame.intersects(hudFrame) })?.visibleFrame else { return }
+        var x = hudFrame.midX - size.width / 2
+        var y = hudFrame.maxY + 8
+        if y + size.height > visible.maxY {
+            y = hudFrame.minY - size.height - 8
+        }
+        x = min(max(x, visible.minX + 8), visible.maxX - size.width - 8)
+        y = min(max(y, visible.minY + 8), visible.maxY - size.height - 8)
+        panel.setFrameOrigin(NSPoint(x: x, y: y))
     }
 
     private func place(caret: NSRect?) {

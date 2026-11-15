@@ -79,7 +79,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         hud.onExplain = { [weak self] in self?.runTask(.explain) }
         hud.onSettings = { [weak self] in self?.openSettings() }
         hud.onClose = { [weak self] in self?.hideHUD() }
-        hud.onMove = { [weak self] origin in self?.fixedOrigin = origin }
+        hud.onMove = { [weak self] origin in
+            guard let self else { return }
+            self.fixedOrigin = origin
+            if self.panel.panel.isVisible { self.panel.followHUD(self.hud.frame) }
+        }
         hud.setMode(hudMode, origin: fixedOrigin)
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         if let button = statusItem.button {
@@ -330,10 +334,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             hud.showFixed(at: fixedOrigin)
             return
         }
-        if panel.panel.isVisible {
-            hud.hide()
-            return
-        }
+        let panelOpen = panel.panel.isVisible
         let defaults = UserDefaults.standard
         let showTyping = defaults.object(forKey: Prefs.showTyping) as? Bool ?? true
         let showSelection = defaults.object(forKey: Prefs.showSelection) as? Bool ?? true
@@ -354,7 +355,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             log("hud role=\(role) caret=\(String(describing: caret)) field=\(String(describing: field)) active=\(recentlyActive) selection=\(selection.count)")
         }
         let hasTextInput = field != nil || caret != nil
-        guard (showTyping && (recentlyActive || hasTextInput)) || (showSelection && !selection.isEmpty) else {
+        guard panelOpen || (showTyping && (recentlyActive || hasTextInput)) || (showSelection && !selection.isEmpty) else {
             hud.hide()
             return
         }
@@ -366,20 +367,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 }
                 hud.update(caret: caret)
                 lastHUDOrigin = hud.origin
+                if panelOpen { panel.followHUD(hud.frame) }
                 return
             }
             hud.update(caret: NSRect(x: field.minX + 8, y: field.maxY - 4, width: 2, height: 2))
             lastHUDOrigin = hud.origin
+            if panelOpen { panel.followHUD(hud.frame) }
             return
         }
         if let caret, caret.minX > 1 || caret.minY > 1 {
             hud.update(caret: caret)
             lastHUDOrigin = hud.origin
+            if panelOpen { panel.followHUD(hud.frame) }
             return
         }
         if let field {
             hud.update(caret: NSRect(x: field.minX, y: field.maxY, width: 2, height: 2))
             lastHUDOrigin = hud.origin
+            if panelOpen { panel.followHUD(hud.frame) }
             return
         }
         if let key = lastKeyPoint, Date().timeIntervalSince(lastKeyTime) < 60 {
@@ -390,6 +395,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if let click = lastClickPoint, Date().timeIntervalSince(lastClickTime) < 300 {
             hud.update(caret: NSRect(x: click.x, y: click.y + 18, width: 2, height: 2))
             lastHUDOrigin = hud.origin
+            if panelOpen { panel.followHUD(hud.frame) }
+            return
+        }
+        if panelOpen {
+            hud.keepVisible()
+            panel.followHUD(hud.frame)
             return
         }
         hud.hide()
@@ -403,16 +414,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         let sourceApp = NSWorkspace.shared.frontmostApplication
         if hudMode == .follow, let cached = cachedContext, Date().timeIntervalSince(cached.time) < 6 {
-            panel.show(text: cached.text, mode: mode, modelName: currentModel, element: cached.element, app: sourceApp, caret: cached.caret)
+            panel.show(text: cached.text, mode: mode, modelName: currentModel, element: cached.element, app: sourceApp, caret: cached.caret, hudFrame: hud.frame)
             return
         }
         if let context = SelectionService.currentParagraph() {
             let caret = SelectionService.caretRect()
-            panel.show(text: context.text, mode: mode, modelName: currentModel, element: context.element, app: sourceApp, caret: caret)
+            panel.show(text: context.text, mode: mode, modelName: currentModel, element: context.element, app: sourceApp, caret: caret, hudFrame: hud.frame)
             return
         }
         if let fallback = SelectionService.copySelectionViaKeyboard(), let element = SelectionService.focusedElement() {
-            panel.show(text: fallback, mode: mode, modelName: currentModel, element: element, app: sourceApp, caret: SelectionService.caretRect())
+            panel.show(text: fallback, mode: mode, modelName: currentModel, element: element, app: sourceApp, caret: SelectionService.caretRect(), hudFrame: hud.frame)
             return
         }
         panel.showMessage("没有找到可检查的文字。请把光标放进一段文字，或先选中一段。")

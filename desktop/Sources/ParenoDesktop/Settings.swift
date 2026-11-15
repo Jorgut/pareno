@@ -10,6 +10,7 @@ enum Prefs {
     static let showInDock = "ParenoDesktopShowInDock"
     static let model = "ParenoDesktopModel"
     static let appearance = "ParenoDesktopAppearance"
+    static let cardAttached = "ParenoCardAttached"
     static let origin = "ParenoDesktopHUDOrigin"
     static let legacyVisible = "ParenoDesktopFollowCaret"
 }
@@ -27,6 +28,7 @@ struct SettingsView: View {
     @AppStorage(Prefs.mode) private var mode = HUDMode.follow.rawValue
     @AppStorage(Prefs.model) private var model = ""
     @AppStorage(Prefs.appearance) private var appearance = "system"
+    @AppStorage(Prefs.cardAttached) private var cardAttached = true
 
     var body: some View {
         Form {
@@ -43,6 +45,13 @@ struct SettingsView: View {
                     Slider(value: $autoHide, in: 1...8, step: 1)
                     Text("\(Int(autoHide)) 秒").monospacedDigit().foregroundStyle(.secondary)
                 }
+            }
+
+            Section("结果卡") {
+                Toggle("吸附在 HUD 上方", isOn: $cardAttached)
+                Text("关闭后，结果卡可以拖到任意位置；拖动卡片也会自动切换为自由位置。")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
             Section("外观") {
@@ -81,6 +90,7 @@ struct SettingsView: View {
         .onChange(of: showInDock) { _ in notifyChange() }
         .onChange(of: mode) { _ in notifyChange() }
         .onChange(of: appearance) { _ in notifyChange() }
+        .onChange(of: cardAttached) { _ in notifyChange() }
         .onDisappear { notifyChange() }
     }
 }

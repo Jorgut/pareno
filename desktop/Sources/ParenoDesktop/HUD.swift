@@ -165,6 +165,7 @@ final class CursorHUD: NSObject {
     }
 
     var origin: NSPoint { panel.frame.origin }
+    var frame: NSRect { panel.frame }
 
     func show(at origin: NSPoint) {
         panel.setFrameOrigin(origin)
