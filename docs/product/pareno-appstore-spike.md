@@ -64,3 +64,29 @@ ALTAN JORGUTYN 的 Apple Development 证书（MT6C6A292R / OU M2K27U7XJ4）是�
 - 现有 provisioning profiles 也全部是 `GB38532D8G`
 
 注意：私钥未备份，无法恢复签名；免费团队证书可按需重新生成。Xcode → Settings → Accounts 中如仍有 ALTAN 的 Apple ID，建议移除，避免自动重新生成。
+
+
+## Day 1 Accessibility 测试结果（关键）
+
+沙盒测试包已手动加入辅助功能，开关为 1，Touch ID 已确认。
+
+实测：
+
+- 沙盒 App 能启动、能显示 HUD、能访问 localhost Ollama
+- 但按 ⌥⌘G 后，结果卡显示 “No text selected / No text to check”
+- TextEdit 里有文字、光标也在正文，沙盒 App 读不到 AXValue / 选区
+- 主 App（非沙盒）在同样场景下正常
+
+**结论：当前“跨 App 读取光标/选区 + HUD”的架构在 App Sandbox 下不可用。**
+
+这不是权限没开，而是沙盒隔离导致跨 App Accessibility 读取失败。Apple 文档也明确：不能沙盒化一个控制其他 App 的 assistive app。
+
+## 对 App Store 路线的影响
+
+现有架构不能直接上架。可选方案：
+
+1. **App Store Lite**：不做跨 App 光标 HUD，改为 Services / 剪贴板 / 手动粘贴触发；保留检查/翻译/解释和三语。
+2. **直发 DMG 优先**：保留完整 HUD 和 Agent CLI，先公证分发；App Store 版后续再做 Lite。
+3. **entitlement 研究**：确认是否存在可被 App Review 接受的 Accessibility 临时例外；目前证据不支持。
+
+建议：先直发，App Store 版重新设计为 Services/剪贴板触发，不再承诺“贴着光标”。
