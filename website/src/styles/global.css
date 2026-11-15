@@ -38,6 +38,25 @@
   }
 }
 
+body.theme-warm .brand-mark { background: var(--gold-soft); color: #1b150b; }
+
+body.theme-warm {
+  color-scheme: dark;
+  --bg: #0f0e0c;
+  --bg-soft: #151310;
+  --surface: #1a1814;
+  --ink: #ded6c7;
+  --ink-strong: #f6efe1;
+  --muted: #a1988a;
+  --gold: #d8bc78;
+  --gold-soft: #efd9a6;
+  --line: #2b2721;
+  --line-strong: #3c352c;
+  --code-bg: #090807;
+  --code-ink: #f1e8d6;
+  --shadow: 0 24px 70px rgb(0 0 0 / 45%);
+}
+
 * { box-sizing: border-box; }
 
 html { scroll-behavior: smooth; }
@@ -228,6 +247,9 @@ main { min-height: 60vh; }
   .card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .timeline-item { grid-template-columns: 1fr; gap: 4px; }
   .site-header .wrap { min-height: 60px; }
+}
+@media (max-width: 720px) {
+  body.theme-warm .site-nav a:not(.nav-cta) { display: none; }
 }
 @media (max-width: 560px) {
   .card-grid { grid-template-columns: 1fr; }

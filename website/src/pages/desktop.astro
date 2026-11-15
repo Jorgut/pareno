@@ -2,150 +2,349 @@
 import Base from '../layouts/Base.astro';
 const download = 'https://github.com/Jorgut/pareno/releases/download/desktop-0.9.3/ParenoDesktop-0.9.3.dmg';
 const release = 'https://github.com/Jorgut/pareno/releases/tag/desktop-0.9.3';
+const sha = '4fca2cd2f23d3150360f20305163d9f1c6f5d10f680d86812c9e0c025cda7379';
 ---
 <Base
+  theme="warm"
   title="Pareno Desktop · 贴着光标的写作检查器"
   description="Pareno Desktop 是 macOS 上的本地优先写作检查器：在光标旁检查、翻译、解释，支持中文、英文、俄文，模型可完全在本机运行。"
 >
-  <section class="hero desktop-hero">
-    <div class="wrap hero-grid">
-      <div>
-        <span class="eyebrow">macOS desktop · 0.9.3</span>
-        <h1>贴着光标的<br />写作检查器。</h1>
-        <p class="lead">
-          在任意 App 里打字或选中文字，Pareno HUD 就出现在光标旁。
-          检查语法与用词、翻译、解释为什么这样写更好——不离开当前句子。
-        </p>
-        <div class="hero-actions">
-          <a class="button primary" href={download}>下载 macOS 版</a>
-          <a class="button" href="#pricing">查看价格</a>
+  <div class="dp">
+    <section class="dp-hero">
+      <div class="wrap dp-hero-grid">
+        <div class="dp-hero-copy">
+          <div class="dp-kicker"><span class="dp-dot"></span> PARENO DESKTOP <span class="dp-version">0.9.3</span></div>
+          <h1>写作时，<br /><em>工具应该消失。</em></h1>
+          <p class="dp-lead">
+            把检查、翻译、解释放进光标旁的一条 HUD。
+            你不离开句子，也不打开另一个聊天窗口。
+          </p>
+          <div class="dp-actions-row">
+            <a class="dp-btn" href={download}>下载 macOS 版 <span aria-hidden="true">↓</span></a>
+            <a class="dp-btn ghost" href="#pricing">$19.99 买断</a>
+          </div>
+          <div class="dp-meta">
+            <span>macOS 13+</span><span>Universal</span><span>本地 Ollama</span><span>中 / EN / RU</span>
+          </div>
         </div>
-        <div class="hero-note">
-          <span>macOS 13+ · Universal</span>
-          <span>本地 Ollama · 可离线</span>
-          <span>中 / 英 / 俄</span>
+
+        <div class="dp-hero-visual">
+          <div class="dp-window">
+            <img src="/pareno-desktop-shot.png" alt="Pareno Desktop 在文字旁显示检查 HUD 与结果卡" width="1500" height="1051" />
+          </div>
+          <div class="dp-float">
+            <span class="dp-float-mark">P</span>
+            <span><strong>检查</strong><small>语法 · 用词 · 表达</small></span>
+          </div>
+          <p class="dp-caption">界面预览 · 0.9.3</p>
         </div>
       </div>
-      <figure class="hero-media">
-        <img src="/pareno-desktop-shot.png" alt="Pareno Desktop：光标旁的检查 HUD 与结果卡" width="1600" height="1129" />
-        <figcaption>界面预览。实际版本会随迭代调整。</figcaption>
-      </figure>
-    </div>
-  </section>
+    </section>
 
-  <section class="section section-soft">
-    <div class="wrap">
-      <div class="section-head">
-        <span class="eyebrow">THREE ACTIONS</span>
-        <h2>检查、翻译、解释，就在光标旁</h2>
-        <p>不是另一个聊天窗口。你不需要复制、切换 App、再粘贴回来。</p>
-      </div>
-      <div class="card-grid">
-        <div class="card"><span class="tag">Check</span><h3>检查</h3><p>语法、拼写、用词、搭配和不自然表达；区分明确错误与可选润色。</p></div>
-        <div class="card"><span class="tag">Translate</span><h3>翻译</h3><p>中、英、俄互译，保留原意、名字、数字和作者语气。</p></div>
-        <div class="card"><span class="tag">Explain</span><h3>解释</h3><p>说明为什么不对、更自然的说法和例句，把一次修改变成长期学习。</p></div>
+    <div class="dp-ticker" aria-hidden="true">
+      <div class="wrap dp-ticker-inner">
+        <span>CHECK</span><i></i><span>TRANSLATE</span><i></i><span>EXPLAIN</span><i></i><span>LOCAL FIRST</span><i></i><span>ZH / EN / RU</span>
       </div>
     </div>
-  </section>
 
-  <section class="section">
-    <div class="wrap split">
-      <div>
-        <span class="eyebrow">LOCAL FIRST</span>
-        <h2>模型可以完全在你的 Mac 上</h2>
-        <p class="muted">默认连接本机 Ollama。文字不经过 Pareno 的服务器；离线也能检查、翻译、解释。</p>
-        <ul class="check-list">
-          <li>本机 Ollama：qwen3.5:4b、gemma4:12b 等</li>
-          <li>可选 Ollama Cloud 或你自己的 API</li>
-          <li>不收集写作内容，不做分析追踪</li>
-          <li>不需要注册账号即可使用本地功能</li>
-        </ul>
+    <section class="dp-section" id="actions">
+      <div class="wrap dp-split">
+        <div class="dp-section-head">
+          <span class="dp-label">01 / ACTIONS</span>
+          <h2>三个动作，<br />一条 HUD。</h2>
+          <p>不是另一个聊天窗口。选中文字，或把光标放进段落，选择动作；结果出现在原文旁边。</p>
+        </div>
+        <div class="dp-action-list">
+          <article class="dp-action">
+            <span class="dp-num">01</span>
+            <div><h3>检查</h3><p>语法、拼写、用词、搭配和不自然表达；区分明确错误与可选润色。</p></div>
+            <span class="dp-arrow" aria-hidden="true">↗</span>
+          </article>
+          <article class="dp-action">
+            <span class="dp-num">02</span>
+            <div><h3>翻译</h3><p>中、英、俄互译，保留原意、名字、数字和作者语气；忠实译法与自然表达并列。</p></div>
+            <span class="dp-arrow" aria-hidden="true">↗</span>
+          </article>
+          <article class="dp-action">
+            <span class="dp-num">03</span>
+            <div><h3>解释</h3><p>说明为什么不对、更自然的说法和例句，把一次修改变成可复用的语言知识。</p></div>
+            <span class="dp-arrow" aria-hidden="true">↗</span>
+          </article>
+        </div>
       </div>
-      <div class="panel">
-        <h3>适合谁</h3>
-        <ul>
-          <li>中 / 英 / 俄双语写作者</li>
-          <li>经常写邮件、文档、Slack 的人</li>
-          <li>不想把正文发给云端的人</li>
-          <li>希望知道“为什么错”，而不只是被改写的人</li>
-        </ul>
-      </div>
-    </div>
-  </section>
+    </section>
 
-  <section class="section section-soft" id="pricing">
-    <div class="wrap">
-      <div class="section-head">
-        <span class="eyebrow">PRICING</span>
-        <h2>一次买断，本地无限使用</h2>
-        <p>没有订阅。Paddle 处理付款、税务和退款。</p>
+    <section class="dp-section dp-local">
+      <div class="wrap dp-split">
+        <div class="dp-terminal" aria-hidden="true">
+          <div class="dp-terminal-bar"><span></span><span></span><span></span><em>pareno — local</em></div>
+          <pre><span class="dim">$</span> ollama list
+NAME             SIZE
+qwen3.5:4b       2.5 GB
+gemma4:12b       8.1 GB
+
+<span class="dim">POST</span> http://localhost:11434/api/chat
+<span class="ok">200 OK</span> · 0.42s · no network</pre>
+          <div class="dp-terminal-foot"><span class="dp-live"></span> 文字留在你的 Mac 上</div>
+        </div>
+        <div class="dp-section-head">
+          <span class="dp-label">02 / LOCAL FIRST</span>
+          <h2>模型可以完全<br />留在你的 Mac 上。</h2>
+          <p>默认连接本机 Ollama。文字不经过 Pareno 的服务器；离线也能检查、翻译、解释。</p>
+          <ul class="dp-check-list">
+            <li>本机 Ollama：qwen3.5:4b、gemma4:12b 等</li>
+            <li>可选 Ollama Cloud 或你自己的 API</li>
+            <li>不收集写作内容，不做分析追踪</li>
+            <li>不注册账号也能使用本地功能</li>
+          </ul>
+        </div>
       </div>
-      <div class="price-card">
-        <div>
-          <span class="tag">Pareno Desktop Pro</span>
-          <h3>$19.99 <span class="price-note">USD · 一次性</span></h3>
-          <p class="muted">首发价。包含当前全部桌面功能与后续 0.x 更新。</p>
-          <ul class="check-list">
+    </section>
+
+    <section class="dp-section">
+      <div class="wrap">
+        <div class="dp-section-head dp-center">
+          <span class="dp-label">03 / IN THE SENTENCE</span>
+          <h2>结果，就在原文旁边。</h2>
+          <p>卡片贴着 HUD 展开，原文、修改和理由在同一视线里。你可以采纳最小修改，也可以换一种更自然的表达。</p>
+        </div>
+        <div class="dp-gallery">
+          <figure class="dp-shot">
+            <img src="/desktop-translate.png" alt="Pareno Desktop 翻译结果卡：原文与忠实译法、自然译法并列" width="1200" height="746" />
+            <figcaption><span>TRANSLATE</span> 忠实译法与自然表达并列</figcaption>
+          </figure>
+          <figure class="dp-shot">
+            <img src="/desktop-explain.png" alt="Pareno Desktop 解释结果卡：语法、用词与例句" width="1200" height="746" />
+            <figcaption><span>EXPLAIN</span> 为什么这样写更好</figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <section class="dp-section dp-pricing" id="pricing">
+      <div class="wrap dp-pricing-grid">
+        <div class="dp-section-head">
+          <span class="dp-label">04 / PRICING</span>
+          <h2>一次买断。<br />不订阅。</h2>
+          <p>没有月费，没有按字数计费。Paddle 处理付款、税务和退款；本地模型想用多少用多少。</p>
+          <div class="dp-assurance">
+            <span>14 天退款</span><span>Paddle · Merchant of Record</span><span>2–3 台设备</span>
+          </div>
+        </div>
+        <div class="dp-receipt">
+          <div class="dp-receipt-top"><span>PARENO DESKTOP PRO</span><span>0.9.x</span></div>
+          <div class="dp-price">$19.99 <small>USD · 一次性</small></div>
+          <p class="dp-receipt-note">首发价，包含当前全部桌面功能与后续 0.x 更新。</p>
+          <ul>
             <li>检查 / 翻译 / 解释</li>
             <li>中文 / English / Русский</li>
             <li>本地 Ollama，无字数限制</li>
-            <li>macOS 13+，Universal（Apple Silicon / Intel）</li>
+            <li>macOS 13+ · Universal</li>
           </ul>
-        </div>
-        <div class="price-action">
-          <a class="button primary" href="mailto:juhonl@163.com?subject=Pareno%20Desktop%20Pro%20%E9%A2%84%E8%B4%AD">预购 Pro — $19.99</a>
-          <p class="small muted">Paddle Checkout 正在接入。现在可以先邮件预购，正式购买链接会替换这里。</p>
-          <p class="small muted">购买即表示同意 <a href="/terms">服务条款</a> 与 <a href="/refund">退款政策</a>。</p>
+          <a class="dp-btn full" href="mailto:juhonl@163.com?subject=Pareno%20Desktop%20Pro%20%E9%A2%84%E8%B4%AD">预购 Pro — $19.99</a>
+          <p class="dp-fine">Paddle Checkout 正在接入。现在可以先邮件预购，正式购买链接会替换这里。购买即表示同意 <a href="/terms">服务条款</a> 与 <a href="/refund">退款政策</a>。</p>
         </div>
       </div>
-      <p class="small muted">
-        订单由 Paddle.com 处理。Paddle.com 是所有订单的 Merchant of Record，负责客户服务与退款。
-      </p>
-    </div>
-  </section>
+    </section>
 
-  <section class="section">
-    <div class="wrap">
-      <div class="section-head">
-        <span class="eyebrow">DOWNLOAD</span>
-        <h2>下载 0.9.3</h2>
-        <p>已 Developer ID 签名并通过 Apple 公证。首次打开需要手动添加辅助功能权限。</p>
+    <section class="dp-section">
+      <div class="wrap dp-download-grid">
+        <div class="dp-section-head">
+          <span class="dp-label">05 / DOWNLOAD</span>
+          <h2>下载 0.9.3</h2>
+          <p>Developer ID 签名，已通过 Apple 公证。Universal 版本，Apple Silicon 与 Intel 都能运行。</p>
+          <p class="dp-small">首次打开需要手动在“辅助功能”里添加 Pareno Desktop，并用 Touch ID 确认。</p>
+        </div>
+        <div class="dp-download-card">
+          <div class="dp-file"><span class="dp-file-icon">DMG</span><div><strong>ParenoDesktop-0.9.3.dmg</strong><small>Universal · macOS 13+ · 2.0 MB</small></div></div>
+          <a class="dp-btn full" href={download}>下载 DMG <span aria-hidden="true">↓</span></a>
+          <code class="dp-sha">SHA-256 · {sha}</code>
+          <a class="dp-text-link" href={release} target="_blank" rel="noopener noreferrer">查看 Release notes ↗</a>
+        </div>
       </div>
-      <div class="panel">
-        <p><strong>ParenoDesktop-0.9.3.dmg</strong> · Universal · macOS 13+</p>
-        <p class="small muted">SHA-256：<code>4fca2cd2f23d3150360f20305163d9f1c6f5d10f680d86812c9e0c025cda7379</code></p>
-        <p><a class="button" href={release} target="_blank" rel="noopener noreferrer">查看 Release ↗</a></p>
-        <p class="small muted">如果 macOS 提示无法验证开发者，请确认你下载的是 0.9.3 或更新版本。</p>
-      </div>
-    </div>
-  </section>
+    </section>
 
-  <section class="section">
-    <div class="wrap prose">
-      <h2>常见问题</h2>
-      <h3>必须安装 Ollama 吗？</h3>
-      <p>本地功能需要 Ollama。也可以选择 Ollama Cloud 或后续的自带 API；不安装模型时 App 会提示。</p>
-      <h3>需要联网吗？</h3>
-      <p>本机 Ollama 可以完全离线。只有你选择云端模型或 Agent 时才需要联网。</p>
-      <h3>支持哪些语言？</h3>
-      <p>界面支持中文、English、Русский；检查与翻译支持中英俄文本。</p>
-      <h3>为什么需要辅助功能权限？</h3>
-      <p>Pareno 需要读取当前光标/选区，才能把 HUD 放在文字旁边。文字只在你的 Mac 上处理，除非你选择云端模型。</p>
-    </div>
-  </section>
+    <section class="dp-section dp-faq">
+      <div class="wrap dp-faq-grid">
+        <div class="dp-section-head">
+          <span class="dp-label">06 / FAQ</span>
+          <h2>开始之前。</h2>
+          <p>还有问题？写信到 <a href="mailto:juhonl@163.com">juhonl@163.com</a>。</p>
+        </div>
+        <div class="dp-faq-list">
+          <details open>
+            <summary>必须安装 Ollama 吗？</summary>
+            <p>本地功能需要 Ollama。也可以选择 Ollama Cloud 或后续的自带 API；没有模型时 App 会提示。</p>
+          </details>
+          <details>
+            <summary>需要联网吗？</summary>
+            <p>本机 Ollama 可以完全离线。只有你选择云端模型或 Agent 时才需要联网。</p>
+          </details>
+          <details>
+            <summary>支持哪些语言？</summary>
+            <p>界面支持中文、English、Русский；检查与翻译支持中英俄文本。</p>
+          </details>
+          <details>
+            <summary>为什么需要辅助功能权限？</summary>
+            <p>Pareno 需要读取当前光标或选区，才能把 HUD 放在文字旁边，并把替换文本写回原处。文字只在你的 Mac 上处理，除非你选择云端模型。</p>
+          </details>
+          <details>
+            <summary>怎么退款？</summary>
+            <p>购买后 14 天内可申请全额退款。写信到 juhonl@163.com，附上订单号；订单与退款由 Paddle 处理。详见 <a href="/refund">退款政策</a>。</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <section class="dp-final">
+      <div class="wrap dp-final-inner">
+        <span class="dp-label">A QUIETER WAY TO WRITE</span>
+        <h2>把下一句，<br /><em>写得更好。</em></h2>
+        <p>下载 Pareno Desktop，让检查回到句子里。</p>
+        <a class="dp-btn" href={download}>下载 macOS 版 <span aria-hidden="true">↓</span></a>
+      </div>
+    </section>
+  </div>
 </Base>
 
 <style>
-  .desktop-hero { padding-top: clamp(48px, 7vw, 88px); }
-  .desktop-hero .hero-media img { border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 24px 60px rgba(20, 18, 15, .12); }
-  .check-list { margin: 18px 0 0; padding-left: 20px; color: var(--muted); line-height: 1.9; }
-  .price-card { display: grid; grid-template-columns: 1.1fr .9fr; gap: 28px; align-items: center; padding: 28px; border: 1px solid var(--line); border-radius: 18px; background: var(--surface); margin-top: 24px; }
-  .price-card h3 { font-size: clamp(2rem, 4vw, 2.8rem); margin: 6px 0 8px; }
-  .price-note { font-family: var(--sans); font-size: .85rem; font-weight: 400; color: var(--muted); }
-  .price-action .button { display: inline-flex; }
-  .price-action p { margin-top: 12px; }
-  .prose h3 { margin-top: 1.4em; font-size: 1.05rem; }
-  @media (max-width: 760px) {
-    .price-card { grid-template-columns: 1fr; padding: 20px; }
+  .dp { background: var(--bg); color: var(--ink); overflow-x: clip; }
+  .dp [id] { scroll-margin-top: 86px; }
+  .dp a:focus-visible, .dp summary:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; border-radius: 3px; }
+  .dp-hero-grid > *, .dp-split > *, .dp-pricing-grid > *, .dp-download-grid > *, .dp-faq-grid > * { min-width: 0; }
+  .dp .wrap { width: min(calc(100% - 48px), 1180px); }
+  .dp-hero { position: relative; padding: clamp(72px, 10vw, 132px) 0 clamp(54px, 8vw, 96px); overflow: hidden; }
+  .dp-hero::before {
+    content: ""; position: absolute; inset: -20% -10% auto -10%; height: 70%;
+    background: radial-gradient(58% 60% at 28% 30%, rgba(216,188,120,.13), transparent 70%);
+    pointer-events: none;
+  }
+  .dp-hero-grid { position: relative; display: grid; grid-template-columns: 1.02fr .98fr; gap: clamp(32px, 6vw, 84px); align-items: center; }
+  .dp-kicker { display: flex; align-items: center; gap: 9px; font: 0.72rem/1 ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .16em; color: var(--gold); text-transform: uppercase; }
+  .dp-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 0 4px rgba(216,188,120,.12); }
+  .dp-version { color: var(--muted); border: 1px solid var(--line-strong); border-radius: 999px; padding: 3px 7px; letter-spacing: .08em; font-size: .64rem; }
+  .dp h1 { font-size: clamp(3rem, 5.6vw, 4.6rem); line-height: .99; letter-spacing: -.035em; margin: 22px 0 22px; font-weight: 500; }
+  .dp h1 em { display: block; white-space: nowrap; }
+  .dp h1 em, .dp-final h2 em { color: var(--gold-soft); font-style: italic; }
+  .dp-lead { max-width: 31em; color: var(--muted); font-size: clamp(1.02rem, 1.4vw, 1.18rem); line-height: 1.8; margin: 0 0 30px; }
+  .dp-actions-row { display: flex; flex-wrap: wrap; gap: 10px; }
+  .dp a.dp-btn, .dp .dp-btn { color: #231c10; }
+  .dp a.dp-btn.ghost, .dp .dp-btn.ghost { color: var(--ink); }
+  .dp-btn { display: inline-flex; align-items: center; justify-content: center; gap: 9px; padding: 13px 22px; border: 1px solid var(--gold); border-radius: 999px; background: var(--gold-soft); color: #231c10; font-size: .9rem; font-weight: 650; text-decoration: none; transition: transform .18s ease, background .18s ease, color .18s ease; }
+  .dp-btn:hover { transform: translateY(-1px); background: #f4e3b9; color: #1b150b; }
+  .dp-btn.ghost { background: transparent; color: var(--ink); border-color: var(--line-strong); font-weight: 500; }
+  .dp-btn.ghost:hover { border-color: var(--gold); color: var(--gold-soft); background: transparent; }
+  .dp-btn.full { width: 100%; }
+  .dp-meta { display: flex; flex-wrap: wrap; gap: 7px 18px; margin-top: 22px; color: var(--muted); font: .72rem/1.4 ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .04em; text-transform: uppercase; }
+  .dp-meta span::before { content: "·"; margin-right: 7px; color: var(--gold); }
+  .dp-meta span:first-child::before { content: none; }
+  .dp-hero-visual { position: relative; }
+  .dp-window { border: 1px solid var(--line-strong); border-radius: 14px; overflow: hidden; background: #090807; box-shadow: 0 34px 90px rgba(0,0,0,.55), 0 0 0 1px rgba(216,188,120,.06); }
+  .dp-window-bar { display: flex; align-items: center; gap: 12px; padding: 11px 14px; background: #151310; border-bottom: 1px solid var(--line); color: var(--muted); font-size: .68rem; }
+  .dp-traffic { display: inline-flex; gap: 6px; }
+  .dp-traffic i { width: 8px; height: 8px; border-radius: 50%; background: #4a443c; }
+  .dp-traffic i:first-child { background: #d8bc78; }
+  .dp-window-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .dp-window-hint { margin-left: auto; color: var(--gold); font: .62rem ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .08em; white-space: nowrap; }
+  .dp-window img { display: block; width: 100%; height: auto; }
+  .dp-float { position: absolute; left: -22px; bottom: 28px; display: flex; align-items: center; gap: 10px; padding: 10px 14px 10px 10px; border: 1px solid rgba(216,188,120,.38); border-radius: 12px; background: rgba(21,19,16,.92); backdrop-filter: blur(12px); box-shadow: 0 16px 40px rgba(0,0,0,.45); }
+  .dp-float-mark { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 8px; background: linear-gradient(145deg,#efd9a6,#c6a35e); color: #241d11; font: 700 12px/1 Georgia, serif; }
+  .dp-float strong { display: block; font: 600 .76rem/1.2 -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; color: var(--ink-strong); }
+  .dp-float small { display: block; margin-top: 2px; color: var(--muted); font-size: .6rem; letter-spacing: .04em; }
+  .dp-caption { margin: 12px 0 0; color: var(--faint, #746d62); font: .66rem ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .06em; text-align: right; }
+  .dp-ticker { border-block: 1px solid var(--line); background: #0b0a08; overflow: hidden; }
+  .dp-ticker-inner { display: flex; align-items: center; justify-content: space-between; gap: 18px; min-height: 48px; color: var(--muted); font: .64rem/1 ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .18em; }
+  .dp-ticker-inner i { width: 4px; height: 4px; border-radius: 50%; background: var(--gold); opacity: .65; }
+  .dp-section { padding: clamp(76px, 10vw, 132px) 0; border-bottom: 1px solid var(--line); }
+  .dp-split { display: grid; grid-template-columns: .86fr 1.14fr; gap: clamp(36px, 7vw, 96px); align-items: start; }
+  .dp-section-head { max-width: 42em; }
+  .dp-label { display: inline-block; color: var(--gold); font: .68rem/1 ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .17em; text-transform: uppercase; margin-bottom: 20px; }
+  .dp-section-head h2, .dp-pricing h2, .dp-download-grid h2, .dp-faq h2 { font-size: clamp(2.2rem, 4.4vw, 3.5rem); line-height: 1.03; letter-spacing: -.025em; margin: 0 0 20px; font-weight: 500; color: var(--ink-strong); }
+  .dp-section-head p { color: var(--muted); font-size: 1rem; line-height: 1.85; max-width: 34em; }
+  .dp-center { max-width: 50em; margin: 0 auto; text-align: center; }
+  .dp-center p { margin-inline: auto; }
+  .dp-action-list { border-top: 1px solid var(--line-strong); }
+  .dp-action { display: grid; grid-template-columns: 58px 1fr 24px; gap: 20px; align-items: start; padding: 28px 0; border-bottom: 1px solid var(--line); transition: background .2s ease, padding .2s ease; }
+  .dp-action:hover { background: linear-gradient(90deg, rgba(216,188,120,.05), transparent 70%); padding-left: 10px; }
+  .dp-num { color: var(--gold); font: .72rem ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .08em; padding-top: 9px; }
+  .dp-action h3 { font-size: 1.7rem; margin: 0 0 8px; font-weight: 500; }
+  .dp-action p { margin: 0; color: var(--muted); font-size: .92rem; line-height: 1.75; max-width: 34em; }
+  .dp-arrow { color: var(--gold); font-size: 1.1rem; opacity: .65; padding-top: 8px; }
+  .dp-local { background: #12100d; }
+  .dp-terminal { border: 1px solid var(--line-strong); border-radius: 14px; overflow: hidden; background: #090807; box-shadow: 0 28px 70px rgba(0,0,0,.35); }
+  .dp-terminal-bar { display: flex; align-items: center; gap: 7px; padding: 12px 15px; border-bottom: 1px solid var(--line); background: #151310; }
+  .dp-terminal-bar span { width: 8px; height: 8px; border-radius: 50%; background: #3b352c; }
+  .dp-terminal-bar span:first-child { background: #b68c4e; }
+  .dp-terminal-bar em { margin-left: 10px; color: var(--muted); font: .64rem ui-monospace, "SF Mono", Menlo, monospace; font-style: normal; }
+  .dp-terminal pre { margin: 0; padding: 24px; border: 0; background: transparent; color: #cfc4b1; font: .78rem/1.95 ui-monospace, "SF Mono", Menlo, monospace; overflow-x: auto; }
+  .dp-terminal .dim { color: #746d62; }
+  .dp-terminal .ok { color: var(--gold-soft); }
+  .dp-terminal-foot { display: flex; align-items: center; gap: 8px; padding: 14px 24px; border-top: 1px solid var(--line); color: var(--muted); font-size: .72rem; }
+  .dp-live { width: 6px; height: 6px; border-radius: 50%; background: #8fb59a; box-shadow: 0 0 0 4px rgba(143,181,154,.1); }
+  .dp-check-list { margin: 24px 0 0; padding: 0; list-style: none; color: var(--muted); font-size: .9rem; }
+  .dp-check-list li { position: relative; padding-left: 18px; margin: 10px 0; }
+  .dp-check-list li::before { content: "—"; position: absolute; left: 0; color: var(--gold); }
+  .dp-gallery { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 44px; }
+  .dp-shot { margin: 0; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: #090807; }
+  .dp-shot img { display: block; width: 100%; height: auto; }
+  .dp-shot figcaption { display: flex; gap: 12px; padding: 12px 15px; border-top: 1px solid var(--line); color: var(--muted); font-size: .72rem; }
+  .dp-shot figcaption span { color: var(--gold); font: .62rem ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .1em; }
+  .dp-pricing { background: radial-gradient(60% 80% at 80% 20%, rgba(216,188,120,.08), transparent 65%), #0d0c0a; }
+  .dp-pricing-grid { display: grid; grid-template-columns: .9fr 1.1fr; gap: clamp(36px, 7vw, 100px); align-items: center; }
+  .dp-assurance { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 26px; color: var(--muted); font: .68rem ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .06em; text-transform: uppercase; }
+  .dp-assurance span::before { content: "◇"; margin-right: 7px; color: var(--gold); }
+  .dp-receipt { border: 1px solid rgba(216,188,120,.34); border-radius: 16px; padding: 26px; background: linear-gradient(160deg, rgba(216,188,120,.07), rgba(26,24,20,.6)); }
+  .dp-receipt-top { display: flex; justify-content: space-between; color: var(--gold); font: .62rem ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .12em; border-bottom: 1px dashed rgba(216,188,120,.26); padding-bottom: 13px; }
+  .dp-price { margin: 18px 0 4px; color: var(--ink-strong); font: 500 clamp(3rem, 5vw, 4.2rem)/1 Georgia, "Songti SC", serif; letter-spacing: -.03em; }
+  .dp-price small { font: .72rem -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; color: var(--muted); letter-spacing: .02em; }
+  .dp-receipt-note { color: var(--muted); font-size: .82rem; line-height: 1.7; margin: 6px 0 16px; }
+  .dp-receipt ul { list-style: none; padding: 0; margin: 0 0 20px; border-top: 1px solid var(--line); }
+  .dp-receipt li { padding: 9px 0; border-bottom: 1px solid var(--line); color: var(--ink); font-size: .84rem; display: flex; justify-content: space-between; }
+  .dp-receipt li::after { content: "✓"; color: var(--gold); }
+  .dp-fine { margin: 12px 0 0; color: var(--muted); font-size: .68rem; line-height: 1.6; }
+  .dp-fine a { color: var(--gold-soft); }
+  .dp-download-grid { display: grid; grid-template-columns: 1fr .85fr; gap: clamp(36px, 7vw, 100px); align-items: center; }
+  .dp-small { font-size: .84rem !important; }
+  .dp-download-card { border: 1px solid var(--line-strong); border-radius: 14px; padding: 20px; background: var(--surface); }
+  .dp-file { display: flex; align-items: center; gap: 13px; padding-bottom: 16px; border-bottom: 1px solid var(--line); margin-bottom: 16px; }
+  .dp-file-icon { display: grid; place-items: center; width: 42px; height: 48px; border: 1px solid var(--line-strong); border-radius: 7px; color: var(--gold); font: .6rem ui-monospace, "SF Mono", Menlo, monospace; }
+  .dp-file strong { display: block; color: var(--ink-strong); font-size: .86rem; }
+  .dp-file small { display: block; color: var(--muted); font-size: .7rem; margin-top: 3px; }
+  .dp-sha { display: block; margin: 13px 0 0; padding: 0; border: 0; background: transparent; color: var(--muted); font-size: .62rem; line-height: 1.6; overflow-wrap: anywhere; }
+  .dp-text-link { display: inline-block; margin-top: 12px; color: var(--gold-soft); font-size: .78rem; text-decoration: none; }
+  .dp-faq-grid { display: grid; grid-template-columns: .7fr 1.3fr; gap: clamp(36px, 7vw, 100px); align-items: start; }
+  .dp-faq-list details { border-bottom: 1px solid var(--line); }
+  .dp-faq-list summary { cursor: pointer; list-style: none; padding: 18px 24px 18px 0; color: var(--ink-strong); font: 500 1.02rem Georgia, "Songti SC", serif; position: relative; }
+  .dp-faq-list summary::-webkit-details-marker { display: none; }
+  .dp-faq-list summary::after { content: "+"; position: absolute; right: 0; top: 17px; color: var(--gold); font: 400 1rem ui-monospace, "SF Mono", Menlo, monospace; }
+  .dp-faq-list details[open] summary::after { content: "−"; }
+  .dp-faq-list details p { margin: 0 0 18px; color: var(--muted); font-size: .9rem; line-height: 1.8; max-width: 36em; }
+  .dp-final { padding: clamp(84px, 12vw, 150px) 0 clamp(90px, 12vw, 140px); text-align: center; background: radial-gradient(50% 70% at 50% 30%, rgba(216,188,120,.1), transparent 70%); }
+  .dp-final-inner .dp-label { margin-bottom: 22px; }
+  .dp-final h2 { font-size: clamp(2.8rem, 6vw, 5rem); line-height: 1; letter-spacing: -.03em; margin: 0 0 18px; font-weight: 500; color: var(--ink-strong); }
+  .dp-final p { color: var(--muted); margin: 0 0 28px; }
+  @media (max-width: 1000px) {
+    .dp-hero-grid, .dp-split, .dp-pricing-grid, .dp-download-grid, .dp-faq-grid { grid-template-columns: 1fr; }
+    .dp-hero-visual { max-width: 760px; }
+    .dp-float { left: 14px; }
+    .dp-pricing-grid { gap: 40px; }
+  }
+  @media (max-width: 720px) {
+    .dp h1 { font-size: clamp(2.35rem, 9.4vw, 3.2rem); }
+    .dp h1 em { white-space: normal; }
+    .dp-lead, .dp-meta { max-width: 100%; }
+    .dp-window img { width: 100%; }
+    .dp-section-head h2, .dp-pricing h2, .dp-download-grid h2, .dp-faq h2 { font-size: clamp(1.9rem, 7.5vw, 2.6rem); }
+    .dp-actions-row .dp-btn { width: 100%; }
+    .dp-action { grid-template-columns: 38px 1fr; gap: 12px; }
+    .dp-arrow { display: none; }
+    .dp-gallery { grid-template-columns: 1fr; }
+    .dp-window-hint { display: none; }
+    .dp-float { position: static; width: fit-content; margin: -1px 0 0 14px; border-radius: 0 0 10px 10px; }
+    .dp-ticker-inner { justify-content: flex-start; gap: 12px; overflow: hidden; white-space: nowrap; }
+    .dp-ticker-inner span:nth-of-type(n+4), .dp-ticker-inner i:nth-of-type(n+4) { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .dp-btn { transition: none; }
   }
 </style>
