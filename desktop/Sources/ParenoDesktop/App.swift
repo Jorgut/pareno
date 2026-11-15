@@ -488,10 +488,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func toggleTask(_ mode: CheckMode) {
-        if panel.panel.isVisible, panel.model.mode == mode {
-            panel.panel.orderOut(nil)
-            hud.setActiveMode(nil)
-            return
+        if panel.panel.isVisible {
+            // A message / no-text card has no active mode; any of the three HUD
+            // actions should dismiss it instead of immediately reopening it.
+            if panel.model.state == .error, panel.model.sourceText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                panel.panel.orderOut(nil)
+                hud.setActiveMode(nil)
+                return
+            }
+            if panel.model.mode == mode {
+                panel.panel.orderOut(nil)
+                hud.setActiveMode(nil)
+                return
+            }
         }
         runTask(mode)
     }
