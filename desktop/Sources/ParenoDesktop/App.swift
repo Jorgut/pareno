@@ -425,8 +425,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let role = SelectionService.focusedElement().map { SelectionService.role(of: $0) } ?? "nil"
             log("hud role=\(role) caret=\(String(describing: caret)) field=\(String(describing: field)) active=\(recentlyActive) selection=\(selection.count)")
         }
-        let hasTextInput = field != nil || caret != nil
-        guard panelOpen || (showTyping && (recentlyActive || hasTextInput)) || (showSelection && !selection.isEmpty) else {
+        let role = SelectionService.focusedElement().map { SelectionService.role(of: $0) } ?? ""
+        let textRoles = ["AXTextField", "AXTextArea", "AXComboBox", "AXSearchField", "AXSecureTextField"]
+        let hasTextInput = field != nil || caret != nil || textRoles.contains(role)
+        let hasSelection = !selection.isEmpty
+        guard panelOpen || hasTextInput || hasSelection else {
+            hud.hide()
+            return
+        }
+        guard (showTyping && (recentlyActive || hasTextInput)) || (showSelection && hasSelection) else {
             hud.hide()
             return
         }

@@ -146,6 +146,12 @@ struct ResultView: View {
     @ObservedObject var model: PanelModel
 
     var body: some View {
+        cardBody
+            .padding(16)
+            .frame(minWidth: 340, maxWidth: .infinity, minHeight: 200, maxHeight: .infinity, alignment: .topLeading)
+    }
+
+    private var cardBody: some View {
         VStack(alignment: .leading, spacing: 10) {
             header
             sourceBox
@@ -154,7 +160,7 @@ struct ResultView: View {
             footer
         }
         .padding(14)
-        .frame(minWidth: 340, maxWidth: .infinity, minHeight: 200, maxHeight: .infinity, alignment: .topLeading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
@@ -164,12 +170,23 @@ struct ResultView: View {
             if model.tailEdge != .none {
                 TailShape(edge: model.tailEdge)
                     .fill(.regularMaterial)
-                    .frame(width: 14, height: 7)
+                    .frame(width: 35, height: 15)
                     .overlay(
                         TailShape(edge: model.tailEdge)
                             .stroke(Color.white.opacity(0.10), lineWidth: 1)
                     )
+                    .offset(tailOffset)
             }
+        }
+    }
+
+    private var tailOffset: CGSize {
+        switch model.tailEdge {
+        case .bottom: return CGSize(width: 0, height: 8)
+        case .top: return CGSize(width: 0, height: -8)
+        case .left: return CGSize(width: -8, height: 0)
+        case .right: return CGSize(width: 8, height: 0)
+        case .none: return .zero
         }
     }
 

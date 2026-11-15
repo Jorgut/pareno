@@ -70,8 +70,13 @@ enum SelectionService {
         return NSRect(x: rect.origin.x, y: screenHeight - rect.maxY, width: max(rect.width, 2), height: rect.height)
     }
 
+    static func isTextRole(_ role: String) -> Bool {
+        ["AXTextField", "AXTextArea", "AXComboBox", "AXSearchField", "AXSecureTextField"].contains(role)
+    }
+
     static func textInputFrame() -> NSRect? {
         guard let element = focusedElement() else { return nil }
+        guard isTextRole(role(of: element)) else { return nil }
         var positionRef: CFTypeRef?
         var sizeRef: CFTypeRef?
         guard AXUIElementCopyAttributeValue(element, kAXPositionAttribute as CFString, &positionRef) == .success,
