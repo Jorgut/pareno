@@ -28,6 +28,7 @@ final class CursorHUD: NSObject {
     private var explainButton: NSButton?
     private var settingsButton: NSButton?
     private var closeButton: NSButton?
+    private var activeMode: CheckMode?
     var onMove: ((NSPoint) -> Void)?
     private(set) var mode: HUDMode = .follow
 
@@ -107,6 +108,33 @@ final class CursorHUD: NSObject {
         settingsButton?.toolTip = L10n.t("hud.settings")
         closeButton?.toolTip = L10n.t("hud.hide")
         grip?.toolTip = L10n.t("hud.drag")
+        applyButtonStyles()
+        resizeToFit()
+    }
+
+    func setActiveMode(_ mode: CheckMode?) {
+        activeMode = mode
+        applyButtonStyles()
+    }
+
+    private func applyButtonStyles() {
+        let gold = NSColor(calibratedRed: 0.95, green: 0.84, blue: 0.60, alpha: 1)
+        let buttons: [(NSButton?, CheckMode)] = [
+            (checkButton, .check), (translateButton, .translate), (explainButton, .explain)
+        ]
+        for (button, mode) in buttons {
+            guard let button else { continue }
+            let active = activeMode == mode
+            button.wantsLayer = true
+            button.layer?.cornerRadius = 9
+            button.layer?.backgroundColor = active
+                ? NSColor(calibratedRed: 0.85, green: 0.73, blue: 0.45, alpha: 0.22).cgColor
+                : NSColor.clear.cgColor
+            button.contentTintColor = active ? gold : .labelColor
+            button.toolTip = "\(mode.title) · \(L10n.t("hud.collapseHint"))"
+            button.setAccessibilityValue(active ? "on" : "off")
+            button.setAccessibilityHelp(L10n.t("hud.collapseHint"))
+        }
         resizeToFit()
     }
 

@@ -138,6 +138,7 @@ enum L10n {
             "hud.drag": "拖动小工具",
             "hud.settings": "设置",
             "hud.hide": "隐藏 HUD",
+            "hud.collapseHint": "再次点击收起",
 
             "error.noText": "没有找到可检查的文字。请把光标放进一段文字，或先选中一段。",
             "error.permission": "需要辅助功能权限：打开 系统设置 → 隐私与安全性 → 辅助功能，勾选 Pareno Desktop，然后再试一次。",
@@ -227,6 +228,7 @@ enum L10n {
             "hud.drag": "Drag the HUD",
             "hud.settings": "Settings",
             "hud.hide": "Hide HUD",
+            "hud.collapseHint": "Click again to hide",
 
             "error.noText": "No text to check. Put the cursor inside a paragraph or select some text.",
             "error.permission": "Accessibility permission is required: open System Settings → Privacy & Security → Accessibility, enable Pareno Desktop, then try again.",
@@ -316,6 +318,7 @@ enum L10n {
             "hud.drag": "Перетащить HUD",
             "hud.settings": "Настройки",
             "hud.hide": "Скрыть HUD",
+            "hud.collapseHint": "Нажмите ещё раз, чтобы скрыть",
 
             "error.noText": "Не найдено текста для проверки. Поставьте курсор в текст или выделите фрагмент.",
             "error.permission": "Нужен Универсальный доступ: откройте Системные настройки → Конфиденциальность → Универсальный доступ, включите Pareno Desktop и повторите.",

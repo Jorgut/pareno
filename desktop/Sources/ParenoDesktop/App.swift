@@ -79,11 +79,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.updateHUD()
         }
         hud = CursorHUD()
-        hud.onCheck = { [weak self] in self?.runTask(.check) }
-        hud.onTranslate = { [weak self] in self?.runTask(.translate) }
-        hud.onExplain = { [weak self] in self?.runTask(.explain) }
+        hud.onCheck = { [weak self] in self?.toggleTask(.check) }
+        hud.onTranslate = { [weak self] in self?.toggleTask(.translate) }
+        hud.onExplain = { [weak self] in self?.toggleTask(.explain) }
         hud.onSettings = { [weak self] in self?.openSettings() }
         hud.onClose = { [weak self] in self?.hideHUD() }
+        NotificationCenter.default.addObserver(
+            forName: Notification.Name("NSWindowDidOrderOffScreenNotification"), object: panel.panel, queue: .main
+        ) { [weak self] _ in
+            self?.hud.setActiveMode(nil)
+        }
         hud.onMove = { [weak self] origin in
             guard let self else { return }
             self.fixedOrigin = origin
@@ -420,26 +425,40 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         hud.hide()
     }
 
+    private func toggleTask(_ mode: CheckMode) {
+        if panel.panel.isVisible, panel.model.mode == mode {
+            panel.panel.orderOut(nil)
+            hud.setActiveMode(nil)
+            return
+        }
+        runTask(mode)
+    }
+
     private func runTask(_ mode: CheckMode) {
         guard SelectionService.isTrusted else {
             SelectionService.requestTrust()
-            panel.showMessage(L10n.t("error.permission"), needsPermission: true)
+            hud.setActiveMode(nil)
+        panel.showMessage(L10n.t("error.permission"), needsPermission: true)
             return
         }
         let sourceApp = NSWorkspace.shared.frontmostApplication
         if hudMode == .follow, let cached = cachedContext, Date().timeIntervalSince(cached.time) < 6 {
             panel.show(text: cached.text, mode: mode, modelName: currentModel, element: cached.element, app: sourceApp, caret: cached.caret, hudFrame: hud.frame)
+            hud.setActiveMode(mode)
             return
         }
         if let context = SelectionService.currentParagraph() {
             let caret = SelectionService.caretRect()
             panel.show(text: context.text, mode: mode, modelName: currentModel, element: context.element, app: sourceApp, caret: caret, hudFrame: hud.frame)
+            hud.setActiveMode(mode)
             return
         }
         if let fallback = SelectionService.copySelectionViaKeyboard(), let element = SelectionService.focusedElement() {
             panel.show(text: fallback, mode: mode, modelName: currentModel, element: element, app: sourceApp, caret: SelectionService.caretRect(), hudFrame: hud.frame)
+            hud.setActiveMode(mode)
             return
         }
+        hud.setActiveMode(nil)
         panel.showMessage(L10n.t("error.noText"))
     }
 
