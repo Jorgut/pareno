@@ -9,7 +9,7 @@
 | DNS / NS | WordPress.com | 域名 nameserver 仍在 WordPress.com |
 | 根域 `altn.vision` | WordPress.com 站点 | 个人/品牌主站 |
 | `www.altn.vision` | Vercel | 之前的个人网站部署 |
-| `pareno.altn.vision` | 计划 Cloudflare Pages | Pareno 产品页 |
+| `pareno.altn.vision` | Cloudflare Pages | Pareno 产品页（已生效） |
 | `parenowriter.pages.dev` | Cloudflare Pages | 当前产品页与 appcast |
 | 邮箱 MX | `smtp-fwd.wordpress.com` | 转发到 `archintera@outlook.com` |
 | SPF | `include:spf.titan.email` | Titan 发信授权 |

@@ -6,7 +6,7 @@
 
 - 卖家身份：个人 / 个体 / 公司
 - 收款方式：Payoneer / 银行电汇 / 其他
-- 网站：https://parenowriter.pages.dev（live 建议 pareno.altn.vision）
+- 网站：https://pareno.altn.vision
 - 产品：Pareno Desktop，macOS 软件，一次性 License
 - 支持邮箱：support@altn.vision（转发到 archintera@outlook.com）
 
