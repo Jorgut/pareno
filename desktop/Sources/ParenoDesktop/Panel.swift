@@ -116,24 +116,32 @@ struct TailShape: Shape {
     let edge: TailEdge
 
     func path(in rect: CGRect) -> Path {
+        let w = rect.width
+        let h = rect.height
+        let r = min(4, min(w, h) * 0.28)
         var path = Path()
+
         switch edge {
-        case .bottom:
-            path.move(to: CGPoint(x: rect.minX, y: rect.minY))
-            path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
-            path.addLine(to: CGPoint(x: rect.midX, y: rect.maxY))
-        case .top:
-            path.move(to: CGPoint(x: rect.minX, y: rect.maxY))
-            path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
-            path.addLine(to: CGPoint(x: rect.midX, y: rect.minY))
-        case .left:
-            path.move(to: CGPoint(x: rect.maxX, y: rect.minY))
-            path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
-            path.addLine(to: CGPoint(x: rect.minX, y: rect.midY))
+        case .bottom, .top:
+            let flip = edge == .top
+            func y(_ value: CGFloat) -> CGFloat { flip ? h - value : value }
+            path.move(to: CGPoint(x: 0, y: y(0)))
+            path.addLine(to: CGPoint(x: w, y: y(0)))
+            path.addQuadCurve(to: CGPoint(x: w * 0.58, y: y(h - r)), control: CGPoint(x: w * 0.78, y: y(h * 0.55)))
+            path.addQuadCurve(to: CGPoint(x: w * 0.42, y: y(h - r)), control: CGPoint(x: w * 0.50, y: y(h * 1.04)))
+            path.addQuadCurve(to: CGPoint(x: 0, y: y(0)), control: CGPoint(x: w * 0.22, y: y(h * 0.55)))
         case .right:
-            path.move(to: CGPoint(x: rect.minX, y: rect.minY))
-            path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
-            path.addLine(to: CGPoint(x: rect.maxX, y: rect.midY))
+            path.move(to: CGPoint(x: 0, y: 0))
+            path.addLine(to: CGPoint(x: 0, y: h))
+            path.addQuadCurve(to: CGPoint(x: w - r, y: h * 0.58), control: CGPoint(x: w * 0.55, y: h * 0.82))
+            path.addQuadCurve(to: CGPoint(x: w - r, y: h * 0.42), control: CGPoint(x: w * 1.04, y: h * 0.50))
+            path.addQuadCurve(to: CGPoint(x: 0, y: 0), control: CGPoint(x: w * 0.55, y: h * 0.18))
+        case .left:
+            path.move(to: CGPoint(x: w, y: 0))
+            path.addLine(to: CGPoint(x: w, y: h))
+            path.addQuadCurve(to: CGPoint(x: r, y: h * 0.58), control: CGPoint(x: w * 0.45, y: h * 0.82))
+            path.addQuadCurve(to: CGPoint(x: r, y: h * 0.42), control: CGPoint(x: -w * 0.04, y: h * 0.50))
+            path.addQuadCurve(to: CGPoint(x: w, y: 0), control: CGPoint(x: w * 0.45, y: h * 0.18))
         case .none:
             break
         }
@@ -168,15 +176,31 @@ struct ResultView: View {
         )
         .overlay(alignment: tailAlignment) {
             if model.tailEdge != .none {
-                TailShape(edge: model.tailEdge)
-                    .fill(.regularMaterial)
-                    .frame(width: 35, height: 15)
-                    .overlay(
-                        TailShape(edge: model.tailEdge)
-                            .stroke(Color.white.opacity(0.10), lineWidth: 1)
-                    )
-                    .offset(tailOffset)
+                let side = model.tailEdge == .left || model.tailEdge == .right
+                let size = side ? CGSize(width: 15, height: 35) : CGSize(width: 35, height: 15)
+                ZStack {
+                    TailShape(edge: model.tailEdge)
+                        .fill(.regularMaterial)
+                    TailShape(edge: model.tailEdge)
+                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                    Rectangle()
+                        .fill(.regularMaterial)
+                        .frame(width: side ? 4 : 34, height: side ? 34 : 4)
+                        .offset(coverOffset)
+                }
+                .frame(width: size.width, height: size.height)
+                .offset(tailOffset)
             }
+        }
+    }
+
+    private var coverOffset: CGSize {
+        switch model.tailEdge {
+        case .bottom: return CGSize(width: 0, height: -1)
+        case .top: return CGSize(width: 0, height: 1)
+        case .left: return CGSize(width: 1, height: 0)
+        case .right: return CGSize(width: -1, height: 0)
+        case .none: return .zero
         }
     }
 
