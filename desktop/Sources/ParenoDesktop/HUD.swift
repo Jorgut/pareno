@@ -75,7 +75,12 @@ final class CursorHUD: NSObject {
         stack.addArrangedSubview(grip)
         self.grip = grip
 
-        checkButton = addButton(title: L10n.t("mode.check"), symbol: "checkmark.circle", action: #selector(checkTapped))
+        checkButton = addButton(
+            title: L10n.t("mode.check"),
+            symbol: nil,
+            image: BrandAssets.mark(size: 14),
+            action: #selector(checkTapped)
+        )
         let divider = NSBox()
         divider.boxType = .separator
         divider.translatesAutoresizingMaskIntoConstraints = false
@@ -147,9 +152,13 @@ final class CursorHUD: NSObject {
     }
 
     @discardableResult
-    private func addButton(title: String, symbol: String, action: Selector) -> NSButton {
+    private func addButton(title: String, symbol: String? = nil, image: NSImage? = nil, action: Selector) -> NSButton {
         let button = NSButton(title: title, target: self, action: action)
-        button.image = NSImage(systemSymbolName: symbol, accessibilityDescription: title)
+        if let image {
+            button.image = image
+        } else if let symbol {
+            button.image = NSImage(systemSymbolName: symbol, accessibilityDescription: title)
+        }
         button.imagePosition = .imageLeading
         button.imageHugsTitle = true
         button.isBordered = false

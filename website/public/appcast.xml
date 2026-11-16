@@ -3,6 +3,14 @@
     <channel>
         <title>Pareno Desktop</title>
         <item>
+            <title>0.9.9</title>
+            <pubDate>Mon, 16 Nov 2026 14:11:40 +0500</pubDate>
+            <sparkle:version>10</sparkle:version>
+            <sparkle:shortVersionString>0.9.9</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+            <enclosure url="https://github.com/Jorgut/pareno/releases/download/desktop-0.9.9/ParenoDesktop-0.9.9.dmg" length="2238982" type="application/octet-stream" sparkle:edSignature="B9QdjotcblUd45Wgt9mHhj8id4GpZvJ120burFgs1bjnTae8fMRpGqm+KqjrpcdNtEmU2geaJAZHJGrDCEjsBw=="/>
+        </item>
+        <item>
             <title>0.9.8</title>
             <pubDate>Mon, 16 Nov 2026 13:46:47 +0500</pubDate>
             <sparkle:version>9</sparkle:version>
@@ -17,14 +25,6 @@
             <sparkle:shortVersionString>0.9.7</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
             <enclosure url="https://github.com/Jorgut/pareno/releases/download/desktop-0.9.7/ParenoDesktop-0.9.7.dmg" length="2217199" type="application/octet-stream" sparkle:edSignature="+8O1KuRJUy4Z7sP2qEq28TEBlKEu17wggcliEvP4gyunOSJr655cBjHD/fjOBmGVDH+wHoSWuLsK4X3SLof1DA=="/>
-        </item>
-        <item>
-            <title>0.9.6</title>
-            <pubDate>Mon, 16 Nov 2026 13:10:18 +0500</pubDate>
-            <sparkle:version>7</sparkle:version>
-            <sparkle:shortVersionString>0.9.6</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
-            <enclosure url="https://github.com/Jorgut/pareno/releases/download/desktop-0.9.6/ParenoDesktop-0.9.6.dmg" length="2213405" type="application/octet-stream" sparkle:edSignature="sr7NyI/MwlgEqzzxOwwIf9+nu+JcNpLADT8Krp0FEizjodReXXBIoCM9hz2mMdWg4badW5sv5SF7PR7204VEAg=="/>
         </item>
     </channel>
 </rss>

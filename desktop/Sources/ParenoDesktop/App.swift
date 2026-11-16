@@ -55,6 +55,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         panel = ResultPanelController()
+        panel.onModelSelected = { [weak self] model in
+            self?.applyModel(model)
+        }
         let defaults = UserDefaults.standard
         if defaults.object(forKey: Prefs.provider) == nil {
             defaults.set(AIProvider.ollama.rawValue, forKey: Prefs.provider)
@@ -144,7 +147,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func makeStatusIcon() -> NSImage {
         let size = NSSize(width: 18, height: 18)
-        let image = NSImage(size: size, flipped: false) { _ in
+        let image = NSImage(size: size, flipped: true) { _ in
             NSColor.black.setFill()
             let heights: [CGFloat] = [3.2, 7.3, 11.4]
             let widths: [CGFloat] = [12.0, 10.6, 9.2]
@@ -569,13 +572,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         rebuildMenu()
     }
 
-    @objc private func selectModel(_ sender: NSMenuItem) {
-        guard let model = sender.representedObject as? String else { return }
+    private func applyModel(_ model: String) {
         currentModel = model
         UserDefaults.standard.set(model, forKey: "ParenoDesktopModel")
         let provider: AIProvider = cloudModels.contains(model) ? .ollamaCloud : .ollama
         UserDefaults.standard.set(provider.rawValue, forKey: Prefs.provider)
         rebuildMenu()
+    }
+
+    @objc private func selectModel(_ sender: NSMenuItem) {
+        guard let model = sender.representedObject as? String else { return }
+        applyModel(model)
     }
 
     @objc private func refreshModelsAction() {
@@ -588,6 +595,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let cloud = (try? await OllamaClient(baseURL: AIService.cloudEndpoint).models()) ?? []
             self.models = local
             self.cloudModels = cloud
+            self.panel.model.availableModels = local + cloud
             self.lastError = local.isEmpty && cloud.isEmpty ? L10n.t("error.ollamaUnavailable") : ""
             if self.currentModel.isEmpty || !(local + cloud).contains(self.currentModel) {
                 let preferred = AIService.fastestModel(in: local, preferred: "")

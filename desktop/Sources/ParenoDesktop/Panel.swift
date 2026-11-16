@@ -25,6 +25,7 @@ final class PanelModel: ObservableObject {
     @Published var error = ""
     @Published var needsPermission = false
     @Published var modelName = ""
+    @Published var availableModels: [String] = []
     @Published var mode: CheckMode = .check
     @Published var variant: Variant = .natural
 
@@ -39,6 +40,7 @@ final class PanelModel: ObservableObject {
     var onCopy: ((String) -> Void)?
     var onClose: (() -> Void)?
     var onOpenSettings: (() -> Void)?
+    var onModelSelected: ((String) -> Void)?
 
     var improvedText: String {
         guard let result else { return "" }
@@ -71,6 +73,15 @@ final class PanelModel: ObservableObject {
         guard mode != newMode else { return }
         mode = newMode
         if !sourceText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, state == .result || state == .error {
+            run()
+        }
+    }
+
+    func selectModel(_ name: String) {
+        guard name != modelName else { return }
+        modelName = name
+        onModelSelected?(name)
+        if state == .result || state == .error {
             run()
         }
     }
@@ -129,12 +140,14 @@ struct ResultView: View {
 
     private var header: some View {
         HStack(spacing: 8) {
-            Image(nsImage: NSImage(named: "ParenoMark") ?? NSImage())
-                .resizable()
-                .interpolation(.high)
-                .scaledToFit()
-                .frame(width: 22, height: 22)
-                .accessibilityLabel("Pareno")
+            if let mark = BrandAssets.mark(size: 18) {
+                Image(nsImage: mark)
+                    .resizable()
+                    .interpolation(.high)
+                    .scaledToFit()
+                    .frame(width: 18, height: 18)
+                    .accessibilityLabel("Pareno")
+            }
             Text("Pareno Desktop").font(.system(size: 13, weight: .semibold))
             Spacer()
             Picker("", selection: Binding(
@@ -313,7 +326,33 @@ struct ResultView: View {
                     .disabled(model.state != .result)
             }
             Spacer()
-            Text(model.modelName).font(.system(size: 10)).foregroundStyle(.secondary).lineLimit(1)
+            Menu {
+                if model.availableModels.isEmpty {
+                    Text(model.modelName)
+                } else {
+                    ForEach(model.availableModels, id: \.self) { name in
+                        Button {
+                            model.selectModel(name)
+                        } label: {
+                            if name == model.modelName {
+                                Label(name, systemImage: "checkmark")
+                            } else {
+                                Text(name)
+                            }
+                        }
+                    }
+                }
+            } label: {
+                HStack(spacing: 4) {
+                    Text(model.modelName.isEmpty ? "—" : model.modelName)
+                        .lineLimit(1)
+                    Image(systemName: "chevron.up.chevron.down")
+                }
+                .font(.system(size: 10))
+                .foregroundStyle(.secondary)
+            }
+            .menuStyle(.borderlessButton)
+            .fixedSize()
         }
     }
 }
@@ -376,6 +415,7 @@ final class ResizeGripView: NSView {
 final class ResultPanelController: NSObject, NSWindowDelegate {
     let panel: NSPanel
     let model = PanelModel()
+    var onModelSelected: ((String) -> Void)?
     var sourceElement: AXUIElement?
     var sourceApp: NSRunningApplication?
     private var hosting: NSHostingView<ResultView>!
@@ -393,6 +433,7 @@ final class ResultPanelController: NSObject, NSWindowDelegate {
             defer: false
         )
         super.init()
+        model.onModelSelected = { [weak self] name in self?.onModelSelected?(name) }
         panel.isFloatingPanel = true
         panel.level = NSWindow.Level(rawValue: NSWindow.Level.floating.rawValue + 1)
         panel.hidesOnDeactivate = false
