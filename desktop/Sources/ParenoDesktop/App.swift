@@ -19,6 +19,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var settingsWindow: SettingsWindowController?
     private var lastDockPolicy = false
     private var settingsObserver: NSObjectProtocol?
+    private var themeObserver: NSObjectProtocol?
     private var hudMode: HUDMode = {
         let raw = UserDefaults.standard.string(forKey: "ParenoDesktopHUDMode") ?? "follow"
         return HUDMode(rawValue: raw) ?? .follow
@@ -78,6 +79,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         applyDockPolicy()
         applyAppearance()
+        themeObserver = NotificationCenter.default.addObserver(
+            forName: .parenoThemeChanged, object: nil, queue: .main
+        ) { [weak self] _ in
+            self?.applyAppearance()
+        }
         settingsObserver = NotificationCenter.default.addObserver(
             forName: .parenoSettingsChanged, object: nil, queue: .main
         ) { [weak self] _ in
@@ -356,11 +362,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func applyAppearance() {
-        switch UserDefaults.standard.string(forKey: Prefs.appearance) ?? "system" {
-        case "dark": NSApp.appearance = NSAppearance(named: .darkAqua)
-        case "light": NSApp.appearance = NSAppearance(named: .aqua)
-        default: NSApp.appearance = nil
-        }
+        let scheme = ThemeStore.shared.theme.colorScheme
+        NSApp.appearance = NSAppearance(named: scheme == .dark ? .darkAqua : .aqua)
     }
 
     private func applyDockPolicy() {

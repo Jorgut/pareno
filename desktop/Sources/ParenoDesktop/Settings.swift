@@ -33,7 +33,6 @@ struct SettingsView: View {
     @AppStorage(Prefs.showInDock) private var showInDock = false
     @AppStorage(Prefs.mode) private var mode = HUDMode.follow.rawValue
     @AppStorage(Prefs.model) private var model = ""
-    @AppStorage(Prefs.appearance) private var appearance = "system"
     @AppStorage(Prefs.cardAttached) private var cardAttached = true
     @AppStorage(Prefs.provider) private var provider = "ollama"
     @State private var cloudKey = ""
@@ -72,52 +71,6 @@ struct SettingsView: View {
             Section(L10n.t("settings.card.section")) {
                 Toggle(L10n.t("settings.card.attach"), isOn: $cardAttached)
                 Text(L10n.t("settings.card.hint"))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            Section(L10n.t("settings.appearance.section")) {
-                Picker(L10n.t("settings.appearance.theme"), selection: $appearance) {
-                    Text(L10n.t("settings.appearance.system")).tag("system")
-                    Text(L10n.t("settings.appearance.dark")).tag("dark")
-                    Text(L10n.t("settings.appearance.light")).tag("light")
-                }
-            }
-
-            Section(L10n.t("settings.skin.section")) {
-                HStack(spacing: 10) {
-                    ForEach(ParenoTheme.allCases) { item in
-                        Button {
-                            themeStore.theme = item
-                        } label: {
-                            VStack(alignment: .leading, spacing: 6) {
-                                RoundedRectangle(cornerRadius: 7, style: .continuous)
-                                    .fill(item.cardBackground)
-                                    .frame(height: 34)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 7, style: .continuous)
-                                            .strokeBorder(item.cardBorder, lineWidth: 1)
-                                    )
-                                HStack(spacing: 4) {
-                                    Circle().fill(item.markBar).frame(width: 7, height: 7)
-                                    Circle().fill(item.markCursor).frame(width: 7, height: 7)
-                                    Text(item.title).font(.caption).foregroundStyle(.primary)
-                                }
-                            }
-                            .padding(7)
-                            .background(
-                                RoundedRectangle(cornerRadius: 9, style: .continuous)
-                                    .fill(themeStore.theme == item ? item.accent.opacity(0.16) : Color.clear)
-                            )
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 9, style: .continuous)
-                                    .strokeBorder(themeStore.theme == item ? item.accent : Color.clear, lineWidth: 1)
-                            )
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                Text(themeStore.theme.note)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -169,7 +122,6 @@ struct SettingsView: View {
         .onChange(of: autoHide) { _ in notifyChange() }
         .onChange(of: showInDock) { _ in notifyChange() }
         .onChange(of: mode) { _ in notifyChange() }
-        .onChange(of: appearance) { _ in notifyChange() }
         .onChange(of: cardAttached) { _ in notifyChange() }
         .onChange(of: language) { _ in notifyChange() }
         .onChange(of: provider) { _ in notifyChange() }
