@@ -216,6 +216,18 @@ gemma4:12b       8.1 GB
 
   const buy = document.getElementById('buy-pro');
   if (buy) {
+    const allowSandbox = new URLSearchParams(window.location.search).get('sandbox') === '1';
+    fetch('/api/checkout-config')
+      .then(response => response.json())
+      .then(config => {
+        if (config.environment !== 'production' && !allowSandbox) {
+          buy.disabled = true;
+          buy.textContent = '购买即将开放';
+          buy.title = 'Paddle 正式审核中，当前为 Sandbox 测试环境';
+        }
+      })
+      .catch(() => {});
+
     buy.addEventListener('click', async () => {
       const original = buy.textContent;
       buy.disabled = true;
