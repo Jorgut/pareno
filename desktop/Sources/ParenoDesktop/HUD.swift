@@ -12,24 +12,30 @@ final class HUDDragHandle: NSView {
 
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
+        // Same R3 geometry as the app icon, scaled into the HUD handle.
+        let scale: CGFloat = 13.2 / 45.75
+        let baseY: CGFloat = 3.4
         let ivory = NSColor(calibratedRed: 0.96, green: 0.94, blue: 0.89, alpha: 0.94)
         let gold = NSColor(calibratedRed: 0.85, green: 0.73, blue: 0.45, alpha: 1)
-        let barHeight: CGFloat = 2.4
         let bars: [(CGFloat, CGFloat, CGFloat)] = [
-            (1.2, 14.2, 11.2),
-            (1.2, 9.8, 9.9),
-            (1.2, 5.4, 8.6)
+            (13.75, 52, 8.5),
+            (27.75, 46, 8.5),
+            (41.75, 40, 8.5)
         ]
         ivory.setFill()
-        for (x, y, width) in bars {
+        for (top, width, height) in bars {
+            let y = baseY + (45.75 - (top - 13.75) - height) * scale
+            let barHeight = height * scale
             NSBezierPath(
-                roundedRect: NSRect(x: x, y: y, width: width, height: barHeight),
+                roundedRect: NSRect(x: 1, y: y, width: width * scale, height: barHeight),
                 xRadius: barHeight / 2,
                 yRadius: barHeight / 2
             ).fill()
         }
         gold.setFill()
-        NSBezierPath(rect: NSRect(x: 12.2, y: 3.4, width: 1.5, height: 6.4)).fill()
+        NSBezierPath(
+            rect: NSRect(x: 1 + (51 - 6) * scale, y: baseY, width: 7 * scale, height: 20.5 * scale)
+        ).fill()
     }
 }
 
@@ -92,7 +98,7 @@ final class CursorHUD: NSObject {
 
         let grip = HUDDragHandle()
         grip.translatesAutoresizingMaskIntoConstraints = false
-        grip.widthAnchor.constraint(equalToConstant: 16).isActive = true
+        grip.widthAnchor.constraint(equalToConstant: 18).isActive = true
         grip.heightAnchor.constraint(equalToConstant: 20).isActive = true
         stack.addArrangedSubview(grip)
         self.grip = grip
