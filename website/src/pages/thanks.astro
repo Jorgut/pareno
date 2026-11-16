@@ -37,21 +37,30 @@ import Base from '../layouts/Base.astro';
       help.hidden = false;
       return;
     }
-    try {
-      const response = await fetch('/api/license?txn=' + encodeURIComponent(txn));
-      const data = await response.json();
-      if (!response.ok) {
-        status.textContent = data.message || '订单还没有完成，请稍后刷新。';
-        help.hidden = false;
-        return;
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      try {
+        const response = await fetch('/api/license?txn=' + encodeURIComponent(txn));
+        const data = await response.json();
+        if (response.ok) {
+          status.hidden = true;
+          result.hidden = false;
+          keyNode.textContent = data.license;
+          return;
+        }
+        if (response.status !== 409) {
+          status.textContent = data.message || '暂时无法获取许可证。';
+          help.hidden = false;
+          return;
+        }
+        status.textContent = 'Paddle 正在确认付款，马上就好…';
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      } catch (error) {
+        status.textContent = '网络错误，正在重试…';
+        await new Promise(resolve => setTimeout(resolve, 2000));
       }
-      status.hidden = true;
-      result.hidden = false;
-      keyNode.textContent = data.license;
-    } catch (error) {
-      status.textContent = '网络错误，请稍后刷新。';
-      help.hidden = false;
     }
+    status.textContent = '付款还在处理中，请稍后刷新。';
+    help.hidden = false;
   }
 
   document.getElementById('copy-license')?.addEventListener('click', async () => {
