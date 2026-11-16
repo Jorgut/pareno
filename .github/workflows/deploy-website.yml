@@ -29,6 +29,7 @@ jobs:
       FEEDBACK_GITHUB_TOKEN: ${{ secrets.FEEDBACK_GITHUB_TOKEN }}
       PADDLE_API_KEY: ${{ secrets.PADDLE_API_KEY }}
       PADDLE_LICENSE_PRIVATE_KEY: ${{ secrets.PADDLE_LICENSE_PRIVATE_KEY }}
+      PADDLE_CLIENT_TOKEN: ${{ secrets.PADDLE_CLIENT_TOKEN }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -53,10 +54,10 @@ jobs:
           npx --yes wrangler@4.160.1 pages secret bulk /tmp/pages-secrets.json --project-name "$CLOUDFLARE_PAGES_PROJECT"
 
       - name: Configure Paddle secrets
-        if: ${{ env.PADDLE_API_KEY != '' && env.PADDLE_LICENSE_PRIVATE_KEY != '' }}
+        if: ${{ env.PADDLE_API_KEY != '' && env.PADDLE_LICENSE_PRIVATE_KEY != '' && env.PADDLE_CLIENT_TOKEN != '' }}
         run: |
-          jq -n --arg key "$PADDLE_API_KEY" --arg priv "$PADDLE_LICENSE_PRIVATE_KEY" \
-            '{PADDLE_API_KEY: $key, PADDLE_LICENSE_PRIVATE_KEY: $priv}' > /tmp/paddle-secrets.json
+          jq -n --arg key "$PADDLE_API_KEY" --arg priv "$PADDLE_LICENSE_PRIVATE_KEY" --arg token "$PADDLE_CLIENT_TOKEN" \
+            '{PADDLE_API_KEY: $key, PADDLE_LICENSE_PRIVATE_KEY: $priv, PADDLE_CLIENT_TOKEN: $token}' > /tmp/paddle-secrets.json
           npx --yes wrangler@4.160.1 pages secret bulk /tmp/paddle-secrets.json --project-name "$CLOUDFLARE_PAGES_PROJECT"
 
       - name: Deploy to Cloudflare Pages

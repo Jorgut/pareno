@@ -1,0 +1,62 @@
+---
+import Base from '../layouts/Base.astro';
+---
+<Base theme="warm" title="Pareno Desktop Pro · Checkout" description="Pareno Desktop Pro checkout.">
+  <section class="page">
+    <div class="wrap">
+      <div class="page-head">
+        <span class="eyebrow">PARENO PRO</span>
+        <h1>正在打开 Checkout</h1>
+        <p>如果 Checkout 没有自动打开，请点下面的按钮。</p>
+      </div>
+      <div class="panel">
+        <p id="checkout-status">正在准备 Paddle Checkout…</p>
+        <p><button class="button primary" id="open-checkout" type="button" hidden>打开 Checkout</button></p>
+        <p class="small muted">付款由 Paddle 处理。完成后会跳转到许可证页面。</p>
+      </div>
+    </div>
+  </section>
+</Base>
+
+<script is:inline src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const transactionId = params.get('_ptxn') || params.get('transaction_id') || '';
+  const status = document.getElementById('checkout-status');
+  const openButton = document.getElementById('open-checkout');
+  const successUrl = new URL('/thanks/', window.location.origin).toString();
+
+  if (!transactionId) {
+    status.textContent = '没有找到交易号，请从购买按钮重新打开。';
+  } else {
+    fetch('/api/checkout-config')
+      .then(response => response.json())
+      .then(config => {
+        if (!config.clientToken) throw new Error(config.message || 'Checkout unavailable');
+        if (config.environment === 'sandbox') {
+          window.Paddle.Environment.set('sandbox');
+        }
+        window.Paddle.Initialize({
+          token: config.clientToken,
+          eventCallback: event => {
+            if (event.name === 'checkout.completed') {
+              window.location.href = '/thanks/?_ptxn=' + encodeURIComponent(transactionId);
+            }
+          }
+        });
+        const open = () => {
+          window.Paddle.Checkout.open({
+            transactionId,
+            settings: { successUrl }
+          });
+        };
+        status.textContent = '正在打开 Checkout…';
+        open();
+        openButton.hidden = false;
+        openButton.addEventListener('click', open);
+      })
+      .catch(error => {
+        status.textContent = error.message || 'Checkout 暂时不可用。';
+      });
+  }
+</script>

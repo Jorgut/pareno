@@ -12,6 +12,7 @@
 
 - `PADDLE_API_KEY` — sandbox API key (`pdl_sdbx_...`)
 - `PADDLE_LICENSE_PRIVATE_KEY` — raw Ed25519 private key, base64, not the PEM file
+- `PADDLE_CLIENT_TOKEN` — sandbox client-side token (`test_...`), public by design
 
 Create the private key secret locally without printing it:
 
@@ -27,7 +28,7 @@ Do not commit the PEM or the raw key. The public key is embedded in
 ## Paddle dashboard
 
 - Catalog → Products → Pareno Desktop → Prices → `$19.99` one-time
-- Set the default payment link to `https://pareno.altn.vision/thanks/`
+- Set the default payment link to `https://pareno.altn.vision/checkout/`
 - Approve `pareno.altn.vision` under website approval
 - Add a webhook later at `https://pareno.altn.vision/api/paddle-webhook`
 
@@ -35,7 +36,7 @@ Do not commit the PEM or the raw key. The public key is embedded in
 
 1. Buyer clicks Buy Pro.
 2. `/api/checkout` creates a Paddle transaction and returns `checkout.url`.
-3. Buyer pays on Paddle.
-4. Paddle redirects to `/thanks/?_ptxn=txn_...`.
+3. `/checkout/?_ptxn=txn_...` opens Paddle.js Checkout.
+4. Buyer pays on Paddle and returns to `/thanks/?_ptxn=txn_...`.
 5. `/api/license` verifies the transaction with Paddle and signs the license.
 6. Buyer pastes the license into Pareno → Settings → Pareno Pro.

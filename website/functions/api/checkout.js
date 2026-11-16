@@ -54,8 +54,7 @@ export async function onRequestPost({ env }) {
       },
       body: JSON.stringify({
         items: [{ price_id: priceId, quantity: 1 }],
-        custom_data: { product: 'pareno-desktop', source: 'pareno-checkout' },
-        checkout: { url: 'https://pareno.altn.vision/thanks/' }
+        custom_data: { product: 'pareno-desktop', source: 'pareno-checkout' }
       })
     });
 
