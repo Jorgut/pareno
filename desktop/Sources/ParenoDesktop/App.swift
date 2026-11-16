@@ -6,6 +6,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var panel: ResultPanelController!
     private var hotKeyRef: EventHotKeyRef?
+    private var hudHotKeyRef: EventHotKeyRef?
     private var hotKeyHandler: EventHandlerRef?
     private var demoMode: Bool { CommandLine.arguments.contains("--demo") }
     private var models: [String] = []
@@ -187,7 +188,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(explainItem)
 
         let show = NSMenuItem(title: hudEnabled ? L10n.t("menu.hideHUD") : L10n.t("menu.showHUD"), action: #selector(toggleFollowCaret), keyEquivalent: "h")
-        show.keyEquivalentModifierMask = [.command, .option]
+        show.keyEquivalentModifierMask = [.control, .option]
         show.target = self
         show.state = hudEnabled ? .on : .off
         menu.addItem(show)
@@ -287,15 +288,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func installHotkey() {
         var eventType = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))
         let pointer = Unmanaged.passUnretained(self).toOpaque()
-        InstallEventHandler(GetApplicationEventTarget(), { _, _, userData in
-            guard let userData else { return noErr }
+        InstallEventHandler(GetApplicationEventTarget(), { _, event, userData in
+            guard let userData, let event else { return noErr }
             let delegate = Unmanaged<AppDelegate>.fromOpaque(userData).takeUnretainedValue()
-            DispatchQueue.main.async { delegate.checkSelection() }
+            var hotKeyID = EventHotKeyID()
+            let result = GetEventParameter(
+                event,
+                EventParamName(kEventParamDirectObject),
+                EventParamType(typeEventHotKeyID),
+                nil,
+                MemoryLayout<EventHotKeyID>.size,
+                nil,
+                &hotKeyID
+            )
+            DispatchQueue.main.async {
+                if result == noErr, hotKeyID.id == 2 {
+                    delegate.toggleFollowCaret()
+                } else {
+                    delegate.checkSelection()
+                }
+            }
             return noErr
         }, 1, &eventType, pointer, &hotKeyHandler)
-        let hotKeyID = EventHotKeyID(signature: OSType(0x5743484B), id: 1)
-        let status = RegisterEventHotKey(UInt32(kVK_ANSI_G), UInt32(cmdKey | optionKey), hotKeyID, GetApplicationEventTarget(), 0, &hotKeyRef)
-        log("hotkey registered status=\(status)")
+        let checkHotKeyID = EventHotKeyID(signature: OSType(0x5743484B), id: 1)
+        let checkStatus = RegisterEventHotKey(UInt32(kVK_ANSI_G), UInt32(cmdKey | optionKey), checkHotKeyID, GetApplicationEventTarget(), 0, &hotKeyRef)
+        let hudHotKeyID = EventHotKeyID(signature: OSType(0x5743484B), id: 2)
+        let hudStatus = RegisterEventHotKey(UInt32(kVK_ANSI_H), UInt32(controlKey | optionKey), hudHotKeyID, GetApplicationEventTarget(), 0, &hudHotKeyRef)
+        log("hotkeys registered check=\(checkStatus) hud=\(hudStatus)")
     }
 
     private func log(_ message: String) {
