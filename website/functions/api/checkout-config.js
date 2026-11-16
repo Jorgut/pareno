@@ -30,8 +30,7 @@ export async function onRequestGet({ env }) {
       message: 'PADDLE_CLIENT_TOKEN is not a Paddle client-side token. Create one under Authentication → Client-side tokens.'
     });
   }
-  return json(200, {
-    clientToken: token,
-    environment: env?.PADDLE_ENV === 'live' ? 'production' : 'sandbox'
-  });
+  const environment = env?.PADDLE_ENV === 'live' ? 'production' : 'sandbox';
+  const enabled = environment !== 'production' || env?.PADDLE_LIVE_READY === 'true';
+  return json(200, { clientToken: token, environment, enabled });
 }

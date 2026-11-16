@@ -220,7 +220,7 @@ gemma4:12b       8.1 GB
     fetch('/api/checkout-config')
       .then(response => response.json())
       .then(config => {
-        if (config.environment !== 'production' && !allowSandbox) {
+        if (!config.enabled || (config.environment !== 'production' && !allowSandbox)) {
           buy.disabled = true;
           buy.textContent = '购买即将开放';
           buy.title = 'Paddle 正式审核中，当前为 Sandbox 测试环境';

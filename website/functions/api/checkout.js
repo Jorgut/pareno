@@ -42,7 +42,15 @@ export async function onRequestPost({ env }) {
   const priceId = typeof env?.PADDLE_PRICE_ID === 'string' && env.PADDLE_PRICE_ID.startsWith('pri_')
     ? env.PADDLE_PRICE_ID.trim()
     : DEFAULT_PRICE_ID;
-  const apiBase = env?.PADDLE_ENV === 'live' ? LIVE_API : SANDBOX_API;
+  const isLive = env?.PADDLE_ENV === 'live';
+  if (isLive && env?.PADDLE_LIVE_READY !== 'true') {
+    return json(503, {
+      error: 'live_checkout_not_ready',
+      message: 'Paddle Live onboarding is not complete yet.',
+      fallback: FALLBACK_URL
+    });
+  }
+  const apiBase = isLive ? LIVE_API : SANDBOX_API;
 
   try {
     const response = await fetch(`${apiBase}/transactions`, {
