@@ -206,15 +206,21 @@ final class CursorHUD: NSObject {
         let upperLimit = field.map { min($0.maxY, visible.maxY) } ?? visible.maxY
         var origin: NSPoint?
 
-        // 1. Above the caret, but stay inside the text area (do not cover the toolbar).
-        let above = NSPoint(x: caret.minX, y: caret.maxY + gap)
-        if above.y + size.height <= upperLimit + 0.5, above.y >= visible.minY + 4 {
-            origin = above
+        // 1. Above the whole focused input, not just above the caret.
+        // This keeps the HUD out of multi-line fields and chat composers,
+        // where placing it above the caret covers the previous text line.
+        if let field {
+            let x = min(max(field.minX + 6, caret.minX), visible.maxX - size.width - 4)
+            let aboveField = NSPoint(x: x, y: field.maxY + gap)
+            if aboveField.y + size.height <= visible.maxY - 4,
+               aboveField.y >= visible.minY + 4 {
+                origin = aboveField
+            }
         }
 
-        // 2. Right of the caret, vertically centered.
-        if origin == nil {
-            let right = NSPoint(x: caret.maxX + gap, y: caret.midY - size.height / 2)
+        // 2. Right of the whole field, vertically centered on the caret.
+        if origin == nil, let field {
+            let right = NSPoint(x: field.maxX + gap, y: caret.midY - size.height / 2)
             if right.x + size.width <= visible.maxX - 4,
                right.y >= visible.minY + 4,
                right.y + size.height <= visible.maxY - 4 {
@@ -222,9 +228,9 @@ final class CursorHUD: NSObject {
             }
         }
 
-        // 3. Left of the caret.
-        if origin == nil {
-            let left = NSPoint(x: caret.minX - size.width - gap, y: caret.midY - size.height / 2)
+        // 3. Left of the whole field.
+        if origin == nil, let field {
+            let left = NSPoint(x: field.minX - size.width - gap, y: caret.midY - size.height / 2)
             if left.x >= visible.minX + 4,
                left.y >= visible.minY + 4,
                left.y + size.height <= visible.maxY - 4 {
@@ -232,11 +238,10 @@ final class CursorHUD: NSObject {
             }
         }
 
-        // 4. Top edge of a small input field. Large editors keep their toolbar there,
-        // so fall through to the bottom dock instead of covering it.
-        if origin == nil, let field, field.height <= 180 {
-            let y = min(field.maxY + gap, visible.maxY - size.height - 4)
-            origin = NSPoint(x: field.minX + 6, y: max(y, visible.minY + 4))
+        // 4. Above the caret, only after the field-level placements fail.
+        let above = NSPoint(x: caret.minX, y: caret.maxY + gap)
+        if origin == nil, above.y + size.height <= upperLimit + 0.5, above.y >= visible.minY + 4 {
+            origin = above
         }
 
         // 5. Bottom dock, last resort.
