@@ -11,6 +11,7 @@ enum Prefs {
     static let model = "ParenoDesktopModel"
     static let appearance = "ParenoDesktopAppearance"
     static let theme = "ParenoDesktopTheme"
+    static let onboardingDone = "ParenoDesktopOnboardingDone"
     static let cardAttached = "ParenoCardAttached"
     static let language = "ParenoLanguage"
     static let cardWidth = "ParenoCardWidth"

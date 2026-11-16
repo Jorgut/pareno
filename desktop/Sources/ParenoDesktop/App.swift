@@ -17,6 +17,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var hudEnabled = UserDefaults.standard.object(forKey: Prefs.visible) as? Bool
         ?? UserDefaults.standard.object(forKey: Prefs.legacyVisible) as? Bool ?? true
     private var settingsWindow: SettingsWindowController?
+    private var onboardingWindow: OnboardingWindowController?
     private var lastDockPolicy = false
     private var settingsObserver: NSObjectProtocol?
     private var themeObserver: NSObjectProtocol?
@@ -75,6 +76,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if CommandLine.arguments.contains("--settings") {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
                 self?.settingsWindow?.show()
+            }
+        }
+        if !UserDefaults.standard.bool(forKey: Prefs.onboardingDone),
+           !CommandLine.arguments.contains("--hud-demo") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { [weak self] in
+                self?.showOnboarding()
             }
         }
         applyDockPolicy()
@@ -144,6 +151,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.settingsWindow?.show()
             }
         }
+        if !UserDefaults.standard.bool(forKey: Prefs.onboardingDone),
+           !CommandLine.arguments.contains("--hud-demo") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { [weak self] in
+                self?.showOnboarding()
+            }
+        }
         if CommandLine.arguments.contains("--hud-demo") {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
                 let mouse = NSEvent.mouseLocation
@@ -186,6 +199,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         updatesItem.target = self
         menu.addItem(updatesItem)
         menu.addItem(.separator())
+
+        let onboardingItem = NSMenuItem(title: L10n.t("menu.onboarding"), action: #selector(showOnboarding), keyEquivalent: "")
+        onboardingItem.target = self
+        menu.addItem(onboardingItem)
 
         let settingsItem = NSMenuItem(title: L10n.t("menu.settings"), action: #selector(openSettings), keyEquivalent: ",")
         settingsItem.target = self
@@ -355,6 +372,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func checkForUpdates() {
         updater?.checkForUpdates()
+    }
+
+    @objc private func showOnboarding() {
+        if onboardingWindow == nil {
+            onboardingWindow = OnboardingWindowController(onFinish: { [weak self] in
+                self?.onboardingWindow = nil
+            })
+        }
+        onboardingWindow?.present()
     }
 
     @objc private func openSettings() {
