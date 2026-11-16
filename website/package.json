@@ -12,5 +12,8 @@
   },
   "devDependencies": {
     "astro": "^7.4.11"
+  },
+  "dependencies": {
+    "@noble/ed25519": "^2.3.0"
   }
 }

@@ -75,6 +75,29 @@ final class LicenseManager: ObservableObject {
         return true
     }
 
+    func beginCheckout() async -> URL? {
+        statusMessage = ""
+        guard let endpoint = URL(string: "https://pareno.altn.vision/api/checkout") else { return nil }
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let http = response as? HTTPURLResponse else { return nil }
+            let payload = try JSONDecoder().decode(CheckoutResponse.self, from: data)
+            if http.statusCode == 200, let raw = payload.url, let url = URL(string: raw) {
+                return url
+            }
+            statusMessage = payload.detail ?? payload.message ?? L10n.t("license.checkoutUnavailable")
+            if let fallback = payload.fallback, let url = URL(string: fallback) {
+                return url
+            }
+        } catch {
+            statusMessage = L10n.t("license.checkoutUnavailable")
+        }
+        return nil
+    }
+
     func deactivate() {
         KeychainStore.set("", for: licenseKeyAccount)
         statusMessage = ""
@@ -105,6 +128,13 @@ final class LicenseManager: ObservableObject {
             return nil
         }
         return payload
+    }
+
+    private struct CheckoutResponse: Decodable {
+        let url: String?
+        let fallback: String?
+        let detail: String?
+        let message: String?
     }
 
     private func base64URLDecode(_ value: String) -> Data? {

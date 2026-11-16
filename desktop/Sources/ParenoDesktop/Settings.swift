@@ -96,8 +96,10 @@ struct SettingsView: View {
                     .buttonStyle(.borderedProminent)
                     .tint(themeStore.theme.accent)
                     Button(L10n.t("license.buy")) {
-                        if let url = URL(string: "https://pareno.altn.vision/desktop#pricing") {
-                            NSWorkspace.shared.open(url)
+                        Task {
+                            if let url = await licenseManager.beginCheckout() {
+                                NSWorkspace.shared.open(url)
+                            }
                         }
                     }
                     .buttonStyle(.bordered)

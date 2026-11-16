@@ -8,3 +8,5 @@ docs/local/
 .build/
 
 dist/
+
+.secrets/

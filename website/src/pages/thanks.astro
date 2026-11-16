@@ -1,0 +1,63 @@
+---
+import Base from '../layouts/Base.astro';
+---
+<Base theme="warm" title="Pareno Desktop Pro · 许可证" description="Pareno Desktop Pro 的许可证。">
+  <section class="page">
+    <div class="wrap">
+      <div class="page-head">
+        <span class="eyebrow">PARENO PRO</span>
+        <h1>正在获取你的许可证</h1>
+        <p>Paddle 确认付款后，许可证会显示在这里。</p>
+      </div>
+      <div class="panel" id="license-panel">
+        <p id="license-status">正在向 Paddle 确认订单…</p>
+        <div id="license-result" hidden>
+          <p><strong>许可证</strong></p>
+          <code id="license-key" style="display:block;white-space:pre-wrap;word-break:break-all;padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--bg-soft)"></code>
+          <p style="margin-top:14px"><button class="button primary" id="copy-license" type="button">复制许可证</button></p>
+          <p class="small muted">打开 Pareno Desktop → 设置 → Pareno Pro，粘贴许可证并点激活。</p>
+        </div>
+        <p class="small muted" id="license-help" hidden>如果付款已完成但这里没有显示，请把 Paddle 收据里的 transaction ID 发到 support@altn.vision。</p>
+      </div>
+    </div>
+  </section>
+</Base>
+
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const txn = params.get('_ptxn') || params.get('txn') || '';
+  const status = document.getElementById('license-status');
+  const result = document.getElementById('license-result');
+  const keyNode = document.getElementById('license-key');
+  const help = document.getElementById('license-help');
+
+  async function load() {
+    if (!txn) {
+      status.textContent = '没有找到交易号。请从 Paddle 收据里的链接重新打开。';
+      help.hidden = false;
+      return;
+    }
+    try {
+      const response = await fetch('/api/license?txn=' + encodeURIComponent(txn));
+      const data = await response.json();
+      if (!response.ok) {
+        status.textContent = data.message || '订单还没有完成，请稍后刷新。';
+        help.hidden = false;
+        return;
+      }
+      status.hidden = true;
+      result.hidden = false;
+      keyNode.textContent = data.license;
+    } catch (error) {
+      status.textContent = '网络错误，请稍后刷新。';
+      help.hidden = false;
+    }
+  }
+
+  document.getElementById('copy-license')?.addEventListener('click', async () => {
+    await navigator.clipboard.writeText(keyNode.textContent || '');
+    document.getElementById('copy-license').textContent = '已复制';
+  });
+
+  load();
+</script>

@@ -27,6 +27,8 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       CLOUDFLARE_PAGES_PROJECT: ${{ vars.CLOUDFLARE_PAGES_PROJECT || 'pareno' }}
       FEEDBACK_GITHUB_TOKEN: ${{ secrets.FEEDBACK_GITHUB_TOKEN }}
+      PADDLE_API_KEY: ${{ secrets.PADDLE_API_KEY }}
+      PADDLE_LICENSE_PRIVATE_KEY: ${{ secrets.PADDLE_LICENSE_PRIVATE_KEY }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -49,6 +51,13 @@ jobs:
           jq -n --arg token "$FEEDBACK_GITHUB_TOKEN" --arg repo "Jorgut/pareno-feedback" \
             '{FEEDBACK_GITHUB_TOKEN: $token, FEEDBACK_REPO: $repo}' > /tmp/pages-secrets.json
           npx --yes wrangler@4.160.1 pages secret bulk /tmp/pages-secrets.json --project-name "$CLOUDFLARE_PAGES_PROJECT"
+
+      - name: Configure Paddle secrets
+        if: ${{ env.PADDLE_API_KEY != '' && env.PADDLE_LICENSE_PRIVATE_KEY != '' }}
+        run: |
+          jq -n --arg key "$PADDLE_API_KEY" --arg priv "$PADDLE_LICENSE_PRIVATE_KEY" \
+            '{PADDLE_API_KEY: $key, PADDLE_LICENSE_PRIVATE_KEY: $priv}' > /tmp/paddle-secrets.json
+          npx --yes wrangler@4.160.1 pages secret bulk /tmp/paddle-secrets.json --project-name "$CLOUDFLARE_PAGES_PROJECT"
 
       - name: Deploy to Cloudflare Pages
         run: npx --yes wrangler@4.160.1 pages deploy dist --project-name "$CLOUDFLARE_PAGES_PROJECT" --branch main

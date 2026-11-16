@@ -142,8 +142,8 @@ gemma4:12b       8.1 GB
             <li>本地 Ollama，无字数限制</li>
             <li>macOS 13+ · Universal</li>
           </ul>
-          <a class="dp-btn full" href="mailto:support@altn.vision?subject=Pareno%20Desktop%20Pro">预购 Pro — $19.99</a>
-          <p class="dp-fine">Paddle Checkout 正在接入。现在可以先邮件预购，正式购买链接会替换这里。购买即表示同意 <a href="/terms">服务条款</a> 与 <a href="/refund">退款政策</a>。</p>
+          <button class="dp-btn full" id="buy-pro" type="button">购买 Pro — $19.99</button>
+          <p class="dp-fine">Paddle 处理付款、税务和退款。购买即表示同意 <a href="/terms">服务条款</a> 与 <a href="/refund">退款政策</a>。</p>
         </div>
       </div>
     </section>
@@ -207,6 +207,38 @@ gemma4:12b       8.1 GB
     </section>
   </div>
 </Base>
+
+<script>
+  const paddleTxn = new URLSearchParams(window.location.search).get('_ptxn');
+  if (paddleTxn && window.location.pathname !== '/thanks/') {
+    window.location.replace('/thanks/?_ptxn=' + encodeURIComponent(paddleTxn));
+  }
+
+  const buy = document.getElementById('buy-pro');
+  if (buy) {
+    buy.addEventListener('click', async () => {
+      const original = buy.textContent;
+      buy.disabled = true;
+      buy.textContent = '正在打开 Paddle Checkout…';
+      try {
+        const response = await fetch('/api/checkout', { method: 'POST' });
+        const data = await response.json();
+        if (data.url) {
+          window.location.href = data.url;
+          return;
+        }
+        throw new Error(data.detail || data.message || 'Checkout unavailable');
+      } catch (error) {
+        buy.textContent = '购买暂时不可用';
+        setTimeout(() => {
+          buy.disabled = false;
+          buy.textContent = original;
+        }, 4000);
+        window.location.href = 'mailto:support@altn.vision?subject=Pareno%20Desktop%20Pro';
+      }
+    });
+  }
+</script>
 
 <style>
   .dp { background: var(--bg); color: var(--ink); overflow-x: clip; }
@@ -350,4 +382,5 @@ gemma4:12b       8.1 GB
   @media (prefers-reduced-motion: reduce) {
     .dp-btn { transition: none; }
   }
+  button.dp-btn { font: inherit; cursor: pointer; }
 </style>
