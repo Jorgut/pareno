@@ -148,6 +148,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func makeStatusIcon() -> NSImage {
         let size = NSSize(width: 18, height: 18)
+        if let url = Bundle.main.url(forResource: "ParenoMenuIcon", withExtension: "png"),
+           let image = NSImage(contentsOf: url) {
+            image.size = size
+            image.isTemplate = true
+            return image
+        }
         let image = NSImage(size: size, flipped: true) { _ in
             NSColor.black.setFill()
             let heights: [CGFloat] = [3.2, 7.3, 11.4]

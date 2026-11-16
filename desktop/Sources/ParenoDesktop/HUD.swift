@@ -14,11 +14,11 @@ final class HUDDragHandle: NSView {
         super.draw(dirtyRect)
         let ivory = NSColor(calibratedRed: 0.96, green: 0.94, blue: 0.89, alpha: 0.94)
         let gold = NSColor(calibratedRed: 0.85, green: 0.73, blue: 0.45, alpha: 1)
-        let barHeight: CGFloat = 2.1
+        let barHeight: CGFloat = 2.4
         let bars: [(CGFloat, CGFloat, CGFloat)] = [
-            (1.0, 12.4, 10.0),
-            (1.0, 8.2, 8.8),
-            (1.0, 4.0, 7.6)
+            (1.2, 14.2, 11.2),
+            (1.2, 9.8, 9.9),
+            (1.2, 5.4, 8.6)
         ]
         ivory.setFill()
         for (x, y, width) in bars {
@@ -29,7 +29,7 @@ final class HUDDragHandle: NSView {
             ).fill()
         }
         gold.setFill()
-        NSBezierPath(rect: NSRect(x: 9.25, y: 2.7, width: 1.5, height: 5.4)).fill()
+        NSBezierPath(rect: NSRect(x: 12.2, y: 3.4, width: 1.5, height: 6.4)).fill()
     }
 }
 
@@ -92,10 +92,16 @@ final class CursorHUD: NSObject {
 
         let grip = HUDDragHandle()
         grip.translatesAutoresizingMaskIntoConstraints = false
-        grip.widthAnchor.constraint(equalToConstant: 14).isActive = true
+        grip.widthAnchor.constraint(equalToConstant: 16).isActive = true
         grip.heightAnchor.constraint(equalToConstant: 20).isActive = true
         stack.addArrangedSubview(grip)
         self.grip = grip
+
+        let brandDivider = NSBox()
+        brandDivider.boxType = .separator
+        brandDivider.translatesAutoresizingMaskIntoConstraints = false
+        brandDivider.heightAnchor.constraint(equalToConstant: 14).isActive = true
+        stack.addArrangedSubview(brandDivider)
 
         checkButton = addButton(title: L10n.t("mode.check"), symbol: "checkmark.circle", action: #selector(checkTapped))
         let divider = NSBox()
