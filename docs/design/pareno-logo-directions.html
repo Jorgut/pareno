@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Pareno · Logo directions</title>
+<style>
+  :root{--bg:#0d0c0b;--panel:#151310;--text:#f4efe4;--muted:#a39a8b;--faint:#746b5f;--gold:#d8bc78;--gold2:#efd9a6;--line:rgba(255,255,255,.09);--line2:rgba(255,255,255,.16);--serif:Georgia,"Songti SC","Times New Roman",serif;--sans:-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;--mono:ui-monospace,"SF Mono",Menlo,monospace}
+  *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+  .board{width:1720px;margin:0 auto;padding:54px 60px 72px}
+  .kicker{font:11px/1 var(--mono);letter-spacing:.18em;color:var(--faint);text-transform:uppercase}
+  h1{font:500 38px/1.15 var(--serif);margin:12px 0 10px}
+  .lead{color:var(--muted);font-size:14px;line-height:1.8;max-width:1000px;margin:0}
+  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:30px}
+  .card{border:1px solid var(--line);border-radius:16px;background:linear-gradient(160deg,#191611,#12100d);padding:22px;min-height:760px;position:relative;overflow:hidden}
+  .card::before{content:"";position:absolute;inset:0;background:radial-gradient(400px 260px at 70% 0%,rgba(216,188,120,.06),transparent 70%);pointer-events:none}
+  .lbl{font:10px/1 var(--mono);letter-spacing:.14em;color:var(--gold);text-transform:uppercase}
+  .markbox{height:150px;display:flex;align-items:center;justify-content:center;margin:10px 0 0}
+  .markbox svg{width:104px;height:104px}
+  .wordmark{text-align:center;margin-top:6px}
+  .wordmark strong{display:block;font:500 26px/1 var(--serif);letter-spacing:.2em;padding-left:.2em}
+  .wordmark span{display:block;color:var(--muted);font-size:10px;letter-spacing:.18em;margin-top:8px}
+  .rule{height:1px;background:var(--line);margin:20px 0}
+  .appicon{width:128px;height:128px;border-radius:28px;margin:0 auto;background:radial-gradient(120% 120% at 30% 10%,#28231b 0%,#12100d 70%);border:1px solid rgba(255,255,255,.14);box-shadow:0 18px 40px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.08);display:grid;place-items:center;position:relative}
+  .appicon::after{content:"";position:absolute;inset:0;border-radius:28px;border:1px solid rgba(216,188,120,.12);pointer-events:none}
+  .appicon svg{width:76px;height:76px}
+  .appcaption{text-align:center;color:var(--faint);font:9px var(--mono);letter-spacing:.1em;margin-top:9px;text-transform:uppercase}
+  .menubars{margin-top:18px;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+  .bar{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;font:9px var(--mono);letter-spacing:.04em}
+  .bar.light{background:#f4efe4;color:#2a251d}.bar.dark{background:#171511;color:#d8d0c2;border-top:1px solid rgba(255,255,255,.08)}
+  .bar .left{display:flex;align-items:center;gap:8px}.bar svg{width:15px;height:15px}.bar.light svg{filter:brightness(0)}.bar.dark svg{filter:brightness(0) invert(1)}
+  .sizes{display:flex;gap:16px;align-items:end;justify-content:center;margin-top:18px;color:var(--faint);font:8px var(--mono)}
+  .sizes figure{margin:0;display:flex;flex-direction:column;align-items:center;gap:6px}.sizes svg{display:block}
+  .notes{margin-top:18px;color:var(--muted);font-size:11.5px;line-height:1.7}
+  .notes b{color:var(--text);font-weight:600}.notes .tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  .tag{border:1px solid var(--line2);border-radius:999px;padding:3px 7px;font:8.5px var(--mono);color:#cfc7b9}
+  .bottom{display:grid;grid-template-columns:1.15fr .85fr;gap:18px;margin-top:22px}
+  .box{border:1px solid var(--line);border-radius:14px;padding:20px;background:rgba(255,255,255,.02)}
+  .box h3{margin:0 0 8px;font:500 16px var(--serif)}.box p,.box li{color:var(--muted);font-size:12px;line-height:1.75}.box ul{margin:6px 0 0;padding-left:18px}
+  .rec{color:var(--gold2)}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="mark-a" viewBox="0 0 64 64">
+    <rect x="10" y="18" width="44" height="4.5" rx="2.25" fill="#F4EFE4"/>
+    <rect x="10" y="41" width="27" height="4.5" rx="2.25" fill="#F4EFE4"/>
+    <rect x="44" y="31" width="5" height="19" rx="2.5" fill="#D8BC78"/>
+  </symbol>
+  <symbol id="mark-b" viewBox="0 0 64 64">
+    <rect x="13" y="12" width="38" height="4" rx="2" fill="#D8BC78"/>
+    <rect x="21" y="22" width="6" height="29" rx="3" fill="#F4EFE4"/>
+    <rect x="37" y="22" width="6" height="29" rx="3" fill="#D8BC78"/>
+    <rect x="13" y="48" width="38" height="4" rx="2" fill="#F4EFE4"/>
+  </symbol>
+  <symbol id="mark-c" viewBox="0 0 64 64">
+    <path d="M23 12 V52" stroke="#F4EFE4" stroke-width="7" stroke-linecap="round"/>
+    <path d="M23 16 H34 C43 16 48 21 48 28 C48 35 43 40 34 40 H23" stroke="#D8BC78" stroke-width="7" fill="none" stroke-linecap="round"/>
+    <circle cx="49" cy="51" r="3.2" fill="#D8BC78"/>
+  </symbol>
+</svg>
+<div class="board">
+  <div class="kicker">PARENO · IDENTITY / MARK STUDIES · 2026-11-16</div>
+  <h1>Pareno 的标记：从“并”字占位到可缩放的品牌符号</h1>
+  <p class="lead">现在的“并”只是网站和 App 的占位，不是 Logo。Pareno 需要同时活在 16px 菜单栏、128px App 图标、网站字标和印刷品里。下面三个方向都围绕“文字旁边的判断”：不是另一个 AI 闪电，也不是通用对话气泡。</p>
+
+  <div class="cards">
+    <div class="card">
+      <div class="lbl">DIRECTION A · THE CARET</div>
+      <div class="markbox"><svg><use href="#mark-a"/></svg></div>
+      <div class="wordmark"><strong>PARENO</strong><span>并言 · WRITING, IN PLACE</span></div>
+      <div class="rule"></div>
+      <div class="appicon"><svg><use href="#mark-a"/></svg></div>
+      <div class="appcaption">App icon · 128px</div>
+      <div class="menubars">
+        <div class="bar light"><div class="left"><svg><use href="#mark-a"/></svg> Pareno</div><span>⌥⌘G</span></div>
+        <div class="bar dark"><div class="left"><svg><use href="#mark-a"/></svg> Pareno</div><span>⌥⌘G</span></div>
+      </div>
+      <div class="sizes"><figure><svg width="28" height="28"><use href="#mark-a"/></svg><span>28</span></figure><figure><svg width="20" height="20"><use href="#mark-a"/></svg><span>20</span></figure><figure><svg width="16" height="16"><use href="#mark-a"/></svg><span>16</span></figure></div>
+      <div class="notes"><b>光标 + 句子。</b>两条文字线，一个金色插入符。最贴近“贴着光标检查”的产品动作，16px 仍能读出“文字里有东西”。<div class="tags"><span class="tag">product-specific</span><span class="tag">scales best</span></div></div>
+    </div>
+
+    <div class="card">
+      <div class="lbl">DIRECTION B · PARALLEL / 并</div>
+      <div class="markbox"><svg><use href="#mark-b"/></svg></div>
+      <div class="wordmark"><strong>PARENO</strong><span>并言 · TWO VOICES, ONE PAGE</span></div>
+      <div class="rule"></div>
+      <div class="appicon"><svg><use href="#mark-b"/></svg></div>
+      <div class="appcaption">App icon · 128px</div>
+      <div class="menubars">
+        <div class="bar light"><div class="left"><svg><use href="#mark-b"/></svg> Pareno</div><span>⌥⌘G</span></div>
+        <div class="bar dark"><div class="left"><svg><use href="#mark-b"/></svg> Pareno</div><span>⌥⌘G</span></div>
+      </div>
+      <div class="sizes"><figure><svg width="28" height="28"><use href="#mark-b"/></svg><span>28</span></figure><figure><svg width="20" height="20"><use href="#mark-b"/></svg><span>20</span></figure><figure><svg width="16" height="16"><use href="#mark-b"/></svg><span>16</span></figure></div>
+      <div class="notes"><b>并置的两条语言。</b>两根竖线、上下两条横线，抽象“并”和双语并置。含义最好，但小尺寸可能被读成暂停键或表格。<div class="tags"><span class="tag">most meaningful</span><span class="tag">needs a strong wordmark</span></div></div>
+    </div>
+
+    <div class="card">
+      <div class="lbl">DIRECTION C · P / SPEECH</div>
+      <div class="markbox"><svg><use href="#mark-c"/></svg></div>
+      <div class="wordmark"><strong>PARENO</strong><span>并言 · A QUIET WRITING TOOL</span></div>
+      <div class="rule"></div>
+      <div class="appicon"><svg><use href="#mark-c"/></svg></div>
+      <div class="appcaption">App icon · 128px</div>
+      <div class="menubars">
+        <div class="bar light"><div class="left"><svg><use href="#mark-c"/></svg> Pareno</div><span>⌥⌘G</span></div>
+        <div class="bar dark"><div class="left"><svg><use href="#mark-c"/></svg> Pareno</div><span>⌥⌘G</span></div>
+      </div>
+      <div class="sizes"><figure><svg width="28" height="28"><use href="#mark-c"/></svg><span>28</span></figure><figure><svg width="20" height="20"><use href="#mark-c"/></svg><span>20</span></figure><figure><svg width="16" height="16"><use href="#mark-c"/></svg><span>16</span></figure></div>
+      <div class="notes"><b>P 作为一句话。</b>P 的碗形变成开口的语音/句子，右下角一个金色光标。识别成本最低，但最像通用写作 App。<div class="tags"><span class="tag">safest</span><span class="tag">less distinctive</span></div></div>
+    </div>
+  </div>
+
+  <div class="bottom">
+    <div class="box">
+      <h3>我的建议</h3>
+      <p><span class="rec">主线选 A（The Caret）</span>：它直接对应 HUD 在光标旁出现的产品动作，缩小到 16px 仍然是一个“句子 + 插入符”，比“并”字更容易被记住，也不落入 AI 对话气泡的俗套。</p>
+      <p>字标可以保留中文 <b>并言</b>，让 A 的抽象符号承担图形识别，中文承担语义。App 图标用 A，菜单栏用 A 的单色模板；B 可以作为网站/包装上的辅助图形，不作为主图标。</p>
+    </div>
+    <div class="box">
+      <h3>落地清单</h3>
+      <ul>
+        <li>Logo：SVG 主标记 + 单色模板</li>
+        <li>App icon：1024px → .icns，含 16/32/128/256/512</li>
+        <li>菜单栏：16/18px template，适配浅色/深色</li>
+        <li>网站 favicon：32/180px</li>
+        <li>字标：Georgia / 思源宋体，金色只用于标记</li>
+      </ul>
+    </div>
+  </div>
+</div>
+</body>
+</html>
