@@ -10,7 +10,7 @@ PARENO 把检查、翻译、解释放进你正在写的地方：Obsidian 里是�
 - **反馈**：https://github.com/Jorgut/pareno/issues
 
 <p align="center">
-  <a href="https://pareno.altn.vision/desktop/"><img src="assets/pareno-desktop-0.9.11.webp" width="58%" alt="Pareno Desktop：光标旁的检查 HUD"></a>
+  <a href="https://pareno.altn.vision/desktop/"><img src="assets/pareno-desktop-0.9.12.webp" width="58%" alt="Pareno Desktop：光标旁的检查 HUD"></a>
   <a href="https://pareno.altn.vision/install/"><img src="assets/pareno-obsidian-panel.webp" width="31%" alt="Pareno for Obsidian：侧栏检查与修改"></a>
 </p>
 
@@ -21,9 +21,9 @@ PARENO 把检查、翻译、解释放进你正在写的地方：Obsidian 里是�
 | 位置 | 任意 App 的光标旁 | Obsidian 正文与侧栏 |
 | 入口 | 菜单栏 HUD、⌥⌘G | 侧栏、命令面板 |
 | 适合 | 邮件、文档、聊天、网页输入 | 长文、双语笔记、全文审校 |
-| 版本 | 0.9.11 | 0.8.0 |
+| 版本 | 0.9.12 | 0.8.0 |
 | 系统 | macOS 13+，Universal | Obsidian 桌面版 1.5.0+ |
-| 获取 | [下载 DMG](https://github.com/Jorgut/pareno/releases/download/desktop-0.9.11/ParenoDesktop-0.9.11.dmg) | [安装说明](https://pareno.altn.vision/install/) |
+| 获取 | [下载 DMG](https://github.com/Jorgut/pareno/releases/download/desktop-0.9.12/ParenoDesktop-0.9.12.dmg) | [安装说明](https://pareno.altn.vision/install/) |
 
 ### Pareno Desktop
 
