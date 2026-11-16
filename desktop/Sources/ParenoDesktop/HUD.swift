@@ -1,4 +1,5 @@
 import Cocoa
+import Combine
 
 enum HUDMode: String {
     case follow
@@ -6,6 +7,8 @@ enum HUDMode: String {
 }
 
 final class HUDDragHandle: NSView {
+    var theme: ParenoTheme = .champagne
+
     override func mouseDown(with event: NSEvent) {
         window?.performDrag(with: event)
     }
@@ -15,8 +18,8 @@ final class HUDDragHandle: NSView {
         // Same R3 geometry as the app icon, scaled into the HUD handle.
         let scale: CGFloat = 13.2 / 45.75
         let baseY: CGFloat = 3.4
-        let ivory = NSColor(calibratedRed: 0.96, green: 0.94, blue: 0.89, alpha: 0.94)
-        let gold = NSColor(calibratedRed: 0.85, green: 0.73, blue: 0.45, alpha: 1)
+        let ivory = theme.markBarNS
+        let gold = theme.markCursorNS
         let bars: [(CGFloat, CGFloat, CGFloat)] = [
             (13.75, 52, 8.5),
             (27.75, 46, 8.5),
@@ -57,6 +60,8 @@ final class CursorHUD: NSObject {
     private var settingsButton: NSButton?
     private var closeButton: NSButton?
     private var activeMode: CheckMode?
+    private var theme: ParenoTheme = ThemeStore.shared.theme
+    private var themeCancellable: AnyCancellable?
     var onMove: ((NSPoint) -> Void)?
     private(set) var mode: HUDMode = .follow
 
@@ -131,6 +136,10 @@ final class CursorHUD: NSObject {
         closeButton = addIconButton(symbol: "xmark", tooltip: L10n.t("hud.hide"), action: #selector(closeTapped))
 
         NotificationCenter.default.addObserver(self, selector: #selector(windowMoved), name: NSWindow.didMoveNotification, object: panel)
+        themeCancellable = ThemeStore.shared.$theme
+            .receive(on: RunLoop.main)
+            .sink { [weak self] theme in self?.applyTheme(theme) }
+        applyTheme(ThemeStore.shared.theme)
         applyLanguage()
         resizeToFit()
     }
@@ -151,8 +160,20 @@ final class CursorHUD: NSObject {
         applyButtonStyles()
     }
 
+    private func applyTheme(_ theme: ParenoTheme) {
+        self.theme = theme
+        effect.material = theme.hudMaterial
+        effect.layer?.backgroundColor = theme.hudTint.cgColor
+        effect.layer?.borderColor = theme.hudBorder.cgColor
+        effect.layer?.borderWidth = 1
+        grip?.theme = theme
+        grip?.needsDisplay = true
+        settingsButton?.contentTintColor = theme.hudSecondary
+        closeButton?.contentTintColor = theme.hudSecondary
+        applyButtonStyles()
+    }
+
     private func applyButtonStyles() {
-        let gold = NSColor(calibratedRed: 0.95, green: 0.84, blue: 0.60, alpha: 1)
         let buttons: [(NSButton?, CheckMode)] = [
             (checkButton, .check), (translateButton, .translate), (explainButton, .explain)
         ]
@@ -162,9 +183,9 @@ final class CursorHUD: NSObject {
             button.wantsLayer = true
             button.layer?.cornerRadius = 9
             button.layer?.backgroundColor = active
-                ? NSColor(calibratedRed: 0.85, green: 0.73, blue: 0.45, alpha: 0.22).cgColor
+                ? theme.hudAccent.withAlphaComponent(0.20).cgColor
                 : NSColor.clear.cgColor
-            button.contentTintColor = active ? gold : .labelColor
+            button.contentTintColor = active ? theme.hudAccent : theme.hudText
             button.toolTip = "\(mode.title) · \(L10n.t("hud.collapseHint"))"
             button.setAccessibilityValue(active ? "on" : "off")
             button.setAccessibilityHelp(L10n.t("hud.collapseHint"))

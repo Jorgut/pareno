@@ -10,6 +10,7 @@ enum Prefs {
     static let showInDock = "ParenoDesktopShowInDock"
     static let model = "ParenoDesktopModel"
     static let appearance = "ParenoDesktopAppearance"
+    static let theme = "ParenoDesktopTheme"
     static let cardAttached = "ParenoCardAttached"
     static let language = "ParenoLanguage"
     static let cardWidth = "ParenoCardWidth"
@@ -37,6 +38,7 @@ struct SettingsView: View {
     @AppStorage(Prefs.provider) private var provider = "ollama"
     @State private var cloudKey = ""
     @AppStorage(Prefs.language) private var language = "en"
+    @ObservedObject private var themeStore = ThemeStore.shared
 
     var body: some View {
         Form {
@@ -80,6 +82,44 @@ struct SettingsView: View {
                     Text(L10n.t("settings.appearance.dark")).tag("dark")
                     Text(L10n.t("settings.appearance.light")).tag("light")
                 }
+            }
+
+            Section(L10n.t("settings.skin.section")) {
+                HStack(spacing: 10) {
+                    ForEach(ParenoTheme.allCases) { item in
+                        Button {
+                            themeStore.theme = item
+                        } label: {
+                            VStack(alignment: .leading, spacing: 6) {
+                                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                                    .fill(item.cardBackground)
+                                    .frame(height: 34)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 7, style: .continuous)
+                                            .strokeBorder(item.cardBorder, lineWidth: 1)
+                                    )
+                                HStack(spacing: 4) {
+                                    Circle().fill(item.markBar).frame(width: 7, height: 7)
+                                    Circle().fill(item.markCursor).frame(width: 7, height: 7)
+                                    Text(item.title).font(.caption).foregroundStyle(.primary)
+                                }
+                            }
+                            .padding(7)
+                            .background(
+                                RoundedRectangle(cornerRadius: 9, style: .continuous)
+                                    .fill(themeStore.theme == item ? item.accent.opacity(0.16) : Color.clear)
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 9, style: .continuous)
+                                    .strokeBorder(themeStore.theme == item ? item.accent : Color.clear, lineWidth: 1)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                Text(themeStore.theme.note)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
             Section(L10n.t("settings.startup.section")) {

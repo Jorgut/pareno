@@ -55,7 +55,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
-        panel = ResultPanelController()
+        panel = ResultPanelController(themeStore: .shared)
         panel.onModelSelected = { [weak self] model in
             self?.applyModel(model)
         }

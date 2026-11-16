@@ -120,6 +120,9 @@ final class PanelModel: ObservableObject {
 
 struct ResultView: View {
     @ObservedObject var model: PanelModel
+    @ObservedObject var themeStore: ThemeStore
+
+    private var theme: ParenoTheme { themeStore.theme }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -131,23 +134,24 @@ struct ResultView: View {
         }
         .padding(14)
         .frame(minWidth: 340, maxWidth: .infinity, minHeight: 200, maxHeight: .infinity, alignment: .topLeading)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .background(
+            ZStack {
+                RoundedRectangle(cornerRadius: 16, style: .continuous).fill(.regularMaterial)
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(theme.cardBackground.opacity(theme == .paper ? 0.78 : 0.90))
+            }
+        )
         .overlay(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(Color.white.opacity(0.10), lineWidth: 1)
+                .strokeBorder(theme.cardBorder, lineWidth: 1)
         )
+        .environment(\.colorScheme, theme.colorScheme)
     }
 
     private var header: some View {
         HStack(spacing: 8) {
-            if let mark = BrandAssets.mark(size: 18) {
-                Image(nsImage: mark)
-                    .resizable()
-                    .interpolation(.high)
-                    .scaledToFit()
-                    .frame(width: 18, height: 18)
-                    .accessibilityLabel("Pareno")
-            }
+            ThemeMarkView(theme: theme)
+                .frame(width: 18, height: 18)
             Text("Pareno Desktop").font(.system(size: 13, weight: .semibold))
             Spacer()
             Picker("", selection: Binding(
@@ -311,13 +315,13 @@ struct ResultView: View {
             if model.mode == .explain {
                 Button(L10n.t("panel.copyExplanation")) { model.copy() }
                     .buttonStyle(.borderedProminent)
-                    .tint(Color(red: 0.85, green: 0.74, blue: 0.47))
+                    .tint(theme.accent)
                     .controlSize(.small)
                     .disabled(model.state != .result)
             } else {
                 Button(model.mode == .translate ? L10n.t("panel.replaceTranslation") : L10n.t("panel.replace")) { model.replace() }
                     .buttonStyle(.borderedProminent)
-                    .tint(Color(red: 0.85, green: 0.74, blue: 0.47))
+                    .tint(theme.accent)
                     .controlSize(.small)
                     .disabled(model.state != .result)
                 Button(L10n.t("panel.copy")) { model.copy() }
@@ -415,6 +419,7 @@ final class ResizeGripView: NSView {
 final class ResultPanelController: NSObject, NSWindowDelegate {
     let panel: NSPanel
     let model = PanelModel()
+    let themeStore: ThemeStore
     var onModelSelected: ((String) -> Void)?
     var sourceElement: AXUIElement?
     var sourceApp: NSRunningApplication?
@@ -425,7 +430,8 @@ final class ResultPanelController: NSObject, NSWindowDelegate {
         UserDefaults.standard.object(forKey: Prefs.cardAttached) as? Bool ?? true
     }
 
-    override init() {
+    init(themeStore: ThemeStore = .shared) {
+        self.themeStore = themeStore
         panel = NSPanel(
             contentRect: NSRect(x: 0, y: 0, width: 380, height: 420),
             styleMask: [.borderless, .nonactivatingPanel, .resizable],
@@ -451,7 +457,7 @@ final class ResultPanelController: NSObject, NSWindowDelegate {
         panel.backgroundColor = .clear
         panel.hasShadow = false
 
-        hosting = NSHostingView(rootView: ResultView(model: model))
+        hosting = NSHostingView(rootView: ResultView(model: model, themeStore: themeStore))
         panel.contentView = hosting
         let grip = ResizeGripView()
         grip.panel = panel
@@ -526,7 +532,7 @@ final class ResultPanelController: NSObject, NSWindowDelegate {
     }
 
     func refreshLanguage() {
-        hosting.rootView = ResultView(model: model)
+        hosting.rootView = ResultView(model: model, themeStore: themeStore)
     }
 
     func followHUD(_ hudFrame: NSRect) {
