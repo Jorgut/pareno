@@ -104,7 +104,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         hud.setMode(hudMode, origin: fixedOrigin)
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         if let button = statusItem.button {
-            button.image = NSImage(systemSymbolName: "text.badge.checkmark", accessibilityDescription: "Pareno Desktop")
+            button.image = makeStatusIcon()
             button.image?.isTemplate = true
             button.toolTip = L10n.t("tooltip.hud")
         }
@@ -140,6 +140,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.hud.update(caret: NSRect(x: mouse.x, y: mouse.y, width: 2, height: 16))
             }
         }
+    }
+
+    private func makeStatusIcon() -> NSImage {
+        let size = NSSize(width: 18, height: 18)
+        let image = NSImage(size: size, flipped: false) { _ in
+            NSColor.black.setFill()
+            let heights: [CGFloat] = [3.2, 7.3, 11.4]
+            for (index, y) in heights.enumerated() {
+                let width: CGFloat = index == 2 ? 10.5 : 13.2
+                let path = NSBezierPath(
+                    roundedRect: NSRect(x: 2.3, y: y, width: width, height: 1.9),
+                    xRadius: 0.95, yRadius: 0.95
+                )
+                path.fill()
+            }
+            NSBezierPath(
+                roundedRect: NSRect(x: 14.3, y: 9.4, width: 1.9, height: 5.8),
+                xRadius: 0.95, yRadius: 0.95
+            ).fill()
+            return true
+        }
+        image.isTemplate = true
+        return image
     }
 
     private func rebuildMenu() {

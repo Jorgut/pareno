@@ -129,17 +129,12 @@ struct ResultView: View {
 
     private var header: some View {
         HStack(spacing: 8) {
-            Text("P")
-                .font(.system(size: 11, weight: .bold, design: .serif))
-                .foregroundStyle(Color(red: 0.17, green: 0.14, blue: 0.08))
-                .frame(width: 20, height: 20)
-                .background(
-                    LinearGradient(
-                        colors: [Color(red: 0.93, green: 0.82, blue: 0.58), Color(red: 0.78, green: 0.64, blue: 0.37)],
-                        startPoint: .topLeading, endPoint: .bottomTrailing
-                    ),
-                    in: RoundedRectangle(cornerRadius: 6, style: .continuous)
-                )
+            Image(nsImage: NSImage(named: "ParenoMark") ?? NSImage())
+                .resizable()
+                .interpolation(.high)
+                .scaledToFit()
+                .frame(width: 22, height: 22)
+                .accessibilityLabel("Pareno")
             Text("Pareno Desktop").font(.system(size: 13, weight: .semibold))
             Spacer()
             Picker("", selection: Binding(

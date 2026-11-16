@@ -38,7 +38,7 @@
   }
 }
 
-body.theme-warm .brand-mark { background: var(--gold-soft); color: #1b150b; }
+body.theme-warm .brand-mark { background: #17130e; border: 1px solid rgba(216,188,120,.22); }
 
 body.theme-warm {
   color-scheme: dark;
@@ -144,7 +144,9 @@ hr { border: 0; border-top: 1px solid var(--line); margin: 2.4em 0; }
   color: var(--gold-soft);
   font-family: var(--serif);
   font-size: 20px;
+  overflow: hidden;
 }
+.brand-mark img { display: block; width: 24px; height: 24px; }
 .brand strong { display: block; font-family: var(--serif); font-size: 1.05rem; letter-spacing: .04em; }
 .brand small { display: block; color: var(--muted); font-size: .62rem; letter-spacing: .12em; text-transform: uppercase; }
 .site-nav { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 18px; }
