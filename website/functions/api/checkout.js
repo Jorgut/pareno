@@ -68,16 +68,21 @@ export async function onRequestPost({ env }) {
       });
     }
 
-    const url = data?.data?.checkout?.url;
-    if (typeof url !== 'string' || !url.startsWith('https://')) {
+    const transactionId = data?.data?.id;
+    if (typeof transactionId !== 'string' || !transactionId.startsWith('txn_')) {
       return json(502, {
-        error: 'checkout_url_missing',
-        detail: 'Paddle did not return a checkout URL. Check the default payment link and website approval.',
+        error: 'transaction_id_missing',
+        detail: 'Paddle did not return a transaction id. Check the default payment link and website approval.',
         fallback: FALLBACK_URL
       });
     }
 
-    return json(200, { url });
+    // Paddle's default payment link is a page that loads Paddle.js. Always send
+    // buyers to our checkout page with the transaction id, regardless of which
+    // approved page is configured as the default.
+    return json(200, {
+      url: `https://pareno.altn.vision/checkout/?_ptxn=${encodeURIComponent(transactionId)}`
+    });
   } catch (error) {
     return json(502, {
       error: 'paddle_unreachable',

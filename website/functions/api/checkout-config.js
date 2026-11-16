@@ -22,6 +22,14 @@ export async function onRequestGet({ env }) {
   if (!token) {
     return json(503, { error: 'checkout_not_configured', message: 'Paddle client token is not configured.' });
   }
+  // A Paddle API key must never reach the browser. Only client-side tokens
+  // (test_... or live_...) are valid here.
+  if (!/^(test_|live_)/.test(token)) {
+    return json(503, {
+      error: 'invalid_client_token',
+      message: 'PADDLE_CLIENT_TOKEN is not a Paddle client-side token. Create one under Authentication → Client-side tokens.'
+    });
+  }
   return json(200, {
     clientToken: token,
     environment: env?.PADDLE_ENV === 'live' ? 'production' : 'sandbox'
