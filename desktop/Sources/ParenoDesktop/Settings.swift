@@ -39,6 +39,8 @@ struct SettingsView: View {
     @State private var cloudKey = ""
     @AppStorage(Prefs.language) private var language = "en"
     @ObservedObject private var themeStore = ThemeStore.shared
+    @ObservedObject private var licenseManager = LicenseManager.shared
+    @State private var licenseKey = ""
 
     var body: some View {
         Form {
@@ -74,6 +76,37 @@ struct SettingsView: View {
                 Text(L10n.t("settings.card.hint"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
+            }
+
+            Section(L10n.t("license.section")) {
+                HStack {
+                    Text(licenseManager.state.title)
+                        .font(.system(size: 12, weight: .medium))
+                    Spacer()
+                    if licenseManager.state.isPro {
+                        Image(systemName: "checkmark.seal.fill")
+                            .foregroundStyle(themeStore.theme.accent)
+                    }
+                }
+                SecureField(L10n.t("license.key"), text: $licenseKey)
+                HStack(spacing: 8) {
+                    Button(L10n.t("license.activate")) {
+                        _ = licenseManager.activate(licenseKey)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(themeStore.theme.accent)
+                    Button(L10n.t("license.buy")) {
+                        if let url = URL(string: "https://pareno.altn.vision/desktop#pricing") {
+                            NSWorkspace.shared.open(url)
+                        }
+                    }
+                    .buttonStyle(.bordered)
+                }
+                if !licenseManager.statusMessage.isEmpty {
+                    Text(licenseManager.statusMessage)
+                        .font(.caption)
+                        .foregroundStyle(themeStore.theme.secondaryText)
+                }
             }
 
             Section(L10n.t("settings.startup.section")) {
