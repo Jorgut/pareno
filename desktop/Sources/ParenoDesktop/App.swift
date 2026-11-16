@@ -147,14 +147,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let image = NSImage(size: size, flipped: false) { _ in
             NSColor.black.setFill()
             let heights: [CGFloat] = [3.2, 7.3, 11.4]
+            let widths: [CGFloat] = [12.0, 10.6, 9.2]
             for (index, y) in heights.enumerated() {
-                let width: CGFloat = index == 2 ? 9.2 : 13.2
                 NSBezierPath(
-                    roundedRect: NSRect(x: 2.3, y: y, width: width, height: 1.9),
+                    roundedRect: NSRect(x: 2.3, y: y, width: widths[index], height: 1.9),
                     xRadius: 0.95, yRadius: 0.95
                 ).fill()
             }
-            NSBezierPath(rect: NSRect(x: 14.3, y: 9.4, width: 1.9, height: 5.8)).fill()
+            NSBezierPath(rect: NSRect(x: 12.6, y: 9.4, width: 1.6, height: 5.8)).fill()
             return true
         }
         image.isTemplate = true
