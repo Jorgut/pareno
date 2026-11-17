@@ -1,0 +1,71 @@
+---
+import Base from '../layouts/Base.astro';
+---
+<Base theme="warm" title="找回 Pareno 许可证" description="用 Paddle 交易号找回 Pareno Desktop Pro 许可证。">
+  <section class="page">
+    <div class="wrap">
+      <div class="page-head">
+        <span class="eyebrow">PARENO PRO</span>
+        <h1>找回许可证</h1>
+        <p>输入 Paddle 收据里的 transaction ID，我们会重新签发你的许可证。</p>
+      </div>
+      <div class="panel">
+        <label for="txn" class="small"><strong>Paddle transaction ID</strong></label>
+        <input id="txn" type="text" placeholder="txn_..." autocomplete="off" spellcheck="false"
+          style="display:block;width:100%;margin:8px 0 14px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg-soft);font-family:ui-monospace,monospace" />
+        <button class="button primary" id="recover" type="button">找回许可证</button>
+        <p id="status" class="small muted" style="margin-top:14px">交易号在 Paddle 付款收据邮件里。</p>
+        <div id="result" hidden style="margin-top:14px">
+          <p><strong>许可证</strong></p>
+          <code id="license" style="display:block;white-space:pre-wrap;word-break:break-all;padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--bg-soft)"></code>
+          <p style="margin-top:12px"><button class="button primary" id="copy" type="button">复制许可证</button></p>
+          <p class="small muted">打开 Pareno Desktop → 设置 → Pareno Pro，粘贴并激活。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</Base>
+
+<script>
+  const input = document.getElementById('txn');
+  const button = document.getElementById('recover');
+  const status = document.getElementById('status');
+  const result = document.getElementById('result');
+  const license = document.getElementById('license');
+
+  function normalize(value) {
+    const match = value.match(/txn_[a-z0-9]+/i);
+    return match ? match[0].toLowerCase() : '';
+  }
+
+  button.addEventListener('click', async () => {
+    const txn = normalize(input.value.trim());
+    if (!txn) {
+      status.textContent = '请粘贴以 txn_ 开头的交易号。';
+      return;
+    }
+    button.disabled = true;
+    status.textContent = '正在向 Paddle 确认订单…';
+    result.hidden = true;
+    try {
+      const response = await fetch('/api/license?txn=' + encodeURIComponent(txn));
+      const data = await response.json();
+      if (!response.ok) {
+        status.textContent = data.message || '暂时无法找回，请稍后再试。';
+        return;
+      }
+      status.textContent = '已找到许可证。';
+      result.hidden = false;
+      license.textContent = data.license;
+    } catch {
+      status.textContent = '网络错误，请稍后再试。';
+    } finally {
+      button.disabled = false;
+    }
+  });
+
+  document.getElementById('copy').addEventListener('click', async () => {
+    await navigator.clipboard.writeText(license.textContent || '');
+    document.getElementById('copy').textContent = '已复制';
+  });
+</script>
