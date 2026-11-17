@@ -25,7 +25,8 @@ import Base from '../layouts/Base.astro';
 
 <script>
   const params = new URLSearchParams(window.location.search);
-  const txn = params.get('_ptxn') || params.get('txn') || '';
+  const savedTxn = (() => { try { return sessionStorage.getItem('pareno_paddle_txn') || ''; } catch { return ''; } })();
+  const txn = params.get('_ptxn') || params.get('txn') || savedTxn;
   const status = document.getElementById('license-status');
   const result = document.getElementById('license-result');
   const keyNode = document.getElementById('license-key');

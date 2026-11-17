@@ -24,7 +24,9 @@ import Base from '../layouts/Base.astro';
   const transactionId = params.get('_ptxn') || params.get('transaction_id') || '';
   const status = document.getElementById('checkout-status');
   const openButton = document.getElementById('open-checkout');
-  const successUrl = new URL('/thanks/', window.location.origin).toString();
+  const successUrl = new URL('/thanks/', window.location.origin);
+  successUrl.searchParams.set('_ptxn', transactionId);
+  try { sessionStorage.setItem('pareno_paddle_txn', transactionId); } catch {}
 
   if (!transactionId) {
     status.textContent = '没有找到交易号，请从购买按钮重新打开。';
@@ -47,7 +49,7 @@ import Base from '../layouts/Base.astro';
         const open = () => {
           window.Paddle.Checkout.open({
             transactionId,
-            settings: { successUrl }
+            settings: { successUrl: successUrl.toString() }
           });
         };
         status.textContent = '正在打开 Checkout…';
