@@ -4,8 +4,8 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 swift build -c release --arch arm64 --arch x86_64
 APP="$ROOT/Pareno Desktop.app"
-VERSION="${PARENO_VERSION:-0.9.20}"
-BUILD="${PARENO_BUILD:-21}"
+VERSION="${PARENO_VERSION:-0.9.22}"
+BUILD="${PARENO_BUILD:-23}"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$ROOT/Resources/AppIcon.icns" "$APP/Contents/Resources/AppIcon.icns"
@@ -44,9 +44,14 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 PLIST
 SIGN_IDENTITY="${PARENO_SIGN_IDENTITY:-Developer ID Application: hong liang zhu (GB38532D8G)}"
 if security find-identity -v -p codesigning 2>/dev/null | grep -q "$SIGN_IDENTITY"; then
-  codesign --force --deep --options runtime --sign "$SIGN_IDENTITY" "$APP"
+  codesign --force --deep --options runtime --timestamp --sign "$SIGN_IDENTITY" "$APP"
 else
-  echo "warning: signing identity not found, falling back to ad-hoc" >&2
-  codesign --force --deep --sign - "$APP" >/dev/null 2>&1 || true
+  if [ "${PARENO_ALLOW_ADHOC:-0}" = "1" ]; then
+    echo "warning: signing identity not found, using ad-hoc for local development" >&2
+    codesign --force --deep --sign - "$APP" >/dev/null 2>&1 || true
+  else
+    echo "error: Developer ID signing identity not found; refusing to build an unnotarizable app" >&2
+    exit 1
+  fi
 fi
 echo "Built $APP"
