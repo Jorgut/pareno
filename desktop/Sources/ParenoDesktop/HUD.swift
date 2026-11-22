@@ -263,12 +263,15 @@ final class CursorHUD: NSObject {
         guard let visible = screen?.visibleFrame else { hide(); return }
         let gap: CGFloat = 8
         let upperLimit = field.map { min($0.maxY, visible.maxY) } ?? visible.maxY
+        // A tall text area (Obsidian, editors) is not a chat composer. Anchoring
+        // above the whole field sends the HUD to the toolbar, far from the caret.
+        let preferCaret = field.map { $0.height > 260 && caret.minY > $0.minY + 60 } ?? false
         var origin: NSPoint?
 
         // 1. Above the whole focused input, not just above the caret.
         // This keeps the HUD out of multi-line fields and chat composers,
         // where placing it above the caret covers the previous text line.
-        if let field {
+        if !preferCaret, let field {
             let x = min(max(field.minX + 6, caret.minX), visible.maxX - size.width - 4)
             let aboveField = NSPoint(x: x, y: field.maxY + gap)
             if aboveField.y + size.height <= visible.maxY - 4,
@@ -278,7 +281,7 @@ final class CursorHUD: NSObject {
         }
 
         // 2. Right of the whole field, vertically centered on the caret.
-        if origin == nil, let field {
+        if origin == nil, !preferCaret, let field {
             let right = NSPoint(x: field.maxX + gap, y: caret.midY - size.height / 2)
             if right.x + size.width <= visible.maxX - 4,
                right.y >= visible.minY + 4,
@@ -288,7 +291,7 @@ final class CursorHUD: NSObject {
         }
 
         // 3. Left of the whole field.
-        if origin == nil, let field {
+        if origin == nil, !preferCaret, let field {
             let left = NSPoint(x: field.minX - size.width - gap, y: caret.midY - size.height / 2)
             if left.x >= visible.minX + 4,
                left.y >= visible.minY + 4,

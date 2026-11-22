@@ -60,14 +60,34 @@ enum SelectionService {
             }
         }
         var range = queryRange
-        guard let expandedRef = AXValueCreate(.cfRange, &range) else { return nil }
-        var boundsRef: CFTypeRef?
-        guard AXUIElementCopyParameterizedAttributeValue(element, kAXBoundsForRangeParameterizedAttribute as CFString, expandedRef, &boundsRef) == .success,
-              let boundsRef else { return nil }
         var rect = CGRect.zero
-        guard AXValueGetValue(boundsRef as! AXValue, .cgRect, &rect), rect.width >= 0, rect.height > 0 else { return nil }
+        if let expandedRef = AXValueCreate(.cfRange, &range) {
+            var boundsRef: CFTypeRef?
+            if AXUIElementCopyParameterizedAttributeValue(element, kAXBoundsForRangeParameterizedAttribute as CFString, expandedRef, &boundsRef) == .success,
+               let boundsRef {
+                _ = AXValueGetValue(boundsRef as! AXValue, .cgRect, &rect)
+            }
+        }
+        // Chromium/Electron apps such as Obsidian return a zero rect from
+        // AXBoundsForRange even though they expose a useful text marker range.
+        if rect.height <= 0, let markerRect = textMarkerRect(for: element) {
+            rect = markerRect
+        }
+        guard rect.width >= 0, rect.height > 0 else { return nil }
         let screenHeight = NSScreen.screens.first?.frame.height ?? 0
         return NSRect(x: rect.origin.x, y: screenHeight - rect.maxY, width: max(rect.width, 2), height: rect.height)
+    }
+
+    private static func textMarkerRect(for element: AXUIElement) -> CGRect? {
+        var markerRef: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(element, "AXSelectedTextMarkerRange" as CFString, &markerRef) == .success,
+              let markerRef else { return nil }
+        var boundsRef: CFTypeRef?
+        guard AXUIElementCopyParameterizedAttributeValue(element, "AXBoundsForTextMarkerRange" as CFString, markerRef, &boundsRef) == .success,
+              let boundsRef else { return nil }
+        var rect = CGRect.zero
+        guard AXValueGetValue(boundsRef as! AXValue, .cgRect, &rect), rect.height > 0 else { return nil }
+        return rect
     }
 
     static func isTextRole(_ role: String) -> Bool {
