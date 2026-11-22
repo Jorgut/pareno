@@ -168,8 +168,8 @@ final class CursorHUD: NSObject {
         effect.layer?.borderWidth = 1
         grip?.theme = theme
         grip?.needsDisplay = true
-        settingsButton?.contentTintColor = theme.hudSecondary
-        closeButton?.contentTintColor = theme.hudSecondary
+        settingsButton?.contentTintColor = theme.hudText.withAlphaComponent(0.82)
+        closeButton?.contentTintColor = theme.hudText.withAlphaComponent(0.82)
         applyButtonStyles()
     }
 
@@ -221,10 +221,13 @@ final class CursorHUD: NSObject {
 
     @discardableResult
     private func addIconButton(symbol: String, tooltip: String, action: Selector) -> NSButton {
-        let button = NSButton(image: NSImage(systemSymbolName: symbol, accessibilityDescription: tooltip) ?? NSImage(), target: self, action: action)
+        let config = NSImage.SymbolConfiguration(pointSize: 12, weight: .medium)
+        let icon = (NSImage(systemSymbolName: symbol, accessibilityDescription: tooltip) ?? NSImage())
+            .withSymbolConfiguration(config)
+        let button = NSButton(image: icon ?? NSImage(), target: self, action: action)
         button.isBordered = false
         button.imagePosition = .imageOnly
-        button.contentTintColor = .secondaryLabelColor
+        button.contentTintColor = theme.hudText
         button.toolTip = tooltip
         button.translatesAutoresizingMaskIntoConstraints = false
         button.widthAnchor.constraint(equalToConstant: 24).isActive = true
