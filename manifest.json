@@ -1,9 +1,9 @@
 {
   "id": "pareno",
   "name": "PARENO",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "minAppVersion": "1.5.0",
   "description": "Bilingual writing review with inline suggestions, article checks, translation, and author-controlled revisions.",
   "author": "ArchIntera",
-  "isDesktopOnly": true
+  "isDesktopOnly": false
 }

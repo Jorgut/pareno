@@ -1,7 +1,3 @@
-import { existsSync } from 'node:fs';
-import { homedir } from 'node:os';
-import { delimiter, isAbsolute, join } from 'node:path';
-
 export type AgentKind = 'codex' | 'claude' | 'cursor-agent' | 'opencode';
 export type AgentState = 'unknown' | 'ready' | 'missing' | 'error';
 
@@ -116,19 +112,4 @@ export function agentOptions(statuses: AgentStatus[]): AgentOption[] {
       available: ready
     };
   });
-}
-
-export function resolveAgentCommand(command: string): string {
-  const trimmed = command.trim();
-  if (!trimmed || isAbsolute(trimmed)) return trimmed;
-  const home = homedir();
-  const directories = (process.env.PATH || '').split(delimiter).filter(Boolean);
-  for (const directory of ['/opt/homebrew/bin', '/usr/local/bin', '/usr/bin', '/bin', join(home, '.local', 'bin'), join(home, '.bun', 'bin'), join(home, '.npm-global', 'bin'), join(home, '.cargo', 'bin')]) {
-    if (!directories.includes(directory)) directories.push(directory);
-  }
-  for (const directory of directories) {
-    const candidate = join(directory, trimmed);
-    if (existsSync(candidate)) return candidate;
-  }
-  return trimmed;
 }

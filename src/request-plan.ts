@@ -1,4 +1,4 @@
-import { agentDefinition, resolveAgentCommand } from './agents.ts';
+import { agentDefinition } from './agents.ts';
 import type { AgentKind } from './agents.ts';
 
 export type Provider = 'ollama' | 'openai' | AgentKind;
@@ -55,7 +55,7 @@ export function planRequest(settings: ProviderSettings): RequestPlan {
     };
   }
   const definition = agentDefinition(settings.provider);
-  const command = resolveAgentCommand(agentExecutable(settings, settings.provider));
+  const command = agentExecutable(settings, settings.provider);
   const modelArgs = settings.model.trim() ? ['--model', settings.model.trim()] : [];
   if (settings.provider === 'codex') {
     return {

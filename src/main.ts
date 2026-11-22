@@ -16,10 +16,9 @@ import {
   translationNoteTitle, translationText, TranslationVariant
 } from './document-translation';
 import { agentExecutable, Provider, requestWritingModel } from './provider';
-import { spawn } from 'node:child_process';
 import {
   agentDefinition, AgentKind, agentStatusLabel, agentStatusSummary, defaultAgentStatuses, AgentStatus,
-  parseAgentVersion, resolveAgentCommand
+  parseAgentVersion
 } from './agents';
 import {
   DEFAULT_OLLAMA_STATUS, hasOllamaCloudModel, hasOllamaModel, OLLAMA_CLOUD_KEYS_URL, OLLAMA_CLOUD_TAGS_URL,
@@ -35,6 +34,16 @@ import {
 const PANEL_TYPE = 'pareno-panel';
 const LOG_FOLDER = 'PARENO';
 const LOG_PATH = `${LOG_FOLDER}/Learning Log.md`;
+
+type SpawnFn = typeof import('node:child_process').spawn;
+
+// Node built-ins are desktop-only: importing them eagerly would break plugin
+// load inside Obsidian mobile (WebView, no Node runtime).
+async function desktopSpawn(): Promise<SpawnFn> {
+  if (!Platform.isDesktopApp) throw new Error('本机进程只能在桌面版启动。');
+  const module = await import('node:child_process');
+  return module.spawn;
+}
 
 interface CoachSettings {
   provider: Provider;
@@ -136,9 +145,13 @@ export default class ParenoPlugin extends Plugin {
   private ollamaStarting = false;
   private agentStatuses: AgentStatus[] = defaultAgentStatuses();
   private agentChecking = false;
+  private agentCheckPromise?: Promise<AgentStatus[]>;
 
   async onload(): Promise<void> {
     this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+    if (!Platform.isDesktopApp && this.settings.provider === 'ollama' && !this.settings.ollamaCloud && this.usesLocalOllama()) {
+      new Notice('手机端没有本机 Ollama：请在 PARENO 设置里填写 ollama.com 密钥，或把模型来源改为兼容 API。', 10000);
+    }
     this.lastMarkdownView = this.findActiveMarkdownView();
     this.registerEvent(this.app.workspace.on('active-leaf-change', leaf => {
       if (leaf?.view instanceof MarkdownView) this.lastMarkdownView = leaf.view;
@@ -253,40 +266,52 @@ export default class ParenoPlugin extends Plugin {
   isAgentsChecking(): boolean { return this.agentChecking; }
 
   async ensureAgentStatuses(force = false): Promise<AgentStatus[]> {
+    // Mobile Obsidian has no Node runtime and no local CLIs: keep statuses untouched.
+    if (!Platform.isDesktopApp) return this.agentStatuses;
+    // Join the in-flight check instead of resolving early: callers use
+    // `.then(render)`, and resolving early while `agentChecking` is still true
+    // turns that into an unbounded render loop (each render re-renders).
+    if (this.agentCheckPromise) return this.agentCheckPromise;
     const fresh = this.agentStatuses.every(status => status.checkedAt > 0 && Date.now() - status.checkedAt < 60000);
-    if (!force && (this.agentChecking || fresh)) return this.agentStatuses;
+    if (!force && fresh) return this.agentStatuses;
     this.agentChecking = true;
-    try {
-      const kinds: AgentKind[] = ['codex', 'claude', 'cursor-agent', 'opencode'];
-      const results = await Promise.all(kinds.map(async kind => {
-        const definition = agentDefinition(kind);
-        const executable = resolveAgentCommand(agentExecutable(this.settings, kind));
-        const timeout = new Promise<AgentStatus>(resolve => {
-          setTimeout(() => resolve({
-            kind, label: definition.label, executable, state: 'error',
-            version: '', message: `${definition.label} 检测超时`, checkedAt: Date.now()
-          }), 8000);
-        });
-        try {
-          return await Promise.race([this.probeAgent(kind), timeout]);
-        } catch {
-          return {
-            kind, label: definition.label, executable, state: 'error' as const,
-            version: '', message: `${definition.label} 检测失败`, checkedAt: Date.now()
-          };
-        }
-      }));
-      this.agentStatuses = results;
-    } finally {
-      this.agentChecking = false;
-      this.renderPanel();
-    }
-    return this.agentStatuses;
+    const kinds: AgentKind[] = ['codex', 'claude', 'cursor-agent', 'opencode'];
+    this.agentCheckPromise = (async () => {
+      try {
+        // Desktop-only module: resolving executable paths touches fs/PATH.
+        const { resolveAgentCommand } = await import('./agent-desktop');
+        const results = await Promise.all(kinds.map(async kind => {
+          const definition = agentDefinition(kind);
+          const executable = resolveAgentCommand(agentExecutable(this.settings, kind));
+          const timeout = new Promise<AgentStatus>(resolve => {
+            setTimeout(() => resolve({
+              kind, label: definition.label, executable, state: 'error',
+              version: '', message: `${definition.label} 检测超时`, checkedAt: Date.now()
+            }), 8000);
+          });
+          try {
+            return await Promise.race([this.probeAgent(kind, executable), timeout]);
+          } catch {
+            return {
+              kind, label: definition.label, executable, state: 'error' as const,
+              version: '', message: `${definition.label} 检测失败`, checkedAt: Date.now()
+            };
+          }
+        }));
+        this.agentStatuses = results;
+        return this.agentStatuses;
+      } finally {
+        this.agentChecking = false;
+        this.agentCheckPromise = undefined;
+        this.renderPanel();
+      }
+    })();
+    return this.agentCheckPromise;
   }
 
-  private probeAgent(kind: AgentKind): Promise<AgentStatus> {
+  private async probeAgent(kind: AgentKind, executable: string): Promise<AgentStatus> {
     const definition = agentDefinition(kind);
-    const executable = resolveAgentCommand(agentExecutable(this.settings, kind));
+    const spawn = await desktopSpawn();
     return new Promise(resolve => {
       let stdout = '';
       let stderr = '';
@@ -331,9 +356,22 @@ export default class ParenoPlugin extends Plugin {
     return this.ollamaStatus;
   }
 
+  usesLocalOllama(): boolean {
+    try {
+      const host = new URL(this.ollamaBase()).hostname;
+      return host === 'localhost' || host === '127.0.0.1' || host === '::1' || host === '0.0.0.0';
+    } catch {
+      return false;
+    }
+  }
+
   private async checkOllamaInternal(): Promise<void> {
+    // A phone cannot reach a desktop's localhost; skip the doomed request.
+    const localRequest = !Platform.isDesktopApp && this.usesLocalOllama()
+      ? Promise.reject(new Error('手机端无法连接本机 Ollama'))
+      : requestUrl({ url: `${this.ollamaBase()}/api/tags`, method: 'GET', throw: false });
     const [local, cloud] = await Promise.allSettled([
-      requestUrl({ url: `${this.ollamaBase()}/api/tags`, method: 'GET', throw: false }),
+      localRequest,
       requestUrl({ url: OLLAMA_CLOUD_TAGS_URL, method: 'GET', throw: false })
     ]);
     const cloudOk = cloud.status === 'fulfilled' && cloud.value.status >= 200 && cloud.value.status < 300;
@@ -349,11 +387,17 @@ export default class ParenoPlugin extends Plugin {
         this.ollamaStatus = { state: 'error', models: [], cloudModels, cloudError, message: `Ollama 返回 ${response.status}`, checkedAt: Date.now() };
       }
     } else {
-      this.ollamaStatus = { state: 'stopped', models: [], cloudModels, cloudError, message: 'Ollama 未启动或端口不可用', checkedAt: Date.now() };
+      this.ollamaStatus = {
+        state: 'stopped', models: [], cloudModels, cloudError,
+        message: Platform.isDesktopApp ? 'Ollama 未启动或端口不可用' : '手机端无法连接本机 Ollama',
+        checkedAt: Date.now()
+      };
     }
   }
 
-  private launchOllama(command: string, args: string[]): Promise<boolean> {
+  private async launchOllama(command: string, args: string[]): Promise<boolean> {
+    if (!Platform.isDesktopApp) return false;
+    const spawn = await desktopSpawn();
     return new Promise(resolve => {
       const child = spawn(command, args, { detached: true, stdio: 'ignore', windowsHide: true });
       let settled = false;
@@ -365,14 +409,18 @@ export default class ParenoPlugin extends Plugin {
   }
 
   async startOllama(): Promise<void> {
+    if (!Platform.isDesktopApp) {
+      new Notice('手机端无法启动本机 Ollama，请使用 Ollama Cloud 或兼容 API。');
+      return;
+    }
     if (this.ollamaStarting) return;
     this.ollamaStarting = true;
     this.ollamaStatus = { state: 'stopped', models: [], cloudModels: this.ollamaStatus.cloudModels, cloudError: '', message: '正在启动 Ollama…', checkedAt: 0 };
     this.renderPanel();
     try {
       let launched = await this.launchOllama('ollama', ['serve']);
-      if (!launched && process.platform === 'darwin') launched = await this.launchOllama('open', ['-a', 'Ollama']);
-      if (!launched && process.platform === 'win32') launched = await this.launchOllama('cmd', ['/c', 'start', '', 'ollama', 'serve']);
+      if (!launched && Platform.isMacOS) launched = await this.launchOllama('open', ['-a', 'Ollama']);
+      if (!launched && Platform.isWin) launched = await this.launchOllama('cmd', ['/c', 'start', '', 'ollama', 'serve']);
       if (!launched) {
         this.ollamaStatus = { state: 'missing', models: [], cloudModels: [], cloudError: '', message: '未找到 Ollama，请先安装', checkedAt: Date.now() };
         new Notice('未找到 Ollama。请先安装 Ollama，或确认 ollama 命令在 PATH 中。');
@@ -1180,7 +1228,15 @@ class CoachSidebar extends ItemView {
     const model = parent.createDiv({ cls: 'pareno-model' });
     model.createEl('span', { text: '模型与数据范围' });
     const statuses = this.coach.getAgentStatuses();
-    if (statuses.some(status => status.state === 'unknown')) void this.coach.ensureAgentStatuses().then(() => this.render());
+    if (statuses.some(status => status.state === 'unknown') && !this.coach.isAgentsChecking()) {
+      // Re-render only once the statuses actually changed; re-rendering while a
+      // check is in flight would re-enter this branch and rebuild the panel
+      // forever (this is what used to blow the renderer heap up to several GB).
+      void this.coach.ensureAgentStatuses().then(next => {
+        if (next.some(status => status.state === 'unknown')) return;
+        this.render();
+      });
+    }
     const select = model.createEl('select', { attr: { 'aria-label': '模型供应方式' } });
     select.createEl('option', { text: 'Ollama · 本机 / 云端', value: 'ollama' });
     for (const status of statuses) {
@@ -1231,15 +1287,18 @@ class CoachSidebar extends ItemView {
       if (cloud && !this.coach.settings.ollamaApiKey.trim()) {
         ollama.createEl('p', { text: '云端模型需要 ollama.com API 密钥，请在设置中填写。', cls: 'bwc-hint' });
       }
+      if (!Platform.isDesktopApp && !cloud && this.coach.usesLocalOllama()) {
+        ollama.createEl('p', { text: '手机端没有本机 Ollama：请在设置里填写 ollama.com 密钥使用云端模型，或改用兼容 API。', cls: 'bwc-hint' });
+      }
       const ollamaActions = ollama.createDiv({ cls: 'pareno-ollama-actions' });
-      if (ollamaStatus.state !== 'running') {
+      if (Platform.isDesktopApp && ollamaStatus.state !== 'running') {
         const start = ollamaActions.createEl('button', { text: this.coach.isOllamaStarting() ? '正在启动…' : '启动 Ollama', cls: 'mod-cta' });
         start.disabled = this.coach.isOllamaStarting();
         start.onclick = () => void this.coach.startOllama();
       }
       const refresh = ollamaActions.createEl('button', { text: '刷新' });
       refresh.onclick = () => void this.coach.ensureOllamaStatus(true);
-      if (ollamaStatus.state === 'missing') {
+      if (Platform.isDesktopApp && ollamaStatus.state === 'missing') {
         const install = ollamaActions.createEl('button', { text: '安装 Ollama' });
         install.onclick = () => this.coach.openOllamaDownload();
       }
@@ -1572,15 +1631,22 @@ class CoachSettingsTab extends PluginSettingTab {
     containerEl.createEl('h2', { text: 'PARENO · 并言' });
     const statuses = this.coach.getAgentStatuses();
     if (statuses.some(status => status.state === 'unknown') && !this.coach.isAgentsChecking()) {
-      void this.coach.ensureAgentStatuses().then(() => this.display());
+      void this.coach.ensureAgentStatuses().then(next => {
+        if (next.some(status => status.state === 'unknown')) return;
+        this.display();
+      });
     }
     new Setting(containerEl).setName('Provider / 模型来源')
-      .setDesc('Ollama 可跑本机模型，也可用免费额度的云端模型；本机 Agent 使用已安装 CLI 的登录；兼容 API 走自定义端点。')
+      .setDesc(Platform.isDesktopApp
+        ? 'Ollama 可跑本机模型，也可用免费额度的云端模型；本机 Agent 使用已安装 CLI 的登录；兼容 API 走自定义端点。'
+        : '手机端没有本机 Ollama 与 CLI：请使用 Ollama 云端（填 ollama.com 密钥）或兼容 API 端点。')
       .addDropdown(dropdown => {
-        dropdown.addOption('ollama', 'Ollama · 本机 / 云端');
-        for (const status of statuses) {
-          const suffix = status.state === 'ready' ? ' · 可用' : status.state === 'unknown' ? ' · 检测中' : ' · 未检测到';
-          dropdown.addOption(status.kind, `${status.label}${suffix}`);
+        dropdown.addOption('ollama', Platform.isDesktopApp ? 'Ollama · 本机 / 云端' : 'Ollama · 云端');
+        if (Platform.isDesktopApp) {
+          for (const status of statuses) {
+            const suffix = status.state === 'ready' ? ' · 可用' : status.state === 'unknown' ? ' · 检测中' : ' · 未检测到';
+            dropdown.addOption(status.kind, `${status.label}${suffix}`);
+          }
         }
         dropdown.addOption('openai', 'OpenAI-compatible API');
         dropdown.setValue(this.coach.settings.provider);
@@ -1616,13 +1682,16 @@ class CoachSettingsTab extends PluginSettingTab {
       connection.addButton(button => button.setButtonText('检查连接').onClick(async () => {
         await this.coach.ensureOllamaStatus(true); this.display();
       }));
-      if (ollamaStatus.state !== 'running') {
+      if (Platform.isDesktopApp && ollamaStatus.state !== 'running') {
         connection.addButton(button => button.setButtonText(this.coach.isOllamaStarting() ? '正在启动…' : '启动 Ollama').setCta()
           .setDisabled(this.coach.isOllamaStarting())
           .onClick(async () => { await this.coach.startOllama(); this.display(); }));
       }
-      if (ollamaStatus.state === 'missing') {
+      if (Platform.isDesktopApp && ollamaStatus.state === 'missing') {
         connection.addButton(button => button.setButtonText('安装 Ollama').onClick(() => this.coach.openOllamaDownload()));
+      }
+      if (!Platform.isDesktopApp && this.coach.usesLocalOllama()) {
+        connection.setDesc('手机端无法连接本机 Ollama：请填写 ollama.com 密钥使用云端模型，或把模型来源改为兼容 API。');
       }
       const localNames = [...new Set([...ollamaStatus.models, !cloud ? this.coach.settings.model : ''].filter(Boolean))];
       const cloudNames = [...new Set([...ollamaStatus.cloudModels, cloud ? this.coach.settings.model : ''].filter(Boolean))];
@@ -1662,24 +1731,26 @@ class CoachSettingsTab extends PluginSettingTab {
       }
     }
 
-    new Setting(containerEl).setName('本机 Agent').setDesc(agentStatusSummary(statuses))
-      .addButton(button => button.setButtonText(this.coach.isAgentsChecking() ? '正在检测…' : '重新检测')
-        .setDisabled(this.coach.isAgentsChecking())
-        .onClick(async () => { await this.coach.ensureAgentStatuses(true); this.display(); }));
-    for (const status of statuses) {
-      const definition = agentDefinition(status.kind);
-      const suffix = status.state === 'ready' ? ` · ${status.version}` : status.state === 'unknown' ? ' · 检测中' : status.state === 'missing' ? ' · 未检测到' : ' · 不可用';
-      const setting = new Setting(containerEl)
-        .setName(`${definition.label}${suffix}`)
-        .setDesc(status.state === 'error' && status.message ? status.message : definition.hint);
-      setting.addText(text => text.setValue(this.agentExecutableValue(status.kind))
-        .onChange(async value => { this.setAgentExecutableValue(status.kind, value); await this.coach.saveSettings(); }));
-    }
-    if (this.coach.settings.provider !== 'ollama' && this.coach.settings.provider !== 'openai') {
-      new Setting(containerEl).setName('Agent model (optional)')
-        .setDesc('留空使用该 Agent 的默认模型；也可填写它支持的名字，例如 sonnet、gpt-5。')
-        .addText(text => text.setValue(this.coach.settings.model)
-          .onChange(async value => { this.coach.settings.model = value.trim(); await this.coach.saveSettings(); }));
+    if (Platform.isDesktopApp) {
+      new Setting(containerEl).setName('本机 Agent').setDesc(agentStatusSummary(statuses))
+        .addButton(button => button.setButtonText(this.coach.isAgentsChecking() ? '正在检测…' : '重新检测')
+          .setDisabled(this.coach.isAgentsChecking())
+          .onClick(async () => { await this.coach.ensureAgentStatuses(true); this.display(); }));
+      for (const status of statuses) {
+        const definition = agentDefinition(status.kind);
+        const suffix = status.state === 'ready' ? ` · ${status.version}` : status.state === 'unknown' ? ' · 检测中' : status.state === 'missing' ? ' · 未检测到' : ' · 不可用';
+        const setting = new Setting(containerEl)
+          .setName(`${definition.label}${suffix}`)
+          .setDesc(status.state === 'error' && status.message ? status.message : definition.hint);
+        setting.addText(text => text.setValue(this.agentExecutableValue(status.kind))
+          .onChange(async value => { this.setAgentExecutableValue(status.kind, value); await this.coach.saveSettings(); }));
+      }
+      if (this.coach.settings.provider !== 'ollama' && this.coach.settings.provider !== 'openai') {
+        new Setting(containerEl).setName('Agent model (optional)')
+          .setDesc('留空使用该 Agent 的默认模型；也可填写它支持的名字，例如 sonnet、gpt-5。')
+          .addText(text => text.setValue(this.coach.settings.model)
+            .onChange(async value => { this.coach.settings.model = value.trim(); await this.coach.saveSettings(); }));
+      }
     }
     if (this.coach.settings.provider === 'openai') {
       new Setting(containerEl).setName('API endpoint').setDesc('Chat Completions-compatible URL.')

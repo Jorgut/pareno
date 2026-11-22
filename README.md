@@ -21,7 +21,7 @@ PARENO 把检查、翻译、解释放进你正在写的地方：Obsidian 里是�
 | 位置 | 任意 App 的光标旁 | Obsidian 正文与侧栏 |
 | 入口 | 菜单栏 HUD、⌥⌘G | 侧栏、命令面板 |
 | 适合 | 邮件、文档、聊天、网页输入 | 长文、双语笔记、全文审校 |
-| 版本 | 0.9.22 | 0.8.0 |
+| 版本 | 0.9.22 | 0.9.0 |
 | 系统 | macOS 13+，Universal | Obsidian 桌面版 1.5.0+ |
 | 获取 | [下载 DMG](https://github.com/Jorgut/pareno/releases/download/desktop-0.9.22/ParenoDesktop-0.9.22.dmg) | [安装说明](https://pareno.altn.vision/install/) |
 
@@ -93,7 +93,9 @@ Pangram AI 文本检测仍保留为**手动、可选的独立工具**。只有�
 3. Obsidian → **设置 → 第三方插件**，启用 **PARENO**。已有 PARENO 安装者先备份旧版插件文件与设置。
 4. 点击左侧语言图标打开侧栏。在 **PARENO 设置**里选择模型供应方式。
 
-这是桌面版插件。`0.8.0` 包含本机 Codex、Claude Code、Cursor Agent、OpenCode 的 CLI 接入，以及 Ollama 本机与云端模型，因此清单标记为 desktop-only。它不会删除或迁移旧 Archintera Writing Companion 的文件和学习记录；两个插件若同时启用，可能同时显示各自侧栏，建议验证新版本后再停用旧插件。
+`0.9.0` 起支持 **Obsidian 移动端（iOS / Android）**，桌面端功能不变。桌面版包含本机 Codex、Claude Code、Cursor Agent、OpenCode 的 CLI 接入，以及 Ollama 本机与云端模型；手机上没有本机 Ollama 和 CLI，移动端请使用 **Ollama 云端（ollama.com 密钥）** 或 **兼容 Chat Completions API**，插件在移动端会自动隐藏桌面专属入口。
+
+它不会删除或迁移旧 Archintera Writing Companion 的文件和学习记录；两个插件若同时启用，可能同时显示各自侧栏，建议验证新版本后再停用旧插件。
 
 ### 模型选择
 
