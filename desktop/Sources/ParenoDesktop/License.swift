@@ -75,6 +75,10 @@ final class LicenseManager: ObservableObject {
         return true
     }
 
+    var storedLicenseKey: String {
+        KeychainStore.string(for: licenseKeyAccount)
+    }
+
     func beginCheckout() async -> URL? {
         statusMessage = ""
         guard let endpoint = URL(string: "https://pareno.altn.vision/api/checkout") else { return nil }

@@ -88,7 +88,22 @@ struct SettingsView: View {
                             .foregroundStyle(themeStore.theme.accent)
                     }
                 }
-                SecureField(L10n.t("license.key"), text: $licenseKey)
+                HStack(spacing: 8) {
+                    TextField(L10n.t("license.key"), text: $licenseKey)
+                        .textFieldStyle(.roundedBorder)
+                        .font(.system(size: 10, design: .monospaced))
+                    Button(L10n.t("license.paste")) {
+                        licenseKey = NSPasteboard.general.string(forType: .string) ?? ""
+                    }
+                    .buttonStyle(.bordered)
+                    if !licenseKey.isEmpty {
+                        Button(L10n.t("license.copy")) {
+                            NSPasteboard.general.clearContents()
+                            NSPasteboard.general.setString(licenseKey, forType: .string)
+                        }
+                        .buttonStyle(.bordered)
+                    }
+                }
                 HStack(spacing: 8) {
                     Button(L10n.t("license.activate")) {
                         _ = licenseManager.activate(licenseKey)
@@ -165,7 +180,12 @@ struct SettingsView: View {
             KeychainStore.set(value, for: Prefs.ollamaKeyAccount)
             notifyChange()
         }
-        .onAppear { cloudKey = KeychainStore.string(for: Prefs.ollamaKeyAccount) }
+        .onAppear {
+            cloudKey = KeychainStore.string(for: Prefs.ollamaKeyAccount)
+            if licenseKey.isEmpty {
+                licenseKey = licenseManager.storedLicenseKey
+            }
+        }
         .onDisappear { notifyChange() }
     }
 }

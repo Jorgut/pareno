@@ -5,7 +5,7 @@ cd "$ROOT"
 swift build -c release --arch arm64 --arch x86_64
 APP="$ROOT/Pareno Desktop.app"
 VERSION="${PARENO_VERSION:-0.9.23}"
-BUILD="${PARENO_BUILD:-25}"
+BUILD="${PARENO_BUILD:-26}"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$ROOT/Resources/AppIcon.icns" "$APP/Contents/Resources/AppIcon.icns"

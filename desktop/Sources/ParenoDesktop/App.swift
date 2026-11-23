@@ -593,6 +593,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func runTask(_ mode: CheckMode) {
+        if LicenseManager.shared.state == .expired {
+            showTrialExpired()
+            return
+        }
         guard SelectionService.isTrusted else {
             SelectionService.requestTrust()
             hud.setActiveMode(nil)
@@ -618,6 +622,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         hud.setActiveMode(nil)
         panel.showMessage(L10n.t("error.noText"))
+    }
+
+    private func showTrialExpired() {
+        let alert = NSAlert()
+        alert.messageText = L10n.t("license.expired")
+        alert.informativeText = L10n.t("license.expiredHint")
+        alert.addButton(withTitle: L10n.t("license.buy"))
+        alert.addButton(withTitle: L10n.t("license.enterShort"))
+        alert.addButton(withTitle: L10n.t("license.later"))
+        switch alert.runModal() {
+        case .alertFirstButtonReturn:
+            Task { @MainActor in
+                if let url = await LicenseManager.shared.beginCheckout() {
+                    NSWorkspace.shared.open(url)
+                }
+            }
+        case .alertSecondButtonReturn:
+            settingsWindow?.show()
+        default:
+            break
+        }
     }
 
     @objc private func selectProvider(_ sender: NSMenuItem) {
